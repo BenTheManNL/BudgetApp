@@ -1,5 +1,5 @@
 /* Mijn budget – zorgt dat de app ook zonder internet opent */
-const CACHE = 'mijnbudget-v3';
+const CACHE = 'mijnbudget-v4';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/apple-touch-icon.png', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {
@@ -25,7 +25,7 @@ self.addEventListener('fetch', (e) => {
   e.respondWith((async () => {
     const c = await caches.open(CACHE);
     try {
-      const res = await fetch(req);
+      const res = await fetch(req, { cache: 'no-cache' });
       if (res.ok) c.put(req, res.clone());
       return res;
     } catch (err) {
