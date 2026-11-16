@@ -222,8 +222,8 @@
   @media (max-width: 759px) {
     .editors { display: flex; flex-direction: column; gap: 14px; }
     .col { display: contents; }
-    .editors [data-soort="inkomsten"] { order: 1; } .editors [data-soort="vast"] { order: 2; }
-    .editors [data-soort="aflossing"] { order: 3; } .editors [data-soort="tijdelijk"] { order: 4; }
+    .editors [data-soort="inkomsten"] { order: 1; } .editors [data-soort="extra"] { order: 2; } .editors [data-soort="vast"] { order: 3; }
+    .editors [data-soort="aflossing"] { order: 4; } .editors [data-soort="tijdelijk"] { order: 5; }
   }
 
   /* ---------- goals ---------- */
@@ -295,6 +295,8 @@
   .add-row > * { min-width: 0; }
   .field { min-height: 46px; }
   .period input[type="date"] { width: auto; min-height: 40px; display: inline-block; }
+  .xrow .rest { grid-template-columns: 96px 150px; }
+  .xrow .rest input[type="date"] { min-height: 36px; padding: 5px 8px; text-align: left; }
 </style>
 </head>
 <body>
@@ -459,6 +461,12 @@
             <ul class="rows"></ul>
             <button class="add" data-add="inkomsten">+ Inkomen toevoegen</button>
           </section>
+          <section class="card" data-soort="extra">
+            <div class="ed-head"><h2><span class="dot" style="background:var(--bood)"></span>Tijdelijke inkomsten</h2><span class="sum" data-sum="extra">—</span></div>
+            <p class="ed-hint">Geld dat je eenmalig deze periode krijgt. Het wordt verdeeld over de dagen vanaf de datum dat je het krijgt tot het einde van de periode.</p>
+            <ul class="rows"></ul>
+            <button class="add" data-add="extra">+ Tijdelijk inkomen toevoegen</button>
+          </section>
           <section class="card" data-soort="aflossing">
             <div class="ed-head"><h2><span class="dot" style="background:var(--schuld)"></span>Aflossingen</h2><span class="sum" data-sum="aflossing">—</span></div>
             <p class="ed-hint">Bedrag per periode en wat je nog moet betalen. Bij een nieuwe periode gaat de restschuld automatisch omlaag.</p>
@@ -597,7 +605,7 @@
 <script>
 (function () {
   const DOC = 'budget/huidig';
-  const SOORTEN = ['inkomsten', 'vast', 'aflossing', 'tijdelijk'];
+  const SOORTEN = ['inkomsten', 'extra', 'vast', 'aflossing', 'tijdelijk'];
   const DOELEN = 'doelen/lijst';
   const eur = new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' });
   const pct = new Intl.NumberFormat('nl-NL', { style: 'percent', maximumFractionDigits: 1 });
@@ -662,6 +670,7 @@
           naam: typeof p.naam === 'string' ? p.naam : '',
           bedrag: Number.isFinite(Number(p.bedrag)) ? r2(Number(p.bedrag)) : 0,
         };
+        if (p.soort === 'extra') q.datum = typeof p.datum === 'string' ? p.datum : '';
         if (p.soort === 'aflossing') q.rest = p.rest === null || p.rest === undefined || p.rest === '' || !Number.isFinite(Number(p.rest)) ? null : Math.max(0, r2(Number(p.rest)));
         return q;
       }),
@@ -679,7 +688,8 @@
 
   function totalen(s) {
     const som = (k) => r2(s.posten.filter((p) => p.soort === k).reduce((a, p) => a + p.bedrag, 0));
-    const inkomsten = som('inkomsten'), vastAlleen = som('vast'), aflossing = som('aflossing'), tijdelijk = som('tijdelijk');
+    const inkomstenVast = som('inkomsten'), extra = som('extra'), vastAlleen = som('vast'), aflossing = som('aflossing'), tijdelijk = som('tijdelijk');
+    const inkomsten = r2(inkomstenVast + extra);
     const vast = r2(vastAlleen + aflossing);
     const over = r2(inkomsten - vast), vrij = r2(over - tijdelijk);
     const dagen = dagenIn(s);
@@ -689,7 +699,7 @@
     const potBedrag = (p) => r2(p.type === 'pct' ? basis * p.waarde / 100 : p.waarde);
     const boodschappen = potBedrag(vd.boodschappen), sparen = potBedrag(vd.sparen);
     const eigen = r2(vrij - boodschappen - sparen);
-    return { inkomsten, vast, vastAlleen, aflossing, tijdelijk, over, vrij, dagen, week: perWeek(vrij), boodschappen, sparen, eigen,
+    return { inkomsten, inkomstenVast, extra, vast, vastAlleen, aflossing, tijdelijk, over, vrij, dagen, week: perWeek(vrij), boodschappen, sparen, eigen,
       wBoodschappen: perWeek(boodschappen), wSparen: perWeek(sparen), wEigen: perWeek(eigen) };
   }
 
@@ -751,7 +761,7 @@
     [/kinderopvang|school|oppas/, '🧸'], [/pc|computer|laptop|tablet|ipad|monitor/, '💻'], [/cadeau|verjaardag|feest|kerst|sinterklaas/, '🎁'],
     [/kleding|kleren|schoenen/, '👕'], [/kapper/, '💇'], [/boodschap|supermarkt|ah\b|albert heijn|jumbo|lidl|aldi/, '🛒'], [/spaar|sparen|buffer/, '🐷'], [/goede doel|donatie|gift/, '💚'],
   ];
-  const STANDAARD = { inkomsten: '💶', vast: '📄', aflossing: '💳', tijdelijk: '🧾' };
+  const STANDAARD = { inkomsten: '💶', extra: '💰', vast: '📄', aflossing: '💳', tijdelijk: '🧾' };
   function icoonVoor(p) {
     const n = (p.naam || '').toLowerCase();
     if (n) for (const [re, ic] of ICONEN) if (re.test(n)) return ic;
@@ -761,7 +771,7 @@
   function rowEl(p, tag) {
     const li = document.createElement(tag || 'li'); li.className = 'row'; li.dataset.id = p.id;
     const ic = document.createElement('span'); ic.className = 'r-ic'; ic.setAttribute('aria-hidden', 'true'); ic.textContent = icoonVoor(p);
-    ic.style.setProperty('--pot', p.soort === 'inkomsten' ? 'var(--bood)' : p.soort === 'aflossing' ? 'var(--schuld)' : p.soort === 'tijdelijk' ? 'var(--tijd)' : 'var(--vast)');
+    ic.style.setProperty('--pot', p.soort === 'inkomsten' || p.soort === 'extra' ? 'var(--bood)' : p.soort === 'aflossing' ? 'var(--schuld)' : p.soort === 'tijdelijk' ? 'var(--tijd)' : 'var(--vast)');
     const naam = document.createElement('input'); naam.value = p.naam; naam.placeholder = 'Omschrijving'; naam.setAttribute('aria-label', 'Omschrijving');
     const amt = document.createElement('input'); amt.className = 'amt'; amt.inputMode = 'decimal'; amt.value = num.format(p.bedrag); amt.setAttribute('aria-label', 'Bedrag');
     const del = document.createElement('button'); del.className = 'del'; del.textContent = '×'; del.title = 'Verwijderen'; del.setAttribute('aria-label', 'Verwijder ' + (p.naam || 'post'));
@@ -774,6 +784,62 @@
     naam.addEventListener('keydown', (e) => { if (e.key === 'Enter') amt.focus(); });
     del.addEventListener('click', () => { state.posten = state.posten.filter((x) => x !== p); renderLists(); renderTotals(); changed(false); });
     li.append(ic, naam, amt, del);
+    return li;
+  }
+
+  // ---------- tijdelijke inkomsten ----------
+  function dagIndex(s, iso) {
+    const S = parseISO(s.start), x = parseISO(iso);
+    return Number.isFinite(S) && Number.isFinite(x) ? Math.round((x - S) / 86400000) : 0;
+  }
+  // Gewicht per dag: het gewone vrije geld gelijk over alle dagen, extra geld alleen vanaf de dag dat je het krijgt
+  function dagGewichten(s, t) {
+    const D = t.dagen; if (!(D > 0)) return [];
+    const g = new Array(D).fill(0);
+    const basis = Math.max(0, r2(t.vrij - t.extra));
+    for (let d = 0; d < D; d++) g[d] += basis / D;
+    s.posten.filter((p) => p.soort === 'extra' && p.bedrag > 0).forEach((p) => {
+      const i0 = Math.min(D - 1, Math.max(0, dagIndex(s, p.datum || s.start)));
+      for (let d = i0; d < D; d++) g[d] += p.bedrag / (D - i0);
+    });
+    const tot = g.reduce((a, b) => a + b, 0);
+    return tot > 0 ? g.map((x) => x / tot) : g.map(() => 1 / D);
+  }
+  function weekDeel(s, t, wk) {
+    const g = dagGewichten(s, t); if (!g.length) return 0;
+    const i0 = Math.max(0, dagIndex(s, wk.start)); let som = 0;
+    for (let d = i0; d < Math.min(g.length, i0 + wk.dagen); d++) som += g[d];
+    return som;
+  }
+  function standaardDatum() {
+    const v = vandaag();
+    if (state.start && v < state.start) return state.start;
+    if (state.eind && v >= state.eind) return toISO(parseISO(state.eind) - 86400000);
+    return v;
+  }
+  function extraEl(p) {
+    const li = document.createElement('li'); li.className = 'arow xrow'; li.dataset.id = p.id;
+    const top = rowEl(p, 'div');
+    const rest = document.createElement('div'); rest.className = 'rest';
+    const lab = document.createElement('span'); lab.textContent = 'Ontvangen op';
+    const inp = document.createElement('input'); inp.type = 'date'; inp.value = p.datum || '';
+    inp.setAttribute('aria-label', 'Datum ontvangen ' + (p.naam || ''));
+    if (state.start) inp.min = state.start;
+    if (state.eind) inp.max = toISO(parseISO(state.eind) - 86400000);
+    inp.disabled = readOnly;
+    const info = document.createElement('span'); info.className = 'info';
+    inp.addEventListener('change', () => { p.datum = inp.value; renderTotals(); changed(); });
+    function upd() {
+      const D = dagenIn(state);
+      const i0 = Math.min(Math.max(0, D - 1), Math.max(0, dagIndex(state, p.datum || state.start)));
+      const rem = D - i0;
+      info.textContent = rem > 0 && p.bedrag > 0
+        ? 'Verdeeld over de laatste ' + rem + (rem === 1 ? ' dag' : ' dagen') + ' · ± ' + eur.format(r2(p.bedrag / rem * 7)) + ' per week extra'
+        : 'Vul het bedrag en de datum in';
+    }
+    li._upd = upd; upd();
+    rest.append(lab, inp, info);
+    li.append(top, rest);
     return li;
   }
 
@@ -836,7 +902,7 @@
       const items = state.posten.filter((p) => p.soort === sec.dataset.soort);
       if (sec.dataset.soort === 'aflossing') items.sort(aflosVolgorde);
       if (!items.length) { const li = document.createElement('li'); li.className = 'empty-list'; li.textContent = 'Nog niets ingevuld.'; ul.append(li); }
-      items.forEach((p) => ul.append(p.soort === 'aflossing' ? aflosEl(p) : rowEl(p)));
+      items.forEach((p) => ul.append(p.soort === 'aflossing' ? aflosEl(p) : p.soort === 'extra' ? extraEl(p) : rowEl(p)));
     }
   }
 
@@ -889,6 +955,7 @@
   document.querySelectorAll('[data-add]').forEach((b) => b.addEventListener('click', () => {
     const p = { id: uid(), soort: b.dataset.add, naam: '', bedrag: 0 };
     if (p.soort === 'aflossing') p.rest = null;
+    if (p.soort === 'extra') p.datum = standaardDatum();
     state.posten.push(p); renderLists(); renderTotals(); changed();
     const li = document.querySelector('li[data-id="' + p.id + '"] input'); if (li) li.focus();
   }));
@@ -940,7 +1007,7 @@
     await db.doc('archief/' + keyOf(state.start)).set({ ...JSON.parse(JSON.stringify(state)), totalen: t, bewaardOp: new Date().toISOString() });
     state.start = state.eind; state.eind = addMonth(state.eind);
     const afgelost = [];
-    state.posten = state.posten.filter((p) => p.soort !== 'tijdelijk').filter((p) => {
+    state.posten = state.posten.filter((p) => p.soort !== 'tijdelijk' && p.soort !== 'extra').filter((p) => {
       if (p.soort !== 'aflossing' || p.rest === null) return true;
       p.rest = Math.max(0, r2(p.rest - p.bedrag));
       if (p.rest <= 0) { afgelost.push(p.naam || 'Een aflossing'); return false; }
@@ -979,7 +1046,7 @@
     const ns = state.eind, ne = addMonth(state.eind);
     openModal({
       title: 'Nieuwe periode starten?',
-      text: 'De huidige periode wordt bewaard bij "Vorige periodes". Je inkomsten en vaste lasten blijven staan. De tijdelijke uitgaven en je bijgehouden uitgaven worden leeggemaakt, en de restschuld van je aflossingen gaat omlaag. Nieuwe periode: ' + kort(ns) + ' t/m ' + kort(ne) + '.',
+      text: 'De huidige periode wordt bewaard bij "Vorige periodes". Je inkomsten en vaste lasten blijven staan. De tijdelijke inkomsten, tijdelijke uitgaven en je bijgehouden uitgaven worden leeggemaakt, en de restschuld van je aflossingen gaat omlaag. Nieuwe periode: ' + kort(ns) + ' t/m ' + kort(ne) + '.',
       ok: 'Nieuwe periode starten',
       onOk: async () => {
         const afgelost = await doorNaarVolgendePeriode();
@@ -1089,7 +1156,7 @@
     $('wk-prev').disabled = viewWeek <= 0; $('wk-next').disabled = viewWeek >= ws.length - 1; $('wk-nu').disabled = viewWeek === auto;
     const inWeek = state.uitgaven.filter((u) => u.datum >= w.start && u.datum <= w.end);
     const som = (arr, pot) => r2(arr.filter((u) => u.pot === pot).reduce((a, u) => a + u.bedrag, 0));
-    const deel = t.dagen > 0 ? w.dagen / t.dagen : 0;
+    const deel = weekDeel(state, t, w);
     meter('b', r2(Math.max(0, t.boodschappen) * deel), som(inWeek, 'boodschappen'));
     meter('e', r2(Math.max(0, t.eigen) * deel), som(inWeek, 'eigen'));
     const wBudget = r2(Math.max(0, t.boodschappen) * deel + Math.max(0, t.eigen) * deel);

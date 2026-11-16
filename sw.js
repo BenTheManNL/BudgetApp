@@ -1,5 +1,5 @@
 /* Mijn budget – zorgt dat de app ook zonder internet opent */
-const CACHE = 'mijnbudget-v2';
+const CACHE = 'mijnbudget-v3';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/apple-touch-icon.png', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {
