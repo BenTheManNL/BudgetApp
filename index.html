@@ -37,7 +37,7 @@
     }
   }
   * { box-sizing: border-box; }
-  html { -webkit-text-size-adjust: 100%; touch-action: manipulation; }
+  html { -webkit-text-size-adjust: 100%; touch-action: manipulation; min-height: calc(100% + env(safe-area-inset-top)); }
   body { touch-action: pan-x pan-y; }
   body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.45;
     padding-bottom: calc(var(--tabbar) + env(safe-area-inset-bottom) + 24px); }
