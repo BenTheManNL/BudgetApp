@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1F5C4D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Budget">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>Mijn budget</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2216%22%20fill%3D%22%231F5C4D%22/%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%2213.5%22%20r%3D%226%22%20fill%3D%22%23F6C77A%22/%3E%3Crect%20x%3D%2230.6%22%20y%3D%2210.5%22%20width%3D%222.8%22%20height%3D%226%22%20rx%3D%221.4%22%20fill%3D%22%23C98B2E%22/%3E%3Crect%20x%3D%2219%22%20y%3D%2221%22%20width%3D%2226%22%20height%3D%226%22%20rx%3D%223%22%20fill%3D%22%239FE0C2%22/%3E%3Cpath%20d%3D%22M21%2029h22a2%202%200%200%201%202%202v17a8%208%200%200%201-8%208H27a8%208%200%200%201-8-8V31a2%202%200%200%201%202-2z%22%20fill%3D%22%23E7F3EE%22/%3E%3CclipPath%20id%3D%22f%22%3E%3Cpath%20d%3D%22M21%2029h22a2%202%200%200%201%202%202v17a8%208%200%200%201-8%208H27a8%208%200%200%201-8-8V31a2%202%200%200%201%202-2z%22/%3E%3C/clipPath%3E%3Cpath%20clip-path%3D%22url%28%23f%29%22%20d%3D%22M17%2041c4-2.4%208-2.4%2012%200s8%202.4%2012%200%206-2%208-1V60H17z%22%20fill%3D%22%233E9B6F%22/%3E%3Crect%20x%3D%2223.5%22%20y%3D%2232%22%20width%3D%223%22%20height%3D%229%22%20rx%3D%221.5%22%20fill%3D%22%23FFFFFF%22%20opacity%3D%22.7%22/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #EAF0ED; --surface: #FFFFFF; --surface-2: #F3F7F5; --line: #DCE5E0;
+    --ink: #13302A; --ink-2: #4E6660; --ink-3: #7F948E;
+    --pine: #1F5C4D; --pine-2: #2A7462; --pine-ink: #E7F3EE; --mint: #9FE0C2;
+    --bood: #3E9B6F; --spaar: #3D6FD9; --eigen: #E39A2D; --schuld: #D25A4E; --vast: #5B6EE0; --tijd: #E39A2D;
+    --ok: #2F8F62; --bad: #CC4B3F;
+    --r-lg: 22px; --r-md: 16px; --r-sm: 11px;
+    --display: "Bricolage Grotesque", "Figtree", system-ui, sans-serif;
+    --body: "Figtree", system-ui, -apple-system, sans-serif;
+    --tabbar: 68px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0E1A17; --surface: #15241F; --surface-2: #1B2D27; --line: #26392F;
+      --ink: #E6F0EC; --ink-2: #A9BDB6; --ink-3: #7C918A;
+      --pine: #17473C; --pine-2: #1F5C4D; --pine-ink: #E7F3EE; --mint: #7DD3AE;
+      --bood: #56B786; --spaar: #6E93F0; --eigen: #F0B04C; --schuld: #E9776B; --vast: #8796F2; --tijd: #F0B04C;
+      --ok: #56B786; --bad: #EE7A6E;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; touch-action: manipulation; }
+  body { touch-action: pan-x pan-y; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.45;
+    padding-bottom: calc(var(--tabbar) + env(safe-area-inset-bottom) + 24px); }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--spaar); outline-offset: 2px; }
+  .num { font-variant-numeric: tabular-nums; }
+  .pos { color: var(--ok); } .neg { color: var(--bad) !important; }
+  [hidden] { display: none !important; }
+
+  /* ---------- app bar ---------- */
+  .appbar { position: sticky; top: 0; z-index: 5; background: var(--pine); color: var(--pine-ink);
+    padding: calc(env(safe-area-inset-top) + 12px) 20px 12px; }
+  .appbar-in { max-width: 760px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .logo { width: 36px; height: 36px; border-radius: 9px; flex: none; box-shadow: 0 0 0 1.5px rgba(255,255,255,.22); overflow: hidden; }
+  .logo svg { display: block; width: 36px; height: 36px; }
+  .logo-lg { width: 84px; height: 84px; margin: 0 auto 14px; }
+  .logo-lg svg { display: block; width: 84px; height: 84px; }
+  .brand-txt { min-width: 0; }
+  .brand-name { font-family: var(--display); font-weight: 700; font-size: 17px; line-height: 1.1; }
+  #titel { font-size: 13px; opacity: .8; margin: 0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .status { font-size: 12px; padding: 5px 10px; border-radius: 99px; background: rgba(255,255,255,.12); white-space: nowrap; }
+  .status.err { background: #F6D5D0; color: #8A2A20; }
+
+  /* ---------- tabs ---------- */
+  .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--surface); border-top: 1px solid var(--line);
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(4, 1fr); }
+  .tab { background: none; border: none; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 0; border-radius: 12px; color: var(--ink-3); font-size: 12px; font-weight: 600; }
+  .tab svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .tab[aria-selected="true"] { color: var(--pine-2); }
+  @media (prefers-color-scheme: dark) { .tab[aria-selected="true"] { color: var(--mint); } }
+  @media (min-width: 760px) {
+    body { padding-bottom: 48px; }
+    .tabbar { position: sticky; top: 58px; bottom: auto; border-top: none; border-bottom: 1px solid var(--line); background: var(--bg);
+      display: flex; justify-content: center; gap: 4px; padding: 10px 8px; z-index: 4; }
+    .tab { flex-direction: row; gap: 8px; padding: 8px 16px; font-size: 14px; }
+    .tab svg { width: 18px; height: 18px; }
+    .tab[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 0 var(--line); }
+  }
+
+  /* ---------- layout ---------- */
+  .wrap { max-width: 760px; margin: 0 auto; padding: 16px 16px 0; }
+  .pane { display: flex; flex-direction: column; gap: 14px; }
+  .card { background: var(--surface); border-radius: var(--r-lg); padding: 18px; }
+  .card-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .card-h h2 { font-family: var(--display); font-weight: 700; font-size: 19px; margin: 0; letter-spacing: -.01em; }
+  .card-sub { color: var(--ink-3); font-size: 13px; }
+  .hint { color: var(--ink-3); font-size: 13px; margin: 0; }
+  .notice { background: var(--surface); border-left: 4px solid var(--spaar); border-radius: var(--r-sm); padding: 12px 14px; font-size: 14px; color: var(--ink-2); }
+  .notice.celebrate { border-left-color: var(--ok); color: var(--ink); }
+  .warn { color: var(--bad); font-size: 13px; margin-top: 10px; }
+
+  .btn { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 9px 14px; font-weight: 600; font-size: 14px; }
+  .btn:hover { background: var(--surface-2); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .btn-primary { background: var(--pine); border-color: var(--pine); color: var(--pine-ink); }
+  .btn-primary:hover { background: var(--pine-2); }
+  .btn-danger { background: var(--bad); border-color: var(--bad); color: #fff; }
+  .btn-ghost { border-color: transparent; background: transparent; color: var(--ink-2); }
+  .btn-sm { padding: 5px 10px; font-size: 13px; border-radius: 9px; }
+  .iconbtn { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); display: grid; place-items: center; font-size: 18px; line-height: 1; padding: 0; }
+  .iconbtn:disabled { opacity: .35; }
+  .x { width: 32px; height: 32px; border: none; background: none; color: var(--ink-3); font-size: 20px; border-radius: 9px; padding: 0; line-height: 1; }
+  .x:hover { background: var(--surface-2); color: var(--bad); }
+
+  /* ---------- hero (overzicht) ---------- */
+  .hero { background: var(--pine); color: var(--pine-ink); border-radius: var(--r-lg); padding: 20px; position: relative; overflow: hidden; }
+  .hero-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  #wk-titel { font-family: var(--display); font-weight: 700; font-size: 17px; margin: 0; }
+  #wk-datums { font-size: 13px; opacity: .75; }
+  .hero .iconbtn { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.14); color: var(--pine-ink); }
+  .hero .btn-ghost { color: var(--pine-ink); opacity: .85; padding: 6px 10px; font-size: 13px; }
+  .wk-nav { display: flex; gap: 6px; align-items: center; }
+  .hero-main { display: grid; grid-template-columns: auto 1fr; gap: 20px; align-items: center; margin-top: 18px; }
+  .ring { width: 132px; height: 132px; position: relative; }
+  .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring .bg { stroke: rgba(255,255,255,.14); }
+  .ring .fg { stroke: var(--mint); transition: stroke-dashoffset .6s cubic-bezier(.2,.8,.2,1); }
+  .ring.over .fg { stroke: #F4A79E; }
+  .ring-c { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+  .ring-c b { font-family: var(--display); font-size: 26px; font-weight: 700; line-height: 1; }
+  .ring-c span { display: block; font-size: 11px; opacity: .75; margin-top: 2px; }
+  .hero-lbl { font-size: 14px; opacity: .8; }
+  #hero-left { font-family: var(--display); font-weight: 800; font-size: clamp(40px, 11vw, 60px); line-height: 1; letter-spacing: -.03em; margin: 4px 0 6px; font-variant-numeric: tabular-nums; }
+  #hero-sub { font-size: 13px; opacity: .75; }
+  .hero-pots { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+  .hp { background: rgba(255,255,255,.08); border-radius: var(--r-md); padding: 12px 14px; }
+  .hp-name { font-size: 13px; opacity: .85; display: flex; align-items: center; gap: 6px; }
+  .hp-left { font-family: var(--display); font-weight: 700; font-size: 22px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .hp-left.neg { color: #FFB4AA !important; }
+  .hp-of { font-size: 12px; opacity: .7; font-variant-numeric: tabular-nums; }
+  .hp .track { height: 6px; border-radius: 99px; background: rgba(255,255,255,.14); overflow: hidden; margin-top: 8px; }
+  .hp .fill { height: 100%; border-radius: 99px; background: var(--pot); width: 0; transition: width .4s ease; }
+  .hp .fill.over { background: #F4A79E; }
+  @media (max-width: 480px) { .hero-main { gap: 16px; } .ring { width: 104px; height: 104px; } .ring-c b { font-size: 22px; } }
+  @media (max-width: 330px) { .hero-main { grid-template-columns: 1fr; } }
+
+  /* ---------- add expense ---------- */
+  .potpick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .potpick label { position: relative; }
+  .potpick input { position: absolute; opacity: 0; pointer-events: none; }
+  .potpick span { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; border-radius: 12px; border: 1.5px solid var(--line); font-weight: 600; font-size: 14px; cursor: pointer; }
+  .potpick input:checked + span { border-color: var(--pot); background: color-mix(in srgb, var(--pot) 12%, var(--surface)); }
+  .potpick input:focus-visible + span { outline: 2px solid var(--spaar); outline-offset: 2px; }
+  .amount-in { display: flex; align-items: center; gap: 4px; background: var(--surface-2); border-radius: var(--r-md); padding: 6px 16px; margin: 12px 0 10px; border: 1.5px solid transparent; }
+  .amount-in:focus-within { border-color: var(--pine-2); }
+  .amount-in .eur { font-family: var(--display); font-size: 30px; font-weight: 600; color: var(--ink-3); }
+  #u-bedrag { border: none; background: transparent; font-family: var(--display); font-size: 34px; font-weight: 700; width: 100%; padding: 6px 0; outline: none; font-variant-numeric: tabular-nums; min-width: 0; }
+  .add-row { display: grid; grid-template-columns: 1fr 150px; gap: 8px; }
+  .field { border: 1.5px solid var(--line); background: var(--surface); border-radius: 12px; padding: 10px 12px; width: 100%; min-width: 0; }
+  .field:focus { outline: none; border-color: var(--pine-2); }
+  #u-add { width: 100%; margin-top: 10px; padding: 13px; font-size: 16px; border-radius: 14px; }
+  @media (max-width: 420px) { .add-row { grid-template-columns: 1fr; } }
+
+  /* ---------- entries ---------- */
+  .entries { list-style: none; margin: 0; padding: 0; }
+  .entries li { display: grid; grid-template-columns: 40px 1fr auto 32px; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+  .entries li:first-child { border-top: none; }
+  .e-ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 18px; background: color-mix(in srgb, var(--pot) 14%, var(--surface)); }
+  .e-nm { font-weight: 600; font-size: 15px; line-height: 1.2; }
+  .e-d { color: var(--ink-3); font-size: 12px; }
+  .e-b { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .empty { color: var(--ink-3); font-size: 14px; padding: 14px 0 4px; text-align: center; }
+  .period-line { color: var(--ink-3); font-size: 13px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+
+  /* ---------- potjes (budget) ---------- */
+  .wb-top { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 8px 20px; margin-bottom: 14px; }
+  .wb-big { font-family: var(--display); font-weight: 700; font-size: 30px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .wb-big small { font-family: var(--body); font-size: 14px; color: var(--ink-3); font-weight: 500; letter-spacing: 0; }
+  .pots { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+  .pot { background: var(--surface-2); border-radius: var(--r-md); padding: 14px; display: flex; flex-direction: column; gap: 3px; position: relative; overflow: hidden; }
+  .pot::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--pot); }
+  .pot .name { font-weight: 600; font-size: 14px; }
+  .pot .amount { font-family: var(--display); font-weight: 700; font-size: 24px; font-variant-numeric: tabular-nums; display: flex; align-items: baseline; gap: 4px; }
+  .pot .unit { font-family: var(--body); font-size: 13px; color: var(--ink-3); font-weight: 500; }
+  .pot .per { color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; margin-bottom: 8px; }
+  .pot label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-3); }
+  .pot input { width: 76px; border: 1.5px solid var(--line); background: var(--surface); border-radius: 9px; padding: 6px 8px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .pot input:focus { outline: none; border-color: var(--pine-2); }
+  .unit-btn { width: 38px; padding: 6px 0; border-radius: 9px; border: 1.5px solid var(--line); background: var(--surface); font-weight: 700; }
+  .pot .auto { font-size: 12px; color: var(--ink-3); padding: 8px 0 2px; }
+
+  /* ---------- summary ---------- */
+  .sum-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border-radius: var(--r-md); overflow: hidden; }
+  .sum-grid > div { background: var(--surface); padding: 12px 14px; }
+  .sum-grid .l { color: var(--ink-3); font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  .sum-grid .v { font-weight: 700; font-size: 18px; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .dot { width: 8px; height: 8px; border-radius: 3px; display: inline-block; flex: none; }
+  .bar { display: flex; height: 12px; border-radius: 99px; overflow: hidden; background: var(--surface-2); margin: 16px 0 10px; gap: 2px; }
+  .bar div { height: 100%; transition: width .4s ease; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--ink-2); }
+  .legend > span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  /* ---------- editors ---------- */
+  .ed-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .ed-head h2 { font-family: var(--display); font-size: 17px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px; }
+  .ed-head .sum { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .ed-hint { color: var(--ink-3); font-size: 13px; margin: 0 0 8px; }
+  .rows { list-style: none; margin: 0; padding: 0; }
+  .row { display: grid; grid-template-columns: 36px minmax(0,1fr) 84px 28px; gap: 4px; align-items: center; padding: 3px 0; }
+  .r-ic { width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; font-size: 18px; line-height: 1; background: color-mix(in srgb, var(--pot) 13%, var(--surface)); }
+  .row input { border: 1.5px solid transparent; background: transparent; border-radius: 10px; padding: 8px 6px; width: 100%; min-width: 0; font-size: 15px; text-overflow: ellipsis; }
+  .row .del { width: 28px !important; }
+  .row input:hover { background: var(--surface-2); }
+  .row input:focus { outline: none; border-color: var(--pine-2); background: var(--surface); }
+  .row input.amt { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .row .del { width: 32px; height: 32px; border: none; background: none; color: var(--ink-3); font-size: 20px; border-radius: 9px; padding: 0; }
+  .row .del:hover { background: var(--surface-2); color: var(--bad); }
+  .add { margin-top: 8px; width: 100%; border: 1.5px dashed var(--line); background: transparent; color: var(--ink-2); border-radius: 12px; padding: 10px; font-weight: 600; font-size: 14px; }
+  .add:hover { border-color: var(--pine-2); color: var(--ink); }
+  .empty-list { color: var(--ink-3); font-size: 13px; padding: 6px 8px; }
+  .arow { padding: 4px 0 8px; border-top: 1px solid var(--line); }
+  .arow:first-child { border-top: none; }
+  .arow .rest { display: grid; grid-template-columns: 78px 120px; justify-content: start; gap: 4px 10px; align-items: center; font-size: 13px; color: var(--ink-3); padding: 2px 0 0 46px; }
+  .arow .rest .info { grid-column: 1 / -1; }
+  @media (max-width: 420px) { .arow .rest { padding-left: 8px; } }
+  .arow .rest input { border: 1.5px solid var(--line); background: var(--surface); border-radius: 9px; padding: 5px 8px; text-align: right; font-variant-numeric: tabular-nums; width: 100%; }
+  .arow .rest .info.ok { color: var(--ok); font-weight: 600; }
+  @media (min-width: 760px) { .editors { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; } .col { display: flex; flex-direction: column; gap: 14px; } }
+  @media (max-width: 759px) {
+    .editors { display: flex; flex-direction: column; gap: 14px; }
+    .col { display: contents; }
+    .editors [data-soort="inkomsten"] { order: 1; } .editors [data-soort="vast"] { order: 2; }
+    .editors [data-soort="aflossing"] { order: 3; } .editors [data-soort="tijdelijk"] { order: 4; }
+  }
+
+  /* ---------- goals ---------- */
+  .goals { display: grid; gap: 12px; }
+  @media (min-width: 640px) { .goals { grid-template-columns: 1fr 1fr; } }
+  .goal { background: var(--surface); border-radius: var(--r-lg); padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .g-top { display: grid; grid-template-columns: 1fr 32px; gap: 6px; align-items: center; }
+  .g-name { font-family: var(--display); font-weight: 700; font-size: 18px; border: 1.5px solid transparent; background: transparent; border-radius: 10px; padding: 4px 6px; width: 100%; }
+  .g-name:hover { background: var(--surface-2); } .g-name:focus { outline: none; border-color: var(--pine-2); }
+  .g-del { width: 32px; height: 32px; border: none; background: none; color: var(--ink-3); font-size: 20px; border-radius: 9px; padding: 0; }
+  .g-del:hover { color: var(--bad); background: var(--surface-2); }
+  .g-big { font-family: var(--display); font-weight: 700; font-size: 28px; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  .g-big span { font-family: var(--body); font-size: 14px; color: var(--ink-3); font-weight: 500; letter-spacing: 0; }
+  .goal .track { height: 12px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+  .goal .fill { height: 100%; border-radius: 99px; background: var(--spaar); width: 0; transition: width .5s ease; }
+  .goal.done .fill { background: var(--ok); }
+  .g-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .g-fields label { font-size: 12px; color: var(--ink-3); display: flex; flex-direction: column; gap: 4px; }
+  .g-fields input { border: 1.5px solid var(--line); background: var(--surface); border-radius: 10px; padding: 8px 10px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; width: 100%; }
+  .g-fields input:focus { outline: none; border-color: var(--pine-2); }
+  .g-info { color: var(--ink-2); font-size: 13px; }
+  .g-book { width: 100%; border: none; background: var(--spaar); color: #fff; border-radius: 12px; padding: 11px; font-weight: 700; }
+  .g-book:disabled { background: var(--surface-2); color: var(--ink-3); cursor: default; }
+  .g-booked { font-size: 13px; color: var(--ok); display: flex; justify-content: space-between; align-items: center; gap: 8px; background: color-mix(in srgb, var(--ok) 10%, var(--surface)); padding: 8px 10px; border-radius: 10px; font-weight: 600; }
+  .g-booked button { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 3px 8px; font-size: 12px; color: var(--ink-2); }
+  .goals-sum { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .goals-sum .wb-big { font-size: 34px; }
+
+  /* ---------- periodes ---------- */
+  .period-cur { display: flex; flex-direction: column; gap: 12px; }
+  .period { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--ink-2); font-size: 14px; }
+  .period input { border: 1.5px solid var(--line); background: var(--surface); border-radius: 10px; padding: 7px 10px; }
+  .period-nav { display: flex; gap: 8px; flex-wrap: wrap; }
+  .linkdel { border: none; background: none; color: var(--ink-3); padding: 4px 0; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; align-self: flex-start; }
+  .linkdel:hover { color: var(--bad); }
+  .arch-list { display: flex; flex-direction: column; }
+  .arch-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .arch-table th { text-align: left; color: var(--ink-3); font-weight: 500; font-size: 12px; padding: 6px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  .arch-table td { padding: 10px 6px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .arch-table .n { text-align: right; }
+  .table-wrap { overflow-x: auto; margin: 0 -6px; }
+  .arch-btns { display: flex; gap: 6px; justify-content: flex-end; }
+  .arch-btns button { border: 1px solid var(--line); background: var(--surface); border-radius: 9px; padding: 5px 10px; font-size: 13px; font-weight: 600; }
+  .arch-btns .x { border: 1px solid var(--line); width: auto; height: auto; color: var(--ink-2); font-size: 13px; }
+  .arch-btns .x:hover { color: var(--bad); }
+  #archief[hidden] + .arch-empty { display: block; }
+  .arch-empty { display: none; color: var(--ink-3); font-size: 14px; }
+
+  /* ---------- empty + modal ---------- */
+  .center { text-align: center; padding: 40px 20px; }
+  .center h2 { font-family: var(--display); margin: 0 0 6px; }
+  .modal-bg { position: fixed; inset: 0; background: rgba(8,20,17,.5); display: flex; align-items: flex-end; justify-content: center; padding: 16px; z-index: 20; }
+  @media (min-width: 560px) { .modal-bg { align-items: center; } }
+  .modal { max-width: 440px; width: 100%; background: var(--surface); border-radius: var(--r-lg); padding: 22px; }
+  .modal h3 { font-family: var(--display); margin: 0 0 8px; font-size: 20px; }
+  .modal p { margin: 0 0 18px; color: var(--ink-2); }
+  .modal .btns { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  @media (max-width: 759px) {
+    input:not(#u-bedrag), select, textarea { font-size: 16px !important; }
+    .row { grid-template-columns: 34px minmax(0,1fr) 96px 26px; gap: 2px; }
+    .row input { padding: 8px 4px; }
+    .r-ic { width: 34px; height: 34px; }
+  }
+  /* iOS datumvelden gelijk trekken met andere velden */
+  input[type="date"] { -webkit-appearance: none; appearance: none; display: block; width: 100%; max-width: 100%; min-width: 0; min-height: 46px; line-height: 1.2; text-align: left; background-clip: padding-box; }
+  input[type="date"]::-webkit-date-and-time-value { text-align: left; margin: 0; }
+  input[type="date"]::-webkit-datetime-edit { padding: 0; }
+  .add-row > * { min-width: 0; }
+  .field { min-height: 46px; }
+  .period input[type="date"] { width: auto; min-height: 40px; display: inline-block; }
+</style>
+</head>
+<body>
+<header class="appbar">
+  <div class="appbar-in">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"><svg width="36" height="36" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#1F5C4D"/><circle cx="32" cy="13.5" r="6" fill="#F6C77A"/><rect x="30.6" y="10.5" width="2.8" height="6" rx="1.4" fill="#C98B2E"/><rect x="19" y="21" width="26" height="6" rx="3" fill="#9FE0C2"/><path d="M21 29h22a2 2 0 0 1 2 2v17a8 8 0 0 1-8 8H27a8 8 0 0 1-8-8V31a2 2 0 0 1 2-2z" fill="#E7F3EE"/><clipPath id="j1"><path d="M21 29h22a2 2 0 0 1 2 2v17a8 8 0 0 1-8 8H27a8 8 0 0 1-8-8V31a2 2 0 0 1 2-2z"/></clipPath><path clip-path="url(#j1)" d="M17 41c4-2.4 8-2.4 12 0s8 2.4 12 0 6-2 8-1V60H17z" fill="#3E9B6F"/><rect x="23.5" y="32" width="3" height="9" rx="1.5" fill="#FFFFFF" opacity=".7"/></svg></div>
+      <div class="brand-txt"><div class="brand-name">Mijn budget</div><p id="titel">Laden…</p></div>
+    </div>
+    <span class="status" id="status">Laden…</span>
+  </div>
+</header>
+
+<nav class="tabbar" id="tabbar" role="tablist" aria-label="Onderdelen" hidden>
+  <button class="tab" role="tab" data-tab="overzicht" aria-selected="true"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Overzicht</button>
+  <button class="tab" role="tab" data-tab="sparen" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M19 10c0-3.3-3.1-6-7-6S5 6.7 5 10c0 1.7.8 3.2 2 4.3V19h3v-2h4v2h3v-4.7c.6-.5 1-1.1 1.4-1.8H21v-3h-2.1"/><path d="M15 9h.01"/></svg>Sparen</button>
+  <button class="tab" role="tab" data-tab="budget" aria-selected="false"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Budget</button>
+  <button class="tab" role="tab" data-tab="periodes" aria-selected="false"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Periodes</button>
+</nav>
+
+<div class="wrap">
+  <div class="notice" id="notice" hidden style="margin-bottom:14px"></div>
+
+  <div id="leeg" class="card center" hidden>
+    <div class="logo-lg" aria-hidden="true"><svg width="84" height="84" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#1F5C4D"/><circle cx="32" cy="13.5" r="6" fill="#F6C77A"/><rect x="30.6" y="10.5" width="2.8" height="6" rx="1.4" fill="#C98B2E"/><rect x="19" y="21" width="26" height="6" rx="3" fill="#9FE0C2"/><path d="M21 29h22a2 2 0 0 1 2 2v17a8 8 0 0 1-8 8H27a8 8 0 0 1-8-8V31a2 2 0 0 1 2-2z" fill="#E7F3EE"/><clipPath id="j2"><path d="M21 29h22a2 2 0 0 1 2 2v17a8 8 0 0 1-8 8H27a8 8 0 0 1-8-8V31a2 2 0 0 1 2-2z"/></clipPath><path clip-path="url(#j2)" d="M17 41c4-2.4 8-2.4 12 0s8 2.4 12 0 6-2 8-1V60H17z" fill="#3E9B6F"/><rect x="23.5" y="32" width="3" height="9" rx="1.5" fill="#FFFFFF" opacity=".7"/></svg></div>
+    <h2>Nog geen budget</h2>
+    <p class="hint" style="margin-bottom:16px">Begin met een leeg budget en vul je inkomsten en uitgaven in.</p>
+    <div class="period-nav" style="justify-content:center">
+      <button class="btn btn-primary" id="begin">Leeg budget starten</button>
+      <button class="btn" id="bk-terug-leeg">Back-up terugzetten</button>
+    </div>
+    <input type="file" id="bk-file" accept=".json,application/json" hidden>
+  </div>
+
+  <main id="app" hidden>
+    <!-- ================= OVERZICHT ================= -->
+    <section class="pane" data-pane="overzicht" id="overzicht">
+      <div class="hero" id="dezeweek">
+        <div class="hero-top">
+          <div><h2 id="wk-titel">Deze week</h2><div id="wk-datums">—</div></div>
+          <div class="wk-nav">
+            <button class="iconbtn" id="wk-prev" aria-label="Vorige week">‹</button>
+            <button class="btn btn-ghost" id="wk-nu">Vandaag</button>
+            <button class="iconbtn" id="wk-next" aria-label="Volgende week">›</button>
+          </div>
+        </div>
+        <div class="hero-main">
+          <div class="ring" id="ring">
+            <svg viewBox="0 0 120 120" aria-hidden="true"><circle class="bg" cx="60" cy="60" r="52" fill="none" stroke-width="12"/><circle class="fg" id="ring-fg" cx="60" cy="60" r="52" fill="none" stroke-width="12" stroke-linecap="round" stroke-dasharray="326.73" stroke-dashoffset="326.73"/></svg>
+            <div class="ring-c"><div><b id="ring-pct">—</b><span>over</span></div></div>
+          </div>
+          <div>
+            <div class="hero-lbl">Nog te besteden</div>
+            <div id="hero-left">—</div>
+            <div id="hero-sub">—</div>
+          </div>
+        </div>
+        <div class="hero-pots">
+          <div class="hp" style="--pot:var(--mint)">
+            <div class="hp-name">🛒 Boodschappen</div>
+            <div class="hp-left" id="m-b-left">—</div>
+            <div class="hp-of" id="m-b-of">—</div>
+            <div class="track"><div class="fill" id="m-b-fill"></div></div>
+          </div>
+          <div class="hp" style="--pot:#F6C77A">
+            <div class="hp-name">✨ Eigen invulling</div>
+            <div class="hp-left" id="m-e-left">—</div>
+            <div class="hp-of" id="m-e-of">—</div>
+            <div class="track"><div class="fill" id="m-e-fill"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <form class="card" id="u-form" autocomplete="off">
+        <div class="card-h" style="margin-bottom:10px"><h2>Uitgave toevoegen</h2></div>
+        <div class="potpick" role="radiogroup" aria-label="Potje">
+          <label style="--pot:var(--bood)"><input type="radio" name="u-pot" value="boodschappen" checked><span>🛒 Boodschappen</span></label>
+          <label style="--pot:var(--eigen)"><input type="radio" name="u-pot" value="eigen"><span>✨ Eigen invulling</span></label>
+        </div>
+        <select id="u-pot" hidden aria-hidden="true" tabindex="-1"><option value="boodschappen">Boodschappen</option><option value="eigen">Eigen invulling</option></select>
+        <div class="amount-in"><span class="eur">€</span><input id="u-bedrag" inputmode="decimal" placeholder="0,00" aria-label="Bedrag"></div>
+        <div class="add-row">
+          <input class="field" id="u-naam" placeholder="Waaraan? (optioneel)" aria-label="Omschrijving">
+          <input class="field" type="date" id="u-datum" aria-label="Datum">
+        </div>
+        <button class="btn btn-primary" type="submit" id="u-add">Toevoegen</button>
+      </form>
+
+      <section class="card">
+        <div class="card-h"><h2>Uitgaven deze week</h2></div>
+        <ul class="entries" id="u-lijst"></ul>
+        <div class="period-line" id="u-periode">—</div>
+      </section>
+    </section>
+
+    <!-- ================= SPAREN ================= -->
+    <section class="pane" data-pane="sparen" id="sparen" hidden>
+      <div class="card" id="spaardoelen">
+        <div class="goals-sum">
+          <div><div class="card-sub">Totaal gespaard</div><div class="wb-big" id="g-totaal">—</div><div class="card-sub" id="g-sub">—</div></div>
+          <button class="btn btn-primary" id="g-add">+ Nieuw spaardoel</button>
+        </div>
+      </div>
+      <div class="goals" id="g-lijst"></div>
+      <div class="card empty" id="g-leeg" hidden>Nog geen spaardoel. Voeg er een toe, bijvoorbeeld een buffer of iets wat je wilt kopen.</div>
+    </section>
+
+    <!-- ================= BUDGET ================= -->
+    <section class="pane" data-pane="budget" id="budget" hidden>
+      <div class="card" id="weekbudget">
+        <div class="wb-top">
+          <div><div class="card-sub">Vrij te besteden per week</div><div class="wb-big"><span id="h-week">—</span></div><div class="card-sub" id="h-week-sub">—</div></div>
+          <div style="text-align:right"><div class="card-sub">Deze periode</div><div class="wb-big" style="font-size:22px" id="h-vrij">—</div></div>
+        </div>
+        <div class="pots">
+          <div class="pot" style="--pot:var(--bood)">
+            <div class="name">🛒 Boodschappen</div>
+            <div class="amount"><span id="w-boodschappen">—</span><span class="unit">/ week</span></div>
+            <div class="per" id="a-boodschappen">—</div>
+            <label>Deel <input id="i-boodschappen" inputmode="decimal" aria-label="Boodschappen"><button type="button" class="unit-btn" id="u-boodschappen" aria-label="Wissel tussen procent en euro">%</button></label>
+          </div>
+          <div class="pot" style="--pot:var(--spaar)">
+            <div class="name">🐷 Sparen</div>
+            <div class="amount"><span id="w-sparen">—</span><span class="unit">/ week</span></div>
+            <div class="per" id="a-sparen">—</div>
+            <label>Deel <input id="i-sparen" inputmode="decimal" aria-label="Sparen"><button type="button" class="unit-btn" id="u-sparen" aria-label="Wissel tussen procent en euro">%</button></label>
+          </div>
+          <div class="pot" style="--pot:var(--eigen)">
+            <div class="name">✨ Eigen invulling</div>
+            <div class="amount"><span id="w-eigen">—</span><span class="unit">/ week</span></div>
+            <div class="per" id="a-eigen">—</div>
+            <div class="auto">Krijgt wat overblijft</div>
+          </div>
+        </div>
+        <p class="hint" style="margin-top:12px">Vul een percentage van je vrije budget in. Tik op % om te wisselen naar een vast bedrag per periode.</p>
+        <div class="warn" id="p-warn" hidden>Je verdeelt meer dan je vrij te besteden hebt. Verlaag Boodschappen of Sparen.</div>
+      </div>
+
+      <div class="card">
+        <div class="sum-grid">
+          <div><div class="l"><span class="dot" style="background:var(--bood)"></span>Inkomsten</div><div class="v" id="t-in">—</div></div>
+          <div><div class="l"><span class="dot" style="background:var(--vast)"></span>Vaste lasten + aflossingen</div><div class="v" id="t-vast">—</div></div>
+          <div><div class="l">Over na vaste lasten</div><div class="v" id="t-over">—</div></div>
+          <div><div class="l"><span class="dot" style="background:var(--tijd)"></span>Tijdelijke uitgaven</div><div class="v" id="t-tijd">—</div></div>
+        </div>
+        <div class="bar" role="img" id="bar" aria-label="Verdeling van je inkomsten">
+          <div id="b-vast" style="background:var(--vast);width:0"></div>
+          <div id="b-tijd" style="background:var(--tijd);width:0"></div>
+          <div id="b-vrij" style="background:var(--bood);width:0"></div>
+        </div>
+        <div class="legend">
+          <span><span class="dot" style="background:var(--vast)"></span>Vaste lasten <b id="l-vast">—</b></span>
+          <span><span class="dot" style="background:var(--tijd)"></span>Tijdelijk <b id="l-tijd">—</b></span>
+          <span><span class="dot" style="background:var(--bood)"></span>Vrij <b id="l-vrij">—</b></span>
+        </div>
+      </div>
+
+      <div class="editors">
+        <div class="col">
+          <section class="card" data-soort="inkomsten">
+            <div class="ed-head"><h2><span class="dot" style="background:var(--bood)"></span>Inkomsten</h2><span class="sum" data-sum="inkomsten">—</span></div>
+            <ul class="rows"></ul>
+            <button class="add" data-add="inkomsten">+ Inkomen toevoegen</button>
+          </section>
+          <section class="card" data-soort="aflossing">
+            <div class="ed-head"><h2><span class="dot" style="background:var(--schuld)"></span>Aflossingen</h2><span class="sum" data-sum="aflossing">—</span></div>
+            <p class="ed-hint">Bedrag per periode en wat je nog moet betalen. Bij een nieuwe periode gaat de restschuld automatisch omlaag.</p>
+            <ul class="rows"></ul>
+            <button class="add" data-add="aflossing">+ Aflossing toevoegen</button>
+          </section>
+        </div>
+        <div class="col">
+          <section class="card" data-soort="vast">
+            <div class="ed-head"><h2><span class="dot" style="background:var(--vast)"></span>Vaste lasten</h2><span class="sum" data-sum="vastAlleen">—</span></div>
+            <ul class="rows"></ul>
+            <button class="add" data-add="vast">+ Vaste last toevoegen</button>
+          </section>
+          <section class="card" data-soort="tijdelijk">
+            <div class="ed-head"><h2><span class="dot" style="background:var(--tijd)"></span>Tijdelijke uitgaven</h2><span class="sum" data-sum="tijdelijk">—</span></div>
+            <p class="ed-hint">Alleen voor deze periode. Bij een nieuwe periode worden ze leeggemaakt.</p>
+            <ul class="rows"></ul>
+            <button class="add" data-add="tijdelijk">+ Tijdelijke uitgave toevoegen</button>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PERIODES ================= -->
+    <section class="pane" data-pane="periodes" id="periodes" hidden>
+      <div class="card period-cur">
+        <div class="card-h" style="margin:0"><h2>Huidige periode</h2></div>
+        <div class="period" id="periode" hidden>
+          <input type="date" id="start" aria-label="Begin van de periode">
+          <span>t/m</span>
+          <input type="date" id="eind" aria-label="Einde van de periode">
+          <span id="dagen"></span>
+        </div>
+        <div class="period-nav">
+          <button class="btn" id="vorige" hidden>‹ Vorige periode</button>
+          <button class="btn" id="volgende" hidden>Volgende periode ›</button>
+          <button class="btn btn-primary" id="nieuw" disabled>Nieuwe periode starten</button>
+        </div>
+        <button class="linkdel" id="del-huidig">Deze periode verwijderen</button>
+      </div>
+      <div class="card">
+        <div class="card-h"><h2>Vorige periodes</h2></div>
+        <div id="archief" hidden>
+          <div class="table-wrap">
+            <table class="arch-table">
+              <thead><tr><th>Periode</th><th class="n">Inkomsten</th><th class="n">Uitgaven</th><th class="n">Vrij</th><th class="n">Boodschappen</th><th class="n">Sparen</th><th class="n">Eigen invulling</th><th></th></tr></thead>
+              <tbody id="arch-body"></tbody>
+            </table>
+          </div>
+        </div>
+        <p class="arch-empty">Nog geen andere periodes. Als je een nieuwe periode start, komt de huidige hier te staan.</p>
+      </div>
+      <div class="card" id="backup">
+        <div class="card-h"><h2>Back-up</h2></div>
+        <p class="hint" style="margin-bottom:12px">Je budget staat alleen op deze telefoon. Maak af en toe een back-up en bewaar die bijvoorbeeld in iCloud Drive, zodat je niets kwijtraakt als je van telefoon wisselt.</p>
+        <div class="period-nav">
+          <button class="btn btn-primary" id="bk-maak">Back-up maken</button>
+          <button class="btn" id="bk-terug">Back-up terugzetten</button>
+        </div>
+        <p class="hint" id="bk-laatste" style="margin-top:10px"></p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal-bg" id="modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="m-title">
+    <h3 id="m-title">Nieuwe periode starten?</h3>
+    <p id="m-text"></p>
+    <div class="btns">
+      <button class="btn" id="m-cancel">Annuleren</button>
+      <button class="btn btn-primary" id="m-ok">Nieuwe periode starten</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* Lokale opslag op dit toestel, met dezelfde vorm als de opslag in de Claude-versie */
+(function () {
+  const KEY = 'mijnbudget:v1';
+  let store = {};
+  try { store = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { store = {}; }
+  const docSubs = new Map(), colSubs = new Map();
+  const clone = (x) => (x === undefined ? undefined : JSON.parse(JSON.stringify(x)));
+  const parent = (p) => p.split('/').slice(0, -1).join('/');
+  const meta = { fromCache: false, hasPendingWrites: false };
+  function persist() {
+    try { localStorage.setItem(KEY, JSON.stringify(store)); }
+    catch (e) { const err = new Error('Opslag vol'); err.code = 'quota_exceeded'; throw err; }
+  }
+  function docSnap(p) { const d = store[p]; return { id: p.split('/').pop(), exists: d !== undefined, data: () => clone(d), metadata: meta }; }
+  function colSnap(col, q) {
+    let docs = Object.keys(store).filter((p) => parent(p) === col).map(docSnap);
+    if (q.order) { const [f, dir] = q.order; docs.sort((a, b) => { const x = a.data()[f], y = b.data()[f]; const c = x === y ? 0 : x === undefined ? 1 : y === undefined ? -1 : x < y ? -1 : 1; return dir === 'desc' ? -c : c; }); }
+    else docs.sort((a, b) => (a.id < b.id ? -1 : 1));
+    if (q.lim) docs = docs.slice(0, q.lim);
+    return { docs, size: docs.length, empty: !docs.length, docChanges: () => [], metadata: meta };
+  }
+  function notify(p) {
+    (docSubs.get(p) || []).forEach((f) => setTimeout(() => f(docSnap(p)), 0));
+    const col = parent(p);
+    (colSubs.get(col) || []).forEach((s) => setTimeout(() => s.fn(colSnap(col, s.q)), 0));
+  }
+  function add(map, k, v) { if (!map.has(k)) map.set(k, []); map.get(k).push(v); return () => { const a = map.get(k); const i = a.indexOf(v); if (i >= 0) a.splice(i, 1); }; }
+  function doc(p) {
+    return {
+      id: p.split('/').pop(), path: p,
+      get: async () => docSnap(p),
+      set: async (d) => { store[p] = clone(d); persist(); notify(p); },
+      update: async (d) => { if (store[p] === undefined) { const e = new Error('Bestaat niet'); e.code = 'invalid_argument'; throw e; } store[p] = Object.assign({}, store[p], clone(d)); persist(); notify(p); },
+      delete: async () => { delete store[p]; persist(); notify(p); },
+      onSnapshot: (next) => { setTimeout(() => next(docSnap(p)), 0); return add(docSubs, p, next); },
+      collection: (c) => collection(p + '/' + c),
+    };
+  }
+  function collection(col, q = {}) {
+    return {
+      path: col,
+      orderBy: (f, dir) => collection(col, { ...q, order: [f, dir || 'asc'] }),
+      limit: (n) => collection(col, { ...q, lim: n }),
+      where: () => collection(col, q),
+      get: async () => colSnap(col, q),
+      onSnapshot: (fn) => { setTimeout(() => fn(colSnap(col, q)), 0); return add(colSubs, col, { fn, q }); },
+      doc: (id) => doc(col + '/' + (id || Math.random().toString(36).slice(2, 12))),
+    };
+  }
+  const db = { doc, collection };
+  window.claude = { use: async (name) => (name === 'db' ? db : null) };
+  window.__budgetStore = {
+    export: () => clone(store),
+    replace: (data) => { store = clone(data) || {}; persist(); },
+  };
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+})();
+</script>
+<script>
+(function () {
+  const DOC = 'budget/huidig';
+  const SOORTEN = ['inkomsten', 'vast', 'aflossing', 'tijdelijk'];
+  const DOELEN = 'doelen/lijst';
+  const eur = new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' });
+  const pct = new Intl.NumberFormat('nl-NL', { style: 'percent', maximumFractionDigits: 1 });
+  const num = new Intl.NumberFormat('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const MAANDEN = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+  const $ = (id) => document.getElementById(id);
+
+  let db = null, state = null, readOnly = false, archList = [], switching = false;
+  let saveTimer = null, saving = false, pending = false, lastSavedJson = null;
+
+  const uid = () => Math.random().toString(36).slice(2, 10);
+  const r2 = (n) => Math.round(n * 100) / 100;
+  function parseBedrag(s) {
+    s = String(s ?? '').replace(/[€\s]/g, '');
+    if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+    const n = parseFloat(s);
+    return Number.isFinite(n) ? r2(n) : 0;
+  }
+  function parseISO(iso) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+    return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) : NaN;
+  }
+  function toISO(ms) { return new Date(ms).toISOString().slice(0, 10); }
+  function addMonth(iso) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+    if (!m) return iso;
+    return toISO(Date.UTC(+m[1], +m[2], +m[3]));
+  }
+  function kort(iso) {
+    const t = parseISO(iso); if (!Number.isFinite(t)) return '?';
+    const d = new Date(t); return d.getUTCDate() + ' ' + MAANDEN[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
+  }
+  function dagenIn(s) { const a = parseISO(s.start), b = parseISO(s.eind); return Number.isFinite(a) && Number.isFinite(b) ? Math.round((b - a) / 86400000) : 0; }
+
+  const DEFAULT_VERDELING = { boodschappen: { type: 'pct', waarde: 60 }, sparen: { type: 'pct', waarde: 15 } };
+  function normPot(p, d) {
+    if (!p || typeof p !== 'object') return { ...d };
+    const type = p.type === 'eur' ? 'eur' : 'pct';
+    const w = Number(p.waarde);
+    return { type, waarde: Number.isFinite(w) && w >= 0 ? r2(w) : 0 };
+  }
+  function parsePot(s, defType) {
+    s = String(s ?? '').trim();
+    let type = defType === 'eur' ? 'eur' : 'pct';
+    if (s.includes('%')) type = 'pct'; else if (s.includes('€')) type = 'eur';
+    return { type, waarde: Math.max(0, parseBedrag(s.replace(/[%€]/g, ''))) };
+  }
+  function fmtPot(p) { return p.type === 'pct' ? p.waarde.toLocaleString('nl-NL', { maximumFractionDigits: 1 }) : num.format(p.waarde); }
+
+  function normalize(raw) {
+    const o = raw && typeof raw === 'object' ? raw : {};
+    const posten = Array.isArray(o.posten) ? o.posten : [];
+    const v = o.verdeling && typeof o.verdeling === 'object' ? o.verdeling : {};
+    return {
+      start: typeof o.start === 'string' ? o.start : '',
+      eind: typeof o.eind === 'string' ? o.eind : '',
+      verdeling: { boodschappen: normPot(v.boodschappen, DEFAULT_VERDELING.boodschappen), sparen: normPot(v.sparen, DEFAULT_VERDELING.sparen) },
+      posten: posten.filter((p) => p && SOORTEN.includes(p.soort)).map((p) => {
+        const q = {
+          id: typeof p.id === 'string' ? p.id : uid(),
+          soort: p.soort,
+          naam: typeof p.naam === 'string' ? p.naam : '',
+          bedrag: Number.isFinite(Number(p.bedrag)) ? r2(Number(p.bedrag)) : 0,
+        };
+        if (p.soort === 'aflossing') q.rest = p.rest === null || p.rest === undefined || p.rest === '' || !Number.isFinite(Number(p.rest)) ? null : Math.max(0, r2(Number(p.rest)));
+        return q;
+      }),
+      uitgaven: (Array.isArray(o.uitgaven) ? o.uitgaven : []).filter((u) => u && typeof u === 'object').map((u) => ({
+        id: typeof u.id === 'string' ? u.id : uid(),
+        datum: typeof u.datum === 'string' ? u.datum : '',
+        pot: u.pot === 'eigen' ? 'eigen' : 'boodschappen',
+        naam: typeof u.naam === 'string' ? u.naam : '',
+        bedrag: Number.isFinite(Number(u.bedrag)) ? r2(Number(u.bedrag)) : 0,
+      })),
+      spaarGeboekt: o.spaarGeboekt && typeof o.spaarGeboekt === 'object' && typeof o.spaarGeboekt.doelId === 'string' && Number.isFinite(Number(o.spaarGeboekt.bedrag))
+        ? { doelId: o.spaarGeboekt.doelId, bedrag: r2(Number(o.spaarGeboekt.bedrag)) } : null,
+    };
+  }
+
+  function totalen(s) {
+    const som = (k) => r2(s.posten.filter((p) => p.soort === k).reduce((a, p) => a + p.bedrag, 0));
+    const inkomsten = som('inkomsten'), vastAlleen = som('vast'), aflossing = som('aflossing'), tijdelijk = som('tijdelijk');
+    const vast = r2(vastAlleen + aflossing);
+    const over = r2(inkomsten - vast), vrij = r2(over - tijdelijk);
+    const dagen = dagenIn(s);
+    const perWeek = (x) => dagen > 0 ? r2(x / dagen * 7) : null;
+    const basis = Math.max(0, vrij);
+    const vd = s.verdeling || DEFAULT_VERDELING;
+    const potBedrag = (p) => r2(p.type === 'pct' ? basis * p.waarde / 100 : p.waarde);
+    const boodschappen = potBedrag(vd.boodschappen), sparen = potBedrag(vd.sparen);
+    const eigen = r2(vrij - boodschappen - sparen);
+    return { inkomsten, vast, vastAlleen, aflossing, tijdelijk, over, vrij, dagen, week: perWeek(vrij), boodschappen, sparen, eigen,
+      wBoodschappen: perWeek(boodschappen), wSparen: perWeek(sparen), wEigen: perWeek(eigen) };
+  }
+
+  // ---------- render ----------
+  function setSigned(el, v) { el.textContent = eur.format(v); el.classList.toggle('pos', v >= 0); el.classList.toggle('neg', v < 0); }
+
+  function renderTotals() {
+    const t = totalen(state);
+    setSigned($('h-vrij'), t.vrij);
+    const weken = t.dagen > 0 ? t.dagen / 7 : 0;
+    if (t.week === null) { $('h-week').textContent = '—'; $('h-week-sub').textContent = 'Kies eerst een periode'; }
+    else {
+      setSigned($('h-week'), t.week);
+      $('h-week-sub').textContent = 'Deze periode duurt ' + t.dagen + ' dagen, dat is ' + weken.toLocaleString('nl-NL', { maximumFractionDigits: 1 }) + ' weken';
+    }
+    const wk = (el, v) => { if (v === null) { el.textContent = '—'; el.classList.remove('pos', 'neg'); } else { el.textContent = eur.format(v); el.classList.toggle('neg', v < 0); } };
+    wk($('w-boodschappen'), t.wBoodschappen); wk($('w-sparen'), t.wSparen); wk($('w-eigen'), t.wEigen);
+    $('a-boodschappen').textContent = eur.format(t.boodschappen) + ' deze periode';
+    $('a-sparen').textContent = eur.format(t.sparen) + ' deze periode';
+    $('a-eigen').textContent = eur.format(t.eigen) + ' deze periode';
+    $('p-warn').hidden = t.eigen >= 0;
+    $('t-in').textContent = eur.format(t.inkomsten);
+    $('t-vast').textContent = eur.format(t.vast);
+    setSigned($('t-over'), t.over);
+    $('t-tijd').textContent = eur.format(t.tijdelijk);
+    $('dagen').textContent = t.dagen > 0 ? '(' + t.dagen + ' dagen)' : '';
+    document.querySelectorAll('[data-sum]').forEach((el) => { el.textContent = eur.format(t[el.dataset.sum]); });
+    const basis = Math.max(t.inkomsten, t.vast + t.tijdelijk) || 1;
+    const vrij = Math.max(0, t.vrij);
+    $('b-vast').style.width = (t.vast / basis * 100) + '%';
+    $('b-tijd').style.width = (t.tijdelijk / basis * 100) + '%';
+    $('b-vrij').style.width = (vrij / basis * 100) + '%';
+    const deel = (v) => t.inkomsten ? ' (' + pct.format(v / t.inkomsten) + ')' : '';
+    $('l-vast').textContent = eur.format(t.vast) + deel(t.vast);
+    $('l-tijd').textContent = eur.format(t.tijdelijk) + deel(t.tijdelijk);
+    $('l-vrij').textContent = eur.format(t.vrij) + deel(vrij);
+    $('bar').setAttribute('aria-label', 'Vaste lasten ' + eur.format(t.vast) + ', tijdelijk ' + eur.format(t.tijdelijk) + ', vrij ' + eur.format(t.vrij));
+    document.querySelectorAll('.arow').forEach((el) => el._upd && el._upd());
+    renderWeek(); updateDoelen();
+  }
+
+  const ICONEN = [
+    [/huurtoeslag/, '🏠'], [/zorgtoeslag/, '🩺'], [/kind(ge)?rbijslag|kindgebonden|kinderopvangtoeslag/, '🧸'],
+    [/uitkering|uwv|wajong|ww\b|bijstand|participatie/, '💶'], [/salaris|loon|werk|inkomen/, '💼'], [/aow|pensioen/, '🌷'], [/toeslag|teruggave|vakantiegeld/, '💶'],
+    [/boiler|cv\b|ketel|warmte/, '🔥'],
+    [/huur|hypotheek|woning|vve/, '🏠'],
+    [/energie|stroom|elektr|gas\b|eneco|vattenfall|essent|greenchoice|budget ?energie|vandebron/, '⚡'],
+    [/internet|wifi|ziggo|kpn|odido|delta|glasvezel/, '🌐'], [/\btv\b|televisie|kabel/, '📺'],
+    [/water|vitens|evides|dunea|brabant water|waternet|pwn|wml/, '💧'], [/riool|afval|waterschap|gemeente/, '🗑️'],
+    [/zorgverz|zorg|ziekte|tandarts|eigen risico|apotheek/, '🩺'],
+    [/inboedel/, '🛋️'], [/huisdierverz|dierverz|petplan/, '🐾'], [/opstal/, '🏚️'], [/aansprakelijk|wa-?verz|avp/, '🛡️'], [/reisverz/, '🧳'], [/uitvaart/, '🕊️'], [/rechtsbijstand/, '⚖️'],
+    [/auto|benzine|tank|parkeer|wegenbelasting|apk/, '🚗'], [/verzeker|verz\b|verz\./, '🛡️'],
+    [/mobiel|telefoon|sim|lebara|simyo|ben\b|vodafone|t-mobile/, '📱'],
+    [/belasting|gemeentelijk|cjib|cak\b/, '🏛️'],
+    [/huisdier|hond|kat\b|katten|dieren|dierenarts|voer/, '🐶'],
+    [/klarna|riverty|afterpay|in3|achteraf/, '🛍️'], [/duo|studie/, '🎓'], [/lening|krediet|schuld|creditcard|rood staan|incasso|deurwaarder/, '💳'],
+    [/netflix|videoland|disney|hbo|prime|streaming|film/, '🎬'], [/spotify|muziek|apple music|deezer/, '🎵'], [/game|playstation|xbox|nintendo|wow|world of warcraft|steam|blizzard/, '🎮'],
+    [/sport|gym|fitness|basic|zwem|club/, '🏋️'], [/\bov\b|ns\b|trein|bus|ov-?chip|reizen|fiets/, '🚆'],
+    [/kinderopvang|school|oppas/, '🧸'], [/pc|computer|laptop|tablet|ipad|monitor/, '💻'], [/cadeau|verjaardag|feest|kerst|sinterklaas/, '🎁'],
+    [/kleding|kleren|schoenen/, '👕'], [/kapper/, '💇'], [/boodschap|supermarkt|ah\b|albert heijn|jumbo|lidl|aldi/, '🛒'], [/spaar|sparen|buffer/, '🐷'], [/goede doel|donatie|gift/, '💚'],
+  ];
+  const STANDAARD = { inkomsten: '💶', vast: '📄', aflossing: '💳', tijdelijk: '🧾' };
+  function icoonVoor(p) {
+    const n = (p.naam || '').toLowerCase();
+    if (n) for (const [re, ic] of ICONEN) if (re.test(n)) return ic;
+    return STANDAARD[p.soort] || '📄';
+  }
+
+  function rowEl(p, tag) {
+    const li = document.createElement(tag || 'li'); li.className = 'row'; li.dataset.id = p.id;
+    const ic = document.createElement('span'); ic.className = 'r-ic'; ic.setAttribute('aria-hidden', 'true'); ic.textContent = icoonVoor(p);
+    ic.style.setProperty('--pot', p.soort === 'inkomsten' ? 'var(--bood)' : p.soort === 'aflossing' ? 'var(--schuld)' : p.soort === 'tijdelijk' ? 'var(--tijd)' : 'var(--vast)');
+    const naam = document.createElement('input'); naam.value = p.naam; naam.placeholder = 'Omschrijving'; naam.setAttribute('aria-label', 'Omschrijving');
+    const amt = document.createElement('input'); amt.className = 'amt'; amt.inputMode = 'decimal'; amt.value = num.format(p.bedrag); amt.setAttribute('aria-label', 'Bedrag');
+    const del = document.createElement('button'); del.className = 'del'; del.textContent = '×'; del.title = 'Verwijderen'; del.setAttribute('aria-label', 'Verwijder ' + (p.naam || 'post'));
+    naam.disabled = amt.disabled = del.disabled = readOnly;
+    naam.addEventListener('input', () => { p.naam = naam.value; ic.textContent = icoonVoor(p); changed(); });
+    amt.addEventListener('focus', () => amt.select());
+    amt.addEventListener('input', () => { p.bedrag = parseBedrag(amt.value); renderTotals(); changed(false); });
+    amt.addEventListener('blur', () => { amt.value = num.format(p.bedrag); });
+    amt.addEventListener('keydown', (e) => { if (e.key === 'Enter') amt.blur(); });
+    naam.addEventListener('keydown', (e) => { if (e.key === 'Enter') amt.focus(); });
+    del.addEventListener('click', () => { state.posten = state.posten.filter((x) => x !== p); renderLists(); renderTotals(); changed(false); });
+    li.append(ic, naam, amt, del);
+    return li;
+  }
+
+  function aflosInfo(p) {
+    if (p.rest === null) return { text: 'Vul in hoeveel je nog moet betalen', ok: false };
+    if (p.rest <= 0) return { text: '🎉 Afgelost!', ok: true };
+    if (p.bedrag <= 0) return { text: 'Vul het bedrag per periode in', ok: false };
+    const n = Math.ceil(r2(p.rest / p.bedrag - 0.0001));
+    let eind = state.eind; for (let i = 1; i < n; i++) eind = addMonth(eind);
+    const d = new Date(parseISO(eind));
+    return { text: 'Nog ' + n + (n === 1 ? ' termijn' : ' termijnen') + ' · schuldvrij rond ' + d.getUTCDate() + ' ' + MAANDEN[d.getUTCMonth()] + ' ' + d.getUTCFullYear(), ok: n <= 1 };
+  }
+
+  function aflosEl(p) {
+    const li = document.createElement('li'); li.className = 'arow'; li.dataset.id = p.id;
+    const top = rowEl(p, 'div');
+    const rest = document.createElement('div'); rest.className = 'rest';
+    const lab = document.createElement('span'); lab.textContent = 'Restschuld';
+    const inp = document.createElement('input'); inp.inputMode = 'decimal'; inp.placeholder = 'onbekend'; inp.setAttribute('aria-label', 'Restschuld ' + (p.naam || ''));
+    inp.value = p.rest === null ? '' : num.format(p.rest); inp.disabled = readOnly;
+    const info = document.createElement('span'); info.className = 'info';
+    inp.addEventListener('focus', () => inp.select());
+    inp.addEventListener('input', () => { p.rest = inp.value.trim() === '' ? null : Math.max(0, parseBedrag(inp.value)); upd(); changed(); });
+    inp.addEventListener('blur', () => { inp.value = p.rest === null ? '' : num.format(p.rest); setTimeout(resortAflos, 0); });
+    top.querySelector('.amt').addEventListener('blur', () => setTimeout(resortAflos, 0));
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') inp.blur(); });
+    function upd() { const i = aflosInfo(p); info.textContent = i.text; info.classList.toggle('ok', i.ok); }
+    li._upd = upd; upd();
+    rest.append(lab, inp, info);
+    li.append(top, rest);
+    return li;
+  }
+
+  function termijnen(p) {
+    if (p.rest === null || p.rest === undefined) return Infinity;
+    if (p.rest <= 0) return 0;
+    if (!(p.bedrag > 0)) return Infinity;
+    return Math.ceil(r2(p.rest / p.bedrag - 0.0001));
+  }
+  function aflosVolgorde(a, b) {
+    const ta = termijnen(a), tb = termijnen(b);
+    if (ta !== tb) return ta - tb;
+    const ra = a.rest === null || a.rest === undefined ? Infinity : a.rest, rb = b.rest === null || b.rest === undefined ? Infinity : b.rest;
+    if (ra !== rb) return ra - rb;
+    return 0;
+  }
+  function resortAflos() {
+    const sec = document.querySelector('section[data-soort="aflossing"]'); if (!sec) return;
+    const want = state.posten.filter((p) => p.soort === 'aflossing').sort(aflosVolgorde).map((p) => p.id).join(',');
+    const have = Array.from(sec.querySelectorAll('.rows > .arow')).map((li) => li.dataset.id).join(',');
+    if (want !== have) renderSection(sec);
+  }
+  function renderLists() {
+    document.querySelectorAll('section[data-soort]').forEach(renderSection);
+    document.querySelectorAll('[data-add]').forEach((b) => { b.disabled = readOnly; });
+  }
+  function renderSection(sec) {
+    {
+      const ul = sec.querySelector('.rows'); ul.replaceChildren();
+      const items = state.posten.filter((p) => p.soort === sec.dataset.soort);
+      if (sec.dataset.soort === 'aflossing') items.sort(aflosVolgorde);
+      if (!items.length) { const li = document.createElement('li'); li.className = 'empty-list'; li.textContent = 'Nog niets ingevuld.'; ul.append(li); }
+      items.forEach((p) => ul.append(p.soort === 'aflossing' ? aflosEl(p) : rowEl(p)));
+    }
+  }
+
+  function renderAll() {
+    $('leeg').hidden = true; $('app').hidden = false; $('periode').hidden = false;
+    $('start').value = state.start; $('eind').value = state.eind;
+    $('start').disabled = $('eind').disabled = readOnly;
+    ['boodschappen', 'sparen'].forEach((k) => {
+      const el = $('i-' + k); el.value = fmtPot(state.verdeling[k]); el.disabled = readOnly;
+      const u = $('u-' + k); u.textContent = state.verdeling[k].type === 'pct' ? '%' : '€'; u.disabled = readOnly;
+    });
+    $('nieuw').disabled = readOnly || !db;
+    renderNav();
+    $('titel').textContent = state.start && state.eind ? kort(state.start).replace(/ \d{4}$/, '') + ' – ' + kort(state.eind) : 'Geen periode gekozen';
+    $('tabbar').hidden = false;
+    renderLists(); renderTotals();
+  }
+
+  // ---------- saving ----------
+  function setStatus(text, err) { const s = $('status'); s.textContent = text; s.classList.toggle('err', !!err); }
+
+  function changed() {
+    if (!db || readOnly) { setStatus('Niet opgeslagen', true); return; }
+    setStatus('Wijzigingen…');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => { saveTimer = null; save(); }, 700);
+  }
+
+  async function save() {
+    if (saving) { pending = true; return; }
+    const json = JSON.stringify(state);
+    if (json === lastSavedJson) { setStatus('Opgeslagen ✓'); return; }
+    saving = true; setStatus('Opslaan…');
+    try {
+      await db.doc(DOC).set(JSON.parse(json));
+      lastSavedJson = json; setStatus('Opgeslagen ✓');
+    } catch (e) {
+      if (e && e.code === 'invalid_argument') { readOnly = true; renderAll(); showNotice('Je kunt dit budget bekijken maar niet aanpassen.'); setStatus('Alleen lezen'); }
+      else if (e && e.code === 'unavailable' && !pending) { pending = true; await new Promise((r) => setTimeout(r, 800 + Math.random() * 800)); }
+      else setStatus('Opslaan mislukt', true);
+    } finally {
+      saving = false;
+      if (pending && !readOnly) { pending = false; save(); }
+    }
+  }
+
+  function showNotice(t, feest) { const n = $('notice'); n.textContent = t; n.hidden = !t; n.classList.toggle('celebrate', !!feest); }
+
+  // ---------- events ----------
+  document.querySelectorAll('[data-add]').forEach((b) => b.addEventListener('click', () => {
+    const p = { id: uid(), soort: b.dataset.add, naam: '', bedrag: 0 };
+    if (p.soort === 'aflossing') p.rest = null;
+    state.posten.push(p); renderLists(); renderTotals(); changed();
+    const li = document.querySelector('li[data-id="' + p.id + '"] input'); if (li) li.focus();
+  }));
+  ['boodschappen', 'sparen'].forEach((k) => {
+    const el = $('i-' + k);
+    el.addEventListener('focus', () => el.select());
+    el.addEventListener('input', () => { state.verdeling[k] = parsePot(el.value, state.verdeling[k].type); $('u-' + k).textContent = state.verdeling[k].type === 'pct' ? '%' : '€'; renderTotals(); changed(); });
+    $('u-' + k).addEventListener('click', () => {
+      const p = state.verdeling[k]; const basis = Math.max(0, totalen(state).vrij);
+      if (p.type === 'pct') state.verdeling[k] = { type: 'eur', waarde: r2(basis * p.waarde / 100) };
+      else state.verdeling[k] = { type: 'pct', waarde: basis > 0 ? Math.round(p.waarde / basis * 1000) / 10 : 0 };
+      el.value = fmtPot(state.verdeling[k]); $('u-' + k).textContent = state.verdeling[k].type === 'pct' ? '%' : '€';
+      renderTotals(); changed();
+    });
+    el.addEventListener('blur', () => { el.value = fmtPot(state.verdeling[k]); });
+    el.addEventListener('keydown', (e) => { if (e.key === 'Enter') el.blur(); });
+  });
+  $('start').addEventListener('change', () => { state.start = $('start').value; renderAll(); changed(); });
+  $('eind').addEventListener('change', () => { state.eind = $('eind').value; renderAll(); changed(); });
+
+  $('begin').addEventListener('click', () => {
+    const now = new Date(); const y = now.getFullYear(), m = now.getMonth();
+    const start = toISO(Date.UTC(y, now.getDate() >= 20 ? m : m - 1, 20));
+    state = normalize({ start, eind: addMonth(start), posten: [] });
+    renderAll(); changed();
+  });
+
+  let modalAction = null;
+  function openModal({ title, text, ok, danger, onOk }) {
+    $('m-title').textContent = title; $('m-text').textContent = text;
+    $('m-ok').textContent = ok; $('m-ok').classList.toggle('btn-danger', !!danger); $('m-ok').classList.toggle('btn-primary', !danger);
+    modalAction = onOk; $('modal').hidden = false; $('m-cancel').focus();
+  }
+  function closeModal() { $('modal').hidden = true; modalAction = null; }
+  $('m-cancel').addEventListener('click', closeModal);
+  $('modal').addEventListener('click', (e) => { if (e.target === $('modal')) closeModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('modal').hidden) closeModal(); });
+  $('m-ok').addEventListener('click', async () => {
+    if (!modalAction) return;
+    $('m-ok').disabled = true;
+    try { await modalAction(); closeModal(); }
+    catch (e) { setStatus('Er ging iets mis', true); closeModal(); }
+    finally { $('m-ok').disabled = false; }
+  });
+
+  // Bewaart de huidige periode en zet state door naar de volgende. Geeft namen van afgeloste schulden terug.
+  async function doorNaarVolgendePeriode() {
+    const t = totalen(state);
+    await db.doc('archief/' + keyOf(state.start)).set({ ...JSON.parse(JSON.stringify(state)), totalen: t, bewaardOp: new Date().toISOString() });
+    state.start = state.eind; state.eind = addMonth(state.eind);
+    const afgelost = [];
+    state.posten = state.posten.filter((p) => p.soort !== 'tijdelijk').filter((p) => {
+      if (p.soort !== 'aflossing' || p.rest === null) return true;
+      p.rest = Math.max(0, r2(p.rest - p.bedrag));
+      if (p.rest <= 0) { afgelost.push(p.naam || 'Een aflossing'); return false; }
+      if (p.rest < p.bedrag) p.bedrag = p.rest;
+      return true;
+    });
+    state.uitgaven = []; state.spaarGeboekt = null; viewWeek = null;
+    return afgelost;
+  }
+  function afgelostTekst(a) { return '🎉 ' + a.join(', ') + (a.length === 1 ? ' is' : ' zijn') + ' afgelost! Dat bedrag komt nu bij je vrije budget.'; }
+
+  // Automatisch doorschuiven als de periode voorbij is (alleen bij openen, en niet als je bewust een oudere periode bekijkt)
+  let stateLoaded = false, archLoaded = false, autoChecked = false, rolling = false;
+  async function autoNieuwePeriode() {
+    if (autoChecked || !stateLoaded || !archLoaded || !state || !db || readOnly) return;
+    autoChecked = true;
+    if (!state.eind || !state.start || vandaag() < state.eind) return;
+    if (buren().next) return;
+    rolling = true; clearTimeout(saveTimer); saveTimer = null;
+    while (saving) await new Promise((r) => setTimeout(r, 100));
+    const van = state.start; const afgelost = [];
+    try {
+      for (let i = 0; i < 24 && vandaag() >= state.eind && state.eind > state.start; i++) {
+        afgelost.push(...await doorNaarVolgendePeriode());
+      }
+      renderAll();
+      await save();
+      const n = afgelost.length ? ' ' + afgelostTekst(afgelost) : '';
+      showNotice('Nieuwe periode gestart: ' + kort(state.start).replace(/ \d{4}$/, '') + ' – ' + kort(state.eind) + '. De vorige periode staat bij Periodes.' + n, true);
+    } catch (e) {
+      setStatus('Nieuwe periode starten mislukt', true);
+    } finally { rolling = false; }
+  }
+
+  $('nieuw').addEventListener('click', () => {
+    const ns = state.eind, ne = addMonth(state.eind);
+    openModal({
+      title: 'Nieuwe periode starten?',
+      text: 'De huidige periode wordt bewaard bij "Vorige periodes". Je inkomsten en vaste lasten blijven staan. De tijdelijke uitgaven en je bijgehouden uitgaven worden leeggemaakt, en de restschuld van je aflossingen gaat omlaag. Nieuwe periode: ' + kort(ns) + ' t/m ' + kort(ne) + '.',
+      ok: 'Nieuwe periode starten',
+      onOk: async () => {
+        const afgelost = await doorNaarVolgendePeriode();
+        renderAll(); changed();
+        if (afgelost.length) showNotice(afgelostTekst(afgelost), true);
+      },
+    });
+  });
+
+  $('del-huidig').addEventListener('click', () => {
+    if (!state || readOnly || !db) return;
+    const { prev, next } = buren();
+    const doel = prev || next;
+    openModal({
+      title: 'Deze periode verwijderen?',
+      text: 'De periode ' + kort(state.start) + ' t/m ' + kort(state.eind) + ' wordt definitief verwijderd. ' +
+        (doel ? 'Daarna open je de periode ' + kort(doel.data.start) + ' t/m ' + kort(doel.data.eind) + '.' : 'Er zijn geen andere periodes, dus je begint daarna met een leeg budget.') +
+        ' Dit kun je niet ongedaan maken.',
+      ok: 'Verwijderen', danger: true,
+      onOk: () => verwijderHuidig(doel),
+    });
+  });
+
+  async function verwijderHuidig(doel) {
+    switching = true; renderNav();
+    clearTimeout(saveTimer); saveTimer = null; pending = false;
+    while (saving) await new Promise((r) => setTimeout(r, 100));
+    saving = true; setStatus('Verwijderen…');
+    try {
+      const curKey = keyOf(state.start);
+      if (doel) {
+        const nieuw = normalize(doel.data); const json = JSON.stringify(nieuw);
+        await db.doc(DOC).set(JSON.parse(json));
+        state = nieuw; lastSavedJson = json; viewWeek = null;
+        await db.doc('archief/' + doel.id).delete();
+        archList = archList.filter((a) => a.id !== doel.id);
+        if (doel.id !== curKey) await db.doc('archief/' + curKey).delete();
+        renderAll(); setStatus('Verwijderd ✓');
+      } else {
+        await db.doc(DOC).delete();
+        await db.doc('archief/' + curKey).delete();
+        state = null; lastSavedJson = null;
+        $('app').hidden = true; $('periode').hidden = true; $('leeg').hidden = false;
+        $('titel').textContent = 'Geen periode'; $('tabbar').hidden = true; setStatus('Leeg');
+      }
+    } catch (e) {
+      setStatus('Verwijderen mislukt', true);
+    } finally { saving = false; switching = false; renderNav(); }
+  }
+
+  function verwijderArchief(a) {
+    openModal({
+      title: 'Periode verwijderen?',
+      text: 'De periode ' + kort(a.data.start) + ' t/m ' + kort(a.data.eind) + ' wordt definitief verwijderd. Dit kun je niet ongedaan maken.',
+      ok: 'Verwijderen', danger: true,
+      onOk: async () => {
+        await db.doc('archief/' + a.id).delete();
+        archList = archList.filter((x) => x.id !== a.id);
+        renderNav(); setStatus('Verwijderd ✓');
+      },
+    });
+  }
+
+  // ---------- uitgaven per week ----------
+  let viewWeek = null;
+  const DAG = 86400000;
+  function vandaag() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function kortDag(iso) { const d = new Date(parseISO(iso)); return d.getUTCDate() + ' ' + MAANDEN[d.getUTCMonth()]; }
+  function weken(s) {
+    const S = parseISO(s.start), E = parseISO(s.eind);
+    if (!Number.isFinite(S) || !Number.isFinite(E) || E <= S) return [];
+    const out = [];
+    for (let a = S, i = 0; a < E; a += 7 * DAG, i++) {
+      const b = Math.min(a + 7 * DAG, E);
+      out.push({ i, start: toISO(a), end: toISO(b - DAG), dagen: Math.round((b - a) / DAG) });
+    }
+    return out;
+  }
+  function weekVan(ws, iso) {
+    if (!ws.length) return 0;
+    if (iso < ws[0].start) return 0;
+    const w = ws.findIndex((w) => iso >= w.start && iso <= w.end);
+    return w >= 0 ? w : ws.length - 1;
+  }
+
+  function meter(pre, budget, spent) {
+    const left = r2(budget - spent);
+    const el = $('m-' + pre + '-left');
+    el.textContent = (left < 0 ? '− ' : '') + eur.format(Math.abs(left)); el.classList.toggle('neg', left < 0);
+    $('m-' + pre + '-of').textContent = left >= 0 ? 'over van ' + eur.format(budget) : 'te veel uitgegeven';
+    const f = $('m-' + pre + '-fill');
+    f.style.width = (budget > 0 ? Math.min(100, spent / budget * 100) : (spent > 0 ? 100 : 0)) + '%';
+    f.classList.toggle('over', spent > budget + 0.004);
+  }
+
+  function renderWeek() {
+    if (!state) return;
+    const ws = weken(state), t = totalen(state);
+    const sec = $('dezeweek');
+    if (!ws.length) { $('wk-titel').textContent = 'Deze week'; $('wk-datums').textContent = 'Kies eerst een periode'; return; }
+    const auto = weekVan(ws, vandaag());
+    if (viewWeek === null || viewWeek >= ws.length) viewWeek = auto;
+    const w = ws[viewWeek];
+    const nu = viewWeek === auto && vandaag() >= ws[0].start && vandaag() <= ws[ws.length - 1].end;
+    $('wk-titel').textContent = nu ? 'Deze week' : 'Week ' + (w.i + 1) + ' van ' + ws.length;
+    $('wk-datums').textContent = (nu ? 'Week ' + (w.i + 1) + ' van ' + ws.length + ' · ' : '') + kortDag(w.start) + ' t/m ' + kortDag(w.end) + (w.dagen < 7 ? ' (' + w.dagen + ' dagen)' : '');
+    $('wk-prev').disabled = viewWeek <= 0; $('wk-next').disabled = viewWeek >= ws.length - 1; $('wk-nu').disabled = viewWeek === auto;
+    const inWeek = state.uitgaven.filter((u) => u.datum >= w.start && u.datum <= w.end);
+    const som = (arr, pot) => r2(arr.filter((u) => u.pot === pot).reduce((a, u) => a + u.bedrag, 0));
+    const deel = t.dagen > 0 ? w.dagen / t.dagen : 0;
+    meter('b', r2(Math.max(0, t.boodschappen) * deel), som(inWeek, 'boodschappen'));
+    meter('e', r2(Math.max(0, t.eigen) * deel), som(inWeek, 'eigen'));
+    const wBudget = r2(Math.max(0, t.boodschappen) * deel + Math.max(0, t.eigen) * deel);
+    const wSpent = r2(som(inWeek, 'boodschappen') + som(inWeek, 'eigen'));
+    const wLeft = r2(wBudget - wSpent);
+    const hl = $('hero-left'); hl.textContent = eur.format(wLeft); hl.classList.toggle('neg', wLeft < 0);
+    $('hero-sub').textContent = eur.format(wSpent) + ' uitgegeven van ' + eur.format(wBudget);
+    const frac = wBudget > 0 ? Math.max(0, Math.min(1, wLeft / wBudget)) : 0;
+    $('ring-fg').style.strokeDashoffset = String(326.73 * (1 - frac));
+    $('ring').classList.toggle('over', wLeft < 0);
+    $('ring-pct').textContent = wBudget > 0 ? Math.round(Math.max(0, wLeft) / wBudget * 100) + '%' : '—';
+    const d = $('u-datum');
+    d.min = ws[0].start; d.max = ws[ws.length - 1].end;
+    if (!d.value || d.value < w.start || d.value > w.end) d.value = (vandaag() >= w.start && vandaag() <= w.end) ? vandaag() : w.start;
+    $('u-add').disabled = $('u-bedrag').disabled = $('u-pot').disabled = $('u-naam').disabled = d.disabled = readOnly;
+    document.querySelectorAll('input[name="u-pot"]').forEach((r) => { r.disabled = readOnly; });
+    const ul = $('u-lijst'); ul.replaceChildren();
+    inWeek.slice().sort((a, b) => (a.datum < b.datum ? 1 : a.datum > b.datum ? -1 : 0)).forEach((u) => {
+      const li = document.createElement('li');
+      li.style.setProperty('--pot', u.pot === 'eigen' ? 'var(--eigen)' : 'var(--bood)');
+      const ic = document.createElement('span'); ic.className = 'e-ic'; ic.textContent = u.pot === 'eigen' ? '✨' : '🛒';
+      const mid = document.createElement('div');
+      const nm = document.createElement('div'); nm.className = 'e-nm'; nm.textContent = u.naam || (u.pot === 'eigen' ? 'Eigen invulling' : 'Boodschappen');
+      const dd = document.createElement('div'); dd.className = 'e-d'; dd.textContent = kortDag(u.datum) + ' · ' + (u.pot === 'eigen' ? 'Eigen invulling' : 'Boodschappen');
+      mid.append(nm, dd);
+      const bd = document.createElement('span'); bd.className = 'e-b'; bd.textContent = '− ' + eur.format(u.bedrag);
+      const x = document.createElement('button'); x.className = 'x'; x.textContent = '×'; x.setAttribute('aria-label', 'Verwijder uitgave'); x.disabled = readOnly;
+      x.addEventListener('click', () => { state.uitgaven = state.uitgaven.filter((v) => v !== u); renderWeek(); changed(); });
+      li.append(ic, mid, bd, x); ul.append(li);
+    });
+    if (!inWeek.length) { const li = document.createElement('li'); li.className = 'empty'; li.style.display = 'block'; li.textContent = 'Nog geen uitgaven deze week. Voeg hierboven je eerste toe.'; ul.append(li); }
+    const pb = som(state.uitgaven, 'boodschappen'), pe = som(state.uitgaven, 'eigen');
+    $('u-periode').textContent = 'Hele periode: ' + eur.format(pb) + ' van ' + eur.format(Math.max(0, t.boodschappen)) + ' aan boodschappen · ' + eur.format(pe) + ' van ' + eur.format(Math.max(0, t.eigen)) + ' aan eigen invulling';
+  }
+
+  $('wk-prev').addEventListener('click', () => { if (viewWeek > 0) { viewWeek--; $('u-datum').value = ''; renderWeek(); } });
+  $('wk-next').addEventListener('click', () => { viewWeek++; $('u-datum').value = ''; renderWeek(); });
+  $('wk-nu').addEventListener('click', () => { viewWeek = null; $('u-datum').value = ''; renderWeek(); });
+  $('u-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!state || readOnly) return;
+    const bedrag = parseBedrag($('u-bedrag').value);
+    if (!(bedrag > 0)) { $('u-bedrag').focus(); return; }
+    const datum = $('u-datum').value || vandaag();
+    state.uitgaven.push({ id: uid(), datum, pot: $('u-pot').value === 'eigen' ? 'eigen' : 'boodschappen', naam: $('u-naam').value.trim().slice(0, 80), bedrag });
+    $('u-bedrag').value = ''; $('u-naam').value = '';
+    viewWeek = weekVan(weken(state), datum);
+    renderWeek(); changed();
+  });
+
+  // ---------- spaardoelen ----------
+  let doelen = null, doelenTimer = null, doelenSaving = false, doelenPending = false, doelenLast = null;
+  function normDoelen(raw) {
+    const arr = raw && Array.isArray(raw.doelen) ? raw.doelen : [];
+    return { doelen: arr.filter((g) => g && typeof g === 'object').map((g) => ({
+      id: typeof g.id === 'string' ? g.id : uid(),
+      naam: typeof g.naam === 'string' ? g.naam : '',
+      doel: Number.isFinite(Number(g.doel)) ? Math.max(0, r2(Number(g.doel))) : 0,
+      gespaard: Number.isFinite(Number(g.gespaard)) ? Math.max(0, r2(Number(g.gespaard))) : 0,
+    })) };
+  }
+  function doelenChanged() {
+    if (!db || readOnly) return;
+    setStatus('Wijzigingen…');
+    clearTimeout(doelenTimer);
+    doelenTimer = setTimeout(() => { doelenTimer = null; saveDoelen(); }, 700);
+  }
+  async function saveDoelen() {
+    if (doelenSaving) { doelenPending = true; return; }
+    const json = JSON.stringify(doelen);
+    if (json === doelenLast) return;
+    doelenSaving = true;
+    try { await db.doc(DOELEN).set(JSON.parse(json)); doelenLast = json; if (!saveTimer && !saving) setStatus('Opgeslagen ✓'); }
+    catch (e) { setStatus('Opslaan mislukt', true); }
+    finally { doelenSaving = false; if (doelenPending) { doelenPending = false; saveDoelen(); } }
+  }
+
+  const goalUpd = new Map();
+  function goalEl(g) {
+    const box = document.createElement('div'); box.className = 'goal';
+    const top = document.createElement('div'); top.className = 'g-top';
+    const nm = document.createElement('input'); nm.className = 'g-name'; nm.value = g.naam; nm.placeholder = 'Naam van je doel'; nm.setAttribute('aria-label', 'Naam van het spaardoel');
+    const del = document.createElement('button'); del.className = 'g-del'; del.textContent = '×'; del.setAttribute('aria-label', 'Spaardoel verwijderen');
+    top.append(nm, del);
+    const big = document.createElement('div'); big.className = 'g-big';
+    const track = document.createElement('div'); track.className = 'track'; const fill = document.createElement('div'); fill.className = 'fill'; track.append(fill);
+    const fields = document.createElement('div'); fields.className = 'g-fields';
+    const mk = (label, key) => {
+      const l = document.createElement('label'); l.textContent = label;
+      const i = document.createElement('input'); i.inputMode = 'decimal'; i.value = num.format(g[key]);
+      i.addEventListener('focus', () => i.select());
+      i.addEventListener('input', () => { g[key] = Math.max(0, parseBedrag(i.value)); updateDoelen(); doelenChanged(); });
+      i.addEventListener('blur', () => { i.value = num.format(g[key]); });
+      i.addEventListener('keydown', (e) => { if (e.key === 'Enter') i.blur(); });
+      l.append(i); fields.append(l); return i;
+    };
+    const iGesp = mk('Al gespaard', 'gespaard'); const iDoel = mk('Doelbedrag', 'doel');
+    const info = document.createElement('div'); info.className = 'g-info';
+    const book = document.createElement('button'); book.className = 'g-book';
+    const booked = document.createElement('div'); booked.className = 'g-booked';
+    const bookedTxt = document.createElement('span'); const undo = document.createElement('button'); undo.textContent = 'Ongedaan maken';
+    booked.append(bookedTxt, undo);
+    nm.disabled = del.disabled = iGesp.disabled = iDoel.disabled = readOnly;
+    nm.addEventListener('input', () => { g.naam = nm.value; doelenChanged(); upd(); });
+    del.addEventListener('click', () => openModal({
+      title: 'Spaardoel verwijderen?', text: '"' + (g.naam || 'Dit spaardoel') + '" wordt verwijderd. Dit kun je niet ongedaan maken.', ok: 'Verwijderen', danger: true,
+      onOk: async () => { doelen.doelen = doelen.doelen.filter((x) => x !== g); if (state && state.spaarGeboekt && state.spaarGeboekt.doelId === g.id) { state.spaarGeboekt = null; changed(); } renderDoelen(); doelenChanged(); },
+    }));
+    book.addEventListener('click', () => {
+      const t = totalen(state); if (!(t.sparen > 0) || state.spaarGeboekt) return;
+      g.gespaard = r2(g.gespaard + t.sparen); state.spaarGeboekt = { doelId: g.id, bedrag: t.sparen };
+      iGesp.value = num.format(g.gespaard); updateDoelen(); doelenChanged(); changed();
+    });
+    undo.addEventListener('click', () => {
+      const sb = state.spaarGeboekt; if (!sb || sb.doelId !== g.id) return;
+      g.gespaard = Math.max(0, r2(g.gespaard - sb.bedrag)); state.spaarGeboekt = null;
+      iGesp.value = num.format(g.gespaard); updateDoelen(); doelenChanged(); changed();
+    });
+    function upd() {
+      const t = state ? totalen(state) : null;
+      const p = g.doel > 0 ? Math.min(1, g.gespaard / g.doel) : 0;
+      const klaar = g.doel > 0 && g.gespaard >= g.doel;
+      box.classList.toggle('done', klaar);
+      big.replaceChildren(document.createTextNode(eur.format(g.gespaard) + ' '), Object.assign(document.createElement('span'), { textContent: 'van ' + eur.format(g.doel) + (g.doel > 0 ? ' · ' + pct.format(p) : '') }));
+      fill.style.width = (p * 100) + '%';
+      const nog = r2(g.doel - g.gespaard);
+      if (klaar) info.textContent = '🎉 Doel bereikt!';
+      else if (g.doel <= 0) info.textContent = 'Vul een doelbedrag in';
+      else if (t && t.sparen > 0) { const n = Math.ceil(nog / t.sparen - 0.0001); info.textContent = 'Nog ' + eur.format(nog) + ' · ongeveer ' + n + (n === 1 ? ' periode' : ' periodes') + ' bij ' + eur.format(t.sparen) + ' per periode'; }
+      else info.textContent = 'Nog ' + eur.format(nog) + ' · zet een percentage bij Sparen om te zien hoe lang het duurt';
+      const sb = state && state.spaarGeboekt;
+      const canBook = t && t.sparen > 0 && !readOnly && db;
+      booked.hidden = !(sb && sb.doelId === g.id);
+      if (sb && sb.doelId === g.id) bookedTxt.textContent = '✓ ' + eur.format(sb.bedrag) + ' van deze periode bijgeschreven';
+      undo.disabled = readOnly;
+      book.hidden = !canBook || klaar || (sb && sb.doelId === g.id);
+      if (sb && sb.doelId !== g.id) { const o = doelen.doelen.find((x) => x.id === sb.doelId); book.disabled = true; book.textContent = 'Deze periode al bijgeschreven' + (o && o.naam ? ' bij ' + o.naam : ''); }
+      else { book.disabled = false; book.textContent = t ? '+ ' + eur.format(t.sparen) + ' van deze periode bijschrijven' : ''; }
+    }
+    goalUpd.set(g.id, upd); upd();
+    box.append(top, big, track, fields, info, book, booked);
+    return box;
+  }
+  function renderDoelen() {
+    const lijst = $('g-lijst'); lijst.replaceChildren(); goalUpd.clear();
+    const arr = doelen ? doelen.doelen : [];
+    $('g-leeg').hidden = !!arr.length;
+    arr.forEach((g) => lijst.append(goalEl(g)));
+    $('g-add').disabled = readOnly || !db || !doelen;
+    updateDoelen();
+  }
+  function updateDoelen() {
+    const t = state ? totalen(state) : null;
+    const tot = doelen ? r2(doelen.doelen.reduce((a, g) => a + g.gespaard, 0)) : 0;
+    $('g-totaal').textContent = eur.format(tot);
+    $('g-sub').textContent = t ? (t.sparen > 0 ? 'Je potje Sparen is deze periode ' + eur.format(t.sparen) : 'Zet een percentage bij Sparen (tab Budget) om bij te schrijven') : '';
+    goalUpd.forEach((f) => f());
+  }
+  $('g-add').addEventListener('click', () => {
+    if (!doelen || readOnly) return;
+    const g = { id: uid(), naam: '', doel: 0, gespaard: 0 };
+    doelen.doelen.push(g); renderDoelen(); doelenChanged();
+    const inp = $('g-lijst').lastElementChild && $('g-lijst').lastElementChild.querySelector('.g-name'); if (inp) inp.focus();
+  });
+
+  // ---------- archive ----------
+  const keyOf = (start) => (start || toISO(Date.now())).replace(/[^0-9-]/g, '');
+
+  function renderArchief(snap) {
+    archList = snap.docs.filter((d) => d.exists).map((d) => ({ id: d.id, data: normalize(d.data()) }));
+    drawArchief(); renderNav();
+    if (!snap.metadata || !snap.metadata.fromCache) { archLoaded = true; autoNieuwePeriode(); }
+  }
+
+  function drawArchief() {
+    const body = $('arch-body'); body.replaceChildren();
+    const items = archList.filter((a) => !state || a.data.start !== state.start);
+    $('archief').hidden = !items.length;
+    items.forEach((a) => {
+      const s = a.data; const t = totalen(s);
+      const tr = document.createElement('tr');
+      const cells = [kort(s.start) + ' – ' + kort(s.eind), eur.format(t.inkomsten), eur.format(r2(t.vast + t.tijdelijk)), eur.format(t.vrij), eur.format(t.boodschappen), eur.format(t.sparen), eur.format(t.eigen)];
+      cells.forEach((c, i) => { const td = document.createElement('td'); td.textContent = c; if (i) td.className = 'n'; tr.append(td); });
+      const td = document.createElement('td'); const wrap = document.createElement('div'); wrap.className = 'arch-btns';
+      const b = document.createElement('button'); b.textContent = 'Openen';
+      const x = document.createElement('button'); x.textContent = 'Verwijderen'; x.className = 'x';
+      b.disabled = x.disabled = readOnly || switching || !db;
+      b.addEventListener('click', () => switchTo(a));
+      x.addEventListener('click', () => verwijderArchief(a));
+      wrap.append(b, x); td.append(wrap); tr.append(td); body.append(tr);
+    });
+  }
+
+  function buren() {
+    if (!state) return { prev: null, next: null };
+    const others = archList.filter((a) => a.data.start && a.data.start !== state.start);
+    const prev = others.filter((a) => a.data.start < state.start).sort((x, y) => (x.data.start < y.data.start ? 1 : -1))[0] || null;
+    const next = others.filter((a) => a.data.start > state.start).sort((x, y) => (x.data.start > y.data.start ? 1 : -1))[0] || null;
+    return { prev, next };
+  }
+
+  function renderNav() {
+    const { prev, next } = buren();
+    const off = readOnly || !db || switching;
+    $('vorige').hidden = !prev; $('vorige').disabled = off;
+    $('volgende').hidden = !next; $('volgende').disabled = off;
+    $('nieuw').hidden = !!next; $('nieuw').disabled = off || !state;
+    $('del-huidig').hidden = !state || readOnly || !db; $('del-huidig').disabled = off;
+    if (state) drawArchief();
+  }
+
+  async function switchTo(target) {
+    if (!db || readOnly || switching || !state) return;
+    switching = true; renderNav();
+    clearTimeout(saveTimer); saveTimer = null;
+    while (saving) await new Promise((r) => setTimeout(r, 100));
+    saving = true; setStatus('Periode wisselen…');
+    try {
+      const cur = JSON.parse(JSON.stringify(state));
+      const curKey = keyOf(cur.start);
+      await db.doc('archief/' + curKey).set({ ...cur, totalen: totalen(cur), bewaardOp: new Date().toISOString() });
+      const nieuw = normalize(target.data);
+      const json = JSON.stringify(nieuw);
+      await db.doc(DOC).set(JSON.parse(json));
+      state = nieuw; lastSavedJson = json; viewWeek = null;
+      if (target.id !== curKey) await db.doc('archief/' + target.id).delete();
+      archList = archList.filter((a) => a.id !== target.id);
+      renderAll(); setStatus('Opgeslagen ✓');
+    } catch (e) {
+      setStatus('Wisselen mislukt', true);
+    } finally {
+      saving = false; switching = false; renderNav();
+      if (pending && !readOnly) { pending = false; save(); }
+    }
+  }
+
+  $('vorige').addEventListener('click', () => { const { prev } = buren(); if (prev) switchTo(prev); });
+  $('volgende').addEventListener('click', () => { const { next } = buren(); if (next) switchTo(next); });
+
+  // ---------- tabs ----------
+  const TABS = ['overzicht', 'sparen', 'budget', 'periodes'];
+  function showTab(name, push) {
+    if (!TABS.includes(name)) name = 'overzicht';
+    document.querySelectorAll('[data-pane]').forEach((p) => { p.hidden = p.dataset.pane !== name; });
+    document.querySelectorAll('.tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
+    if (push && location.hash !== '#' + name) { try { history.replaceState(null, '', '#' + name); } catch (e) { location.hash = name; } }
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll('.tab').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab, true)));
+  window.addEventListener('hashchange', () => showTab(location.hash.slice(1), false));
+  showTab(location.hash.slice(1), false);
+  document.querySelectorAll('input[name="u-pot"]').forEach((r) => r.addEventListener('change', () => { if (r.checked) $('u-pot').value = r.value; }));
+
+  // ---------- back-up ----------
+  function vandaagNL() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function toonLaatste() {
+    let l = null; try { l = localStorage.getItem('mijnbudget:laatsteBackup'); } catch (e) {}
+    $('bk-laatste').textContent = l ? 'Laatste back-up: ' + kort(l) : 'Je hebt nog geen back-up gemaakt.';
+  }
+  toonLaatste();
+  $('bk-maak').addEventListener('click', async () => {
+    const inhoud = JSON.stringify({ app: 'mijn-budget', versie: 1, gemaakt: new Date().toISOString(), data: window.__budgetStore.export() }, null, 1);
+    const naam = 'mijn-budget-backup-' + vandaagNL() + '.json';
+    let gelukt = false;
+    try {
+      const file = new File([inhoud], naam, { type: 'application/json' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Mijn budget back-up' }); gelukt = true; }
+    } catch (e) { if (e && e.name === 'AbortError') return; }
+    if (!gelukt) {
+      const url = URL.createObjectURL(new Blob([inhoud], { type: 'application/json' }));
+      const a = document.createElement('a'); a.href = url; a.download = naam; document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    }
+    try { localStorage.setItem('mijnbudget:laatsteBackup', vandaagNL()); } catch (e) {}
+    toonLaatste(); setStatus('Back-up gemaakt ✓');
+  });
+  const kiesBackup = () => { $('bk-file').value = ''; $('bk-file').click(); };
+  $('bk-terug').addEventListener('click', kiesBackup);
+  $('bk-terug-leeg').addEventListener('click', kiesBackup);
+  $('bk-file').addEventListener('change', async () => {
+    const f = $('bk-file').files && $('bk-file').files[0]; if (!f) return;
+    let obj = null;
+    try { obj = JSON.parse(await f.text()); } catch (e) {}
+    if (!obj || obj.app !== 'mijn-budget' || !obj.data || typeof obj.data !== 'object') { showNotice('Dit bestand is geen back-up van Mijn budget. Kies een bestand dat begint met "mijn-budget-backup".'); return; }
+    const p = obj.data['budget/huidig'];
+    openModal({
+      title: 'Back-up terugzetten?',
+      text: 'Alles wat nu in de app staat wordt vervangen door de back-up van ' + (obj.gemaakt ? kort(obj.gemaakt.slice(0, 10)) : 'onbekende datum') + (p && p.start ? ' (periode ' + kort(p.start) + ' t/m ' + kort(p.eind) + ')' : '') + '.',
+      ok: 'Terugzetten',
+      onOk: async () => { window.__budgetStore.replace(obj.data); location.reload(); },
+    });
+  });
+
+  // ---------- offline ----------
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+  }
+
+  // ---------- start ----------
+  (async () => {
+    try { db = await window.claude.use('db'); } catch (e) { db = null; }
+    if (!db) {
+      setStatus('Niet opgeslagen', true);
+      showNotice('Opslaan werkt niet in deze browser. Zet de app op je beginscherm en open hem daar.');
+      $('leeg').hidden = false;
+      return;
+    }
+    let loaded = false;
+    const timer = setTimeout(() => { if (!loaded) setStatus('Kan je budget nog niet bereiken…', true); }, 10000);
+    db.doc(DOC).onSnapshot((snap) => {
+      if (!snap.metadata.fromCache) { clearTimeout(timer); }
+      if (!snap.exists) {
+        if (!snap.metadata.fromCache && !state) { loaded = true; $('leeg').hidden = false; setStatus('Leeg'); }
+        return;
+      }
+      loaded = true;
+      if (!snap.metadata.fromCache && !stateLoaded) { stateLoaded = true; setTimeout(autoNieuwePeriode, 0); }
+      const incoming = normalize(snap.data());
+      const json = JSON.stringify(incoming);
+      if (json === lastSavedJson || (state && json === JSON.stringify(state))) { if (!saveTimer && !saving) setStatus('Opgeslagen ✓'); return; }
+      if (saveTimer || saving || rolling) return; // eigen wijziging onderweg
+      state = incoming; lastSavedJson = json;
+      renderAll(); setStatus(readOnly ? 'Alleen lezen' : 'Opgeslagen ✓');
+    }, (e) => {
+      clearTimeout(timer);
+      if (e && e.code === 'revoked') { readOnly = true; if (state) renderAll(); setStatus('Alleen lezen'); }
+      else setStatus('Verbinding verbroken', true);
+    });
+    db.collection('archief').orderBy('start', 'desc').onSnapshot(renderArchief, () => {});
+    db.doc(DOELEN).onSnapshot((snap) => {
+      if (snap.metadata.fromCache && !snap.exists) return;
+      const inc = normDoelen(snap.exists ? snap.data() : null); const json = JSON.stringify(inc);
+      if (json === doelenLast || (doelen && json === JSON.stringify(doelen))) return;
+      if (doelenTimer || doelenSaving) return;
+      doelen = inc; doelenLast = snap.exists ? json : null; renderDoelen();
+    }, () => {});
+  })();
+})();
+</script>
+</body>
+</html>
