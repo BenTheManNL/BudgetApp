@@ -316,6 +316,31 @@
   .xrow .rest input[type="date"] { min-height: 36px; padding: 5px 8px; text-align: left; }
   .pot .pot-slider { width: 100%; margin: 12px 0 2px; padding: 0; border: none; background: transparent; accent-color: var(--pot); height: 28px; touch-action: pan-y; }
   .pot-slider:disabled { opacity: .35; }
+  .settings { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--line); display: flex; flex-direction: column; gap: 12px; }
+  .switch { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; font-size: 14px; color: var(--ink-2); cursor: pointer; }
+  .switch input { position: absolute; opacity: 0; pointer-events: none; }
+  .switch > span:last-child { grid-column: 2; }
+  .sw-track { width: 42px; height: 26px; border-radius: 99px; background: var(--line); position: relative; transition: background .2s; grid-row: 1; }
+  .sw-dot { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform .2s; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+  .switch input:checked + .sw-track { background: var(--pine-2); }
+  .switch input:checked + .sw-track .sw-dot { transform: translateX(16px); }
+  .switch input:focus-visible + .sw-track { outline: 2px solid var(--spaar); outline-offset: 2px; }
+  .sel { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--ink-2); }
+  .dagsel { border: 1.5px solid var(--line); background: var(--surface); border-radius: 9px; padding: 5px 8px; font-weight: 600; min-width: 0; }
+  .arow .dagrij { grid-template-columns: 78px auto; }
+  .entries.afs li { grid-template-columns: 40px 1fr auto; }
+  .entries.afs li.done { opacity: .5; }
+  .entries.afs li.done .e-b { text-decoration: line-through; }
+  .modal.wide { max-width: 640px; max-height: 88vh; display: flex; flex-direction: column; }
+  .imp-lijst { overflow-y: auto; margin: 0 -6px 16px; padding: 0 6px; flex: 1; min-height: 0; }
+  .imp-rij { display: grid; grid-template-columns: 22px 1fr auto; grid-template-areas: "cb mid bd" "cb sel sel"; gap: 2px 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); cursor: pointer; }
+  .imp-rij:first-child { border-top: none; }
+  .imp-rij input { grid-area: cb; width: 18px; height: 18px; accent-color: var(--pine-2); }
+  .imp-mid { grid-area: mid; display: flex; flex-direction: column; min-width: 0; }
+  .imp-mid .e-nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .imp-rij .e-b { grid-area: bd; text-align: right; }
+  .imp-rij select { grid-area: sel; font-size: 13px; justify-self: start; margin-top: 4px; }
+  .imp-rij.dubbel { opacity: .45; }
 </style>
 </head>
 <body>
@@ -393,7 +418,8 @@
       </div>
 
       <form class="card" id="u-form" autocomplete="off">
-        <div class="card-h" style="margin-bottom:10px"><h2>Uitgave toevoegen</h2></div>
+        <div class="card-h" style="margin-bottom:10px"><h2>Uitgave toevoegen</h2><button type="button" class="btn btn-sm" id="csv-knop">🏦 Bankafschrift</button></div>
+        <input type="file" id="csv-file" accept=".csv,.txt,text/csv,text/plain" hidden>
         <div class="potpick" role="radiogroup" aria-label="Potje">
           <label style="--pot:var(--bood)"><input type="radio" name="u-pot" value="boodschappen" checked><span>🛒 Boodschappen</span></label>
           <label style="--pot:var(--eigen)"><input type="radio" name="u-pot" value="eigen"><span>✨ Eigen invulling</span></label>
@@ -406,6 +432,14 @@
         </div>
         <button class="btn btn-primary" type="submit" id="u-add">Toevoegen</button>
       </form>
+
+      <section class="card" id="afschrijvingen">
+        <div class="card-h"><h2>Nog af te schrijven</h2><span class="card-sub">deze periode</span></div>
+        <div class="wb-big" id="afs-nog">—</div>
+        <div class="card-sub" id="afs-sub" style="margin-bottom:6px">—</div>
+        <ul class="entries afs" id="afs-lijst"></ul>
+        <p class="hint" id="afs-zonder" hidden style="margin-top:10px"></p>
+      </section>
 
       <section class="card">
         <div class="card-h"><h2>Uitgaven deze week</h2></div>
@@ -458,6 +492,16 @@
         </div>
         <p class="hint" style="margin-top:12px">Schuif of typ een percentage. Eigen invulling vangt de verschillen op: meer sparen gaat eerst van Eigen invulling af. Schuif je Eigen invulling omlaag, dan gaat het verschil naar Sparen. Tik op % om een potje op een vast bedrag per periode te zetten.</p>
         <div class="warn" id="p-warn" hidden>Je verdeelt meer dan je vrij te besteden hebt. Verlaag Boodschappen of Sparen.</div>
+        <div class="settings">
+          <label class="switch"><input type="checkbox" id="set-meenemen"><span class="sw-track"><span class="sw-dot"></span></span><span>Wat je in een week overhoudt of te veel uitgeeft, meenemen naar de volgende week</span></label>
+          <label class="sel"><span>Wat aan het einde van de periode over is</span>
+            <select class="field" id="set-rest">
+              <option value="volgende">Meenemen naar de volgende periode</option>
+              <option value="sparen">Bijschrijven bij je spaardoel</option>
+              <option value="niets">Niets mee doen</option>
+            </select>
+          </label>
+        </div>
       </div>
 
       <div class="card">
@@ -555,6 +599,18 @@
       </div>
     </section>
   </main>
+</div>
+
+<div class="modal-bg" id="import" hidden>
+  <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="imp-titel">
+    <h3 id="imp-titel">Bankafschrift importeren</h3>
+    <p id="imp-info"></p>
+    <div class="imp-lijst" id="imp-lijst"></div>
+    <div class="btns">
+      <button class="btn" id="imp-annuleer">Annuleren</button>
+      <button class="btn btn-primary" id="imp-ok">Toevoegen</button>
+    </div>
+  </div>
 </div>
 
 <div class="modal-bg" id="modal" hidden>
@@ -696,6 +752,7 @@
           bedrag: Number.isFinite(Number(p.bedrag)) ? r2(Number(p.bedrag)) : 0,
         };
         if (p.soort === 'extra') q.datum = typeof p.datum === 'string' ? p.datum : '';
+        if (p.soort === 'vast' || p.soort === 'aflossing') { const d = Number(p.dag); q.dag = Number.isInteger(d) && d >= 1 && d <= 31 ? d : null; }
         if (p.soort === 'aflossing') q.rest = p.rest === null || p.rest === undefined || p.rest === '' || !Number.isFinite(Number(p.rest)) ? null : Math.max(0, r2(Number(p.rest)));
         return q;
       }),
@@ -705,7 +762,10 @@
         pot: u.pot === 'eigen' ? 'eigen' : 'boodschappen',
         naam: typeof u.naam === 'string' ? u.naam : '',
         bedrag: Number.isFinite(Number(u.bedrag)) ? r2(Number(u.bedrag)) : 0,
+        bron: typeof u.bron === 'string' ? u.bron : undefined,
       })),
+      meenemen: o.meenemen !== false,
+      restNaar: ['volgende', 'sparen', 'niets'].includes(o.restNaar) ? o.restNaar : 'volgende',
       spaarGeboekt: o.spaarGeboekt && typeof o.spaarGeboekt === 'object' && typeof o.spaarGeboekt.doelId === 'string' && Number.isFinite(Number(o.spaarGeboekt.bedrag))
         ? { doelId: o.spaarGeboekt.doelId, bedrag: r2(Number(o.spaarGeboekt.bedrag)) } : null,
     };
@@ -764,7 +824,7 @@
     $('bar').setAttribute('aria-label', 'Vaste lasten ' + eur.format(t.vast) + ', tijdelijk ' + eur.format(t.tijdelijk) + ', vrij ' + eur.format(t.vrij));
     document.querySelectorAll('.arow').forEach((el) => el._upd && el._upd());
     syncPotjes();
-    renderWeek(); updateDoelen();
+    renderWeek(); updateDoelen(); renderAfschrijvingen();
   }
 
   const ICONEN = [
@@ -879,6 +939,69 @@
     return { text: 'Nog ' + n + (n === 1 ? ' termijn' : ' termijnen') + ' · schuldvrij rond ' + d.getUTCDate() + ' ' + MAANDEN[d.getUTCMonth()] + ' ' + d.getUTCFullYear(), ok: n <= 1 };
   }
 
+  // ---------- afschrijfdatums ----------
+  function dagenInMaand(y, m) { return new Date(Date.UTC(y, m + 1, 0)).getUTCDate(); }
+  // Op welke datum binnen de periode wordt deze post afgeschreven? (dag 31 in een korte maand wordt de laatste dag)
+  function afschrijfDatum(s, dag) {
+    const S = parseISO(s.start), E = parseISO(s.eind);
+    if (!dag || !Number.isFinite(S) || !Number.isFinite(E)) return null;
+    const d0 = new Date(S);
+    for (let m = 0; m < 3; m++) {
+      const y = d0.getUTCFullYear(), mo = d0.getUTCMonth() + m;
+      const x = Date.UTC(y, mo, Math.min(dag, dagenInMaand(y, mo)));
+      if (x >= S && x < E) return toISO(x);
+    }
+    return null;
+  }
+  function dagKeuze(p, onChange) {
+    const sel = document.createElement('select'); sel.className = 'dagsel'; sel.setAttribute('aria-label', 'Dag van afschrijving ' + (p.naam || ''));
+    sel.append(new Option('—', ''));
+    for (let d = 1; d <= 31; d++) sel.append(new Option(d + 'e', String(d)));
+    sel.value = p.dag ? String(p.dag) : ''; sel.disabled = readOnly;
+    sel.addEventListener('change', () => { p.dag = sel.value ? Number(sel.value) : null; onChange(); renderAfschrijvingen(); changed(); });
+    return sel;
+  }
+  function dagRegel(p) {
+    const rij = document.createElement('div'); rij.className = 'rest dagrij';
+    const lab = document.createElement('span'); lab.textContent = 'Afschrijving';
+    const info = document.createElement('span'); info.className = 'info';
+    const upd = () => { const d = afschrijfDatum(state, p.dag); info.textContent = p.dag ? (d ? 'deze periode op ' + kortDag(d) : 'valt niet in deze periode') : 'kies de dag van de maand'; };
+    rij.append(lab, dagKeuze(p, upd), info); upd();
+    return { rij, upd };
+  }
+  function vastEl(p) {
+    const li = document.createElement('li'); li.className = 'arow vrow'; li.dataset.id = p.id;
+    const { rij, upd } = dagRegel(p);
+    li._upd = upd;
+    li.append(rowEl(p, 'div'), rij);
+    return li;
+  }
+  function renderAfschrijvingen() {
+    if (!state) return;
+    const vandaagIso = vandaag();
+    const items = state.posten.filter((p) => (p.soort === 'vast' || p.soort === 'aflossing') && p.bedrag > 0);
+    const metDatum = items.map((p) => ({ p, datum: afschrijfDatum(state, p.dag) })).filter((x) => x.datum).sort((a, b) => (a.datum < b.datum ? -1 : a.datum > b.datum ? 1 : 0));
+    const zonder = items.filter((p) => !p.dag).length;
+    const nog = r2(metDatum.filter((x) => x.datum >= vandaagIso).reduce((a, x) => a + x.p.bedrag, 0));
+    const al = r2(metDatum.filter((x) => x.datum < vandaagIso).reduce((a, x) => a + x.p.bedrag, 0));
+    $('afs-nog').textContent = eur.format(nog);
+    $('afs-sub').textContent = metDatum.length ? 'Al afgeschreven: ' + eur.format(al) : 'Vul bij Budget in op welke dag je vaste lasten worden afgeschreven.';
+    const ul = $('afs-lijst'); ul.replaceChildren();
+    metDatum.forEach(({ p, datum }) => {
+      const li = document.createElement('li'); if (datum < vandaagIso) li.className = 'done';
+      li.style.setProperty('--pot', p.soort === 'aflossing' ? 'var(--schuld)' : 'var(--vast)');
+      const ic = document.createElement('span'); ic.className = 'e-ic'; ic.textContent = icoonVoor(p);
+      const mid = document.createElement('div');
+      const nm = document.createElement('div'); nm.className = 'e-nm'; nm.textContent = p.naam || 'Vaste last';
+      const dd = document.createElement('div'); dd.className = 'e-d'; dd.textContent = kortDag(datum) + (datum < vandaagIso ? ' · afgeschreven' : datum === vandaagIso ? ' · vandaag' : '');
+      mid.append(nm, dd);
+      const bd = document.createElement('span'); bd.className = 'e-b'; bd.textContent = eur.format(p.bedrag);
+      li.append(ic, mid, bd); ul.append(li);
+    });
+    $('afs-zonder').hidden = !zonder;
+    $('afs-zonder').textContent = zonder + (zonder === 1 ? ' vaste last heeft' : ' vaste lasten hebben') + ' nog geen afschrijfdag. Vul die in bij Budget.';
+  }
+
   function aflosEl(p) {
     const li = document.createElement('li'); li.className = 'arow'; li.dataset.id = p.id;
     const top = rowEl(p, 'div');
@@ -895,7 +1018,9 @@
     function upd() { const i = aflosInfo(p); info.textContent = i.text; info.classList.toggle('ok', i.ok); }
     li._upd = upd; upd();
     rest.append(lab, inp, info);
-    li.append(top, rest);
+    const dr = dagRegel(p);
+    li._upd = () => { upd(); dr.upd(); }; li._upd();
+    li.append(top, rest, dr.rij);
     return li;
   }
 
@@ -928,7 +1053,7 @@
       const items = state.posten.filter((p) => p.soort === sec.dataset.soort);
       if (sec.dataset.soort === 'aflossing') items.sort(aflosVolgorde);
       if (!items.length) { const li = document.createElement('li'); li.className = 'empty-list'; li.textContent = 'Nog niets ingevuld.'; ul.append(li); }
-      items.forEach((p) => ul.append(p.soort === 'aflossing' ? aflosEl(p) : p.soort === 'extra' ? extraEl(p) : rowEl(p)));
+      items.forEach((p) => ul.append(p.soort === 'aflossing' ? aflosEl(p) : p.soort === 'extra' ? extraEl(p) : p.soort === 'vast' ? vastEl(p) : rowEl(p)));
     }
   }
 
@@ -936,6 +1061,8 @@
     $('leeg').hidden = true; $('app').hidden = false; $('periode').hidden = false;
     $('start').value = state.start; $('eind').value = state.eind;
     $('start').disabled = $('eind').disabled = readOnly;
+    $('set-meenemen').checked = state.meenemen; $('set-meenemen').disabled = readOnly;
+    $('set-rest').value = state.restNaar; $('set-rest').disabled = readOnly;
     ['boodschappen', 'sparen'].forEach((k) => {
       const el = $('i-' + k); el.value = fmtPot(state.verdeling[k]); el.disabled = readOnly;
       const u = $('u-' + k); u.textContent = state.verdeling[k].type === 'pct' ? '%' : '€'; u.disabled = readOnly;
@@ -981,6 +1108,7 @@
   document.querySelectorAll('[data-add]').forEach((b) => b.addEventListener('click', () => {
     const p = { id: uid(), soort: b.dataset.add, naam: '', bedrag: 0 };
     if (p.soort === 'aflossing') p.rest = null;
+    if (p.soort === 'vast' || p.soort === 'aflossing') p.dag = null;
     if (p.soort === 'extra') p.datum = standaardDatum();
     state.posten.push(p); renderLists(); renderTotals(); changed();
     const li = document.querySelector('li[data-id="' + p.id + '"] input'); if (li) li.focus();
@@ -1071,8 +1199,10 @@
   });
 
   // Bewaart de huidige periode en zet state door naar de volgende. Geeft namen van afgeloste schulden terug.
+  let restMelding = '';
   async function doorNaarVolgendePeriode() {
     const t = totalen(state);
+    const rest = periodeRest(state, t);
     await db.doc('archief/' + keyOf(state.start)).set({ ...JSON.parse(JSON.stringify(state)), totalen: t, bewaardOp: new Date().toISOString() });
     state.start = state.eind; state.eind = addMonth(state.eind);
     const afgelost = [];
@@ -1084,6 +1214,17 @@
       return true;
     });
     state.uitgaven = []; state.spaarGeboekt = null; viewWeek = null;
+    restMelding = '';
+    if (rest >= 0.01 && state.restNaar !== 'niets') {
+      const doel = state.restNaar === 'sparen' && doelen ? doelen.doelen.find((g) => !(g.doel > 0 && g.gespaard >= g.doel)) : null;
+      if (doel) {
+        doel.gespaard = r2(doel.gespaard + rest); doelenChanged(); renderDoelen();
+        restMelding = 'Je hield ' + eur.format(rest) + ' over. Dat is bijgeschreven bij ' + (doel.naam || 'je spaardoel') + '.';
+      } else {
+        state.posten.push({ id: uid(), soort: 'extra', naam: 'Over van vorige periode', bedrag: rest, datum: state.start });
+        restMelding = 'Je hield ' + eur.format(rest) + ' over. Dat staat nu bij Tijdelijke inkomsten van deze periode.';
+      }
+    }
     return afgelost;
   }
   function afgelostTekst(a) { return '🎉 ' + a.join(', ') + (a.length === 1 ? ' is' : ' zijn') + ' afgelost! Dat bedrag komt nu bij je vrije budget.'; }
@@ -1104,7 +1245,7 @@
       }
       renderAll();
       await save();
-      const n = afgelost.length ? ' ' + afgelostTekst(afgelost) : '';
+      const n = (afgelost.length ? ' ' + afgelostTekst(afgelost) : '') + (restMelding ? ' ' + restMelding : '');
       showNotice('Nieuwe periode gestart: ' + kort(state.start).replace(/ \d{4}$/, '') + ' – ' + kort(state.eind) + '. De vorige periode staat bij Periodes.' + n, true);
     } catch (e) {
       setStatus('Nieuwe periode starten mislukt', true);
@@ -1120,7 +1261,8 @@
       onOk: async () => {
         const afgelost = await doorNaarVolgendePeriode();
         renderAll(); changed();
-        if (afgelost.length) showNotice(afgelostTekst(afgelost), true);
+        const m = [afgelost.length ? afgelostTekst(afgelost) : '', restMelding].filter(Boolean).join(' ');
+        if (m) showNotice(m, true);
       },
     });
   });
@@ -1201,11 +1343,32 @@
     return w >= 0 ? w : ws.length - 1;
   }
 
-  function meter(pre, budget, spent) {
+  // Budget per week per potje. Met "meenemen" komt wat je in eerdere weken overhield (of te veel uitgaf) erbij.
+  function weekBudgetten(s, t, ws) {
+    const B = Math.max(0, t.boodschappen), E = Math.max(0, t.eigen);
+    const som = (wk, pot) => r2(s.uitgaven.filter((u) => u.pot === pot && u.datum >= wk.start && u.datum <= wk.end).reduce((a, u) => a + u.bedrag, 0));
+    let carryB = 0, carryE = 0;
+    return ws.map((wk) => {
+      const deel = weekDeel(s, t, wk);
+      const baseB = r2(B * deel), baseE = r2(E * deel);
+      const spentB = som(wk, 'boodschappen'), spentE = som(wk, 'eigen');
+      const rij = { b: r2(baseB + carryB), e: r2(baseE + carryE), spentB, spentE, carryB, carryE };
+      if (s.meenemen) { carryB = r2(rij.b - spentB); carryE = r2(rij.e - spentE); }
+      return rij;
+    });
+  }
+  // Wat er van de hele periode over is: budget voor Boodschappen en Eigen invulling min alles wat je uitgaf
+  function periodeRest(s, t) {
+    const uit = r2(s.uitgaven.filter((u) => u.datum >= s.start && u.datum < s.eind).reduce((a, u) => a + u.bedrag, 0));
+    return r2(Math.max(0, t.boodschappen) + Math.max(0, t.eigen) - uit);
+  }
+
+  function meter(pre, budget, spent, carry) {
     const left = r2(budget - spent);
     const el = $('m-' + pre + '-left');
     el.textContent = (left < 0 ? '− ' : '') + eur.format(Math.abs(left)); el.classList.toggle('neg', left < 0);
-    $('m-' + pre + '-of').textContent = left >= 0 ? 'over van ' + eur.format(budget) : 'te veel uitgegeven';
+    $('m-' + pre + '-of').textContent = (left >= 0 ? 'over van ' + eur.format(budget) : 'te veel uitgegeven')
+      + (carry && Math.abs(carry) >= 0.01 ? ' (' + (carry > 0 ? '+' : '−') + eur.format(Math.abs(carry)).replace('€\u00a0', '€') + ' meegenomen)' : '');
     const f = $('m-' + pre + '-fill');
     f.style.width = (budget > 0 ? Math.min(100, spent / budget * 100) : (spent > 0 ? 100 : 0)) + '%';
     f.classList.toggle('over', spent > budget + 0.004);
@@ -1225,14 +1388,16 @@
     $('wk-prev').disabled = viewWeek <= 0; $('wk-next').disabled = viewWeek >= ws.length - 1; $('wk-nu').disabled = viewWeek === auto;
     const inWeek = state.uitgaven.filter((u) => u.datum >= w.start && u.datum <= w.end);
     const som = (arr, pot) => r2(arr.filter((u) => u.pot === pot).reduce((a, u) => a + u.bedrag, 0));
-    const deel = weekDeel(state, t, w);
-    meter('b', r2(Math.max(0, t.boodschappen) * deel), som(inWeek, 'boodschappen'));
-    meter('e', r2(Math.max(0, t.eigen) * deel), som(inWeek, 'eigen'));
-    const wBudget = r2(Math.max(0, t.boodschappen) * deel + Math.max(0, t.eigen) * deel);
-    const wSpent = r2(som(inWeek, 'boodschappen') + som(inWeek, 'eigen'));
+    const wb = weekBudgetten(state, t, ws)[viewWeek];
+    meter('b', wb.b, wb.spentB, wb.carryB);
+    meter('e', wb.e, wb.spentE, wb.carryE);
+    const wBudget = r2(wb.b + wb.e);
+    const wSpent = r2(wb.spentB + wb.spentE);
+    const wCarry = r2(wb.carryB + wb.carryE);
     const wLeft = r2(wBudget - wSpent);
     const hl = $('hero-left'); hl.textContent = eur.format(wLeft); hl.classList.toggle('neg', wLeft < 0);
-    $('hero-sub').textContent = eur.format(wSpent) + ' uitgegeven van ' + eur.format(wBudget);
+    $('hero-sub').textContent = eur.format(wSpent) + ' uitgegeven van ' + eur.format(wBudget)
+      + (Math.abs(wCarry) >= 0.01 ? ' · ' + (wCarry > 0 ? '+ ' : '− ') + eur.format(Math.abs(wCarry)) + (wCarry > 0 ? ' over uit vorige weken' : ' te veel in vorige weken') : '');
     const frac = wBudget > 0 ? Math.max(0, Math.min(1, wLeft / wBudget)) : 0;
     $('ring-fg').style.strokeDashoffset = String(326.73 * (1 - frac));
     $('ring').classList.toggle('over', wLeft < 0);
@@ -1274,6 +1439,145 @@
     $('u-bedrag').value = ''; $('u-naam').value = '';
     viewWeek = weekVan(weken(state), datum);
     renderWeek(); changed();
+  });
+
+  // ---------- bankafschrift importeren ----------
+  // Leest een CSV-regel in, met aandacht voor "aanhalingstekens" waar een scheidingsteken in kan staan
+  function csvRegels(tekst, sep) {
+    const rijen = []; let rij = [], veld = '', inQ = false;
+    for (let i = 0; i < tekst.length; i++) {
+      const c = tekst[i];
+      if (inQ) {
+        if (c === '"') { if (tekst[i + 1] === '"') { veld += '"'; i++; } else inQ = false; }
+        else veld += c;
+      } else if (c === '"') inQ = true;
+      else if (c === sep) { rij.push(veld); veld = ''; }
+      else if (c === '\n' || c === '\r') { if (c === '\r' && tekst[i + 1] === '\n') i++; rij.push(veld); rijen.push(rij); rij = []; veld = ''; }
+      else veld += c;
+    }
+    if (veld || rij.length) { rij.push(veld); rijen.push(rij); }
+    return rijen.filter((r) => r.some((x) => x.trim() !== ''));
+  }
+  function csvDatum(s) {
+    s = (s || '').trim(); let m;
+    if ((m = /^(\d{4})(\d{2})(\d{2})$/.exec(s))) return m[1] + '-' + m[2] + '-' + m[3];
+    if ((m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s))) return m[1] + '-' + m[2] + '-' + m[3];
+    if ((m = /^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})$/.exec(s))) return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
+    return null;
+  }
+  function csvBedrag(s) {
+    s = (s || '').replace(/[€\s]/g, ''); const neg = s.startsWith('-'); s = s.replace(/^[+-]/, '');
+    const k = s.lastIndexOf(','), p = s.lastIndexOf('.');
+    if (k > p) s = s.replace(/\./g, '').replace(',', '.'); else s = s.replace(/,/g, '');
+    const n = parseFloat(s); return Number.isFinite(n) ? (neg ? -n : n) : NaN;
+  }
+  // ABN AMRO zet de naam ergens in een lange omschrijving; probeer die eruit te halen
+  function naamUitOmschrijving(o) {
+    o = (o || '').replace(/\s+/g, ' ').trim(); let m;
+    if ((m = /\/NAME\/([^/]+)/i.exec(o))) return m[1].trim();
+    if ((m = /Naam:\s*(.+?)(\s{2,}|Omschrijving:|Machtiging:|IBAN:|Kenmerk:|$)/i.exec(o))) return m[1].trim();
+    if ((m = /(?:BEA|GEA),?\s*(?:Apple Pay|Google Pay|Betaalpas)?\s*(.+?)(?:,PAS|\s+NR:|$)/i.exec(o))) return m[1].trim();
+    return o;
+  }
+  function kolom(kop, namen) {
+    for (const n of namen) { const i = kop.indexOf(n); if (i >= 0) return i; }
+    return -1;
+  }
+  // Herkent het bestand van de bank en geeft een lijst uitgaven terug: { datum, bedrag, naam }
+  function leesBankbestand(tekst) {
+    tekst = tekst.replace(/^﻿/, '');
+    const eerste = tekst.split(/\r?\n/)[0] || '';
+    const tel = (c) => eerste.split(c).length - 1;
+    const sep = [['\t', tel('\t')], [';', tel(';')], [',', tel(',')]].sort((a, b) => b[1] - a[1])[0][0];
+    const rijen = csvRegels(tekst, sep);
+    if (!rijen.length) return { bank: null, items: [] };
+    const kop = rijen[0].map((x) => x.trim().toLowerCase());
+    const uit = [];
+    const heeftKop = !csvDatum(rijen[0][0]) && !csvDatum(rijen[0][2] || '');
+    if (heeftKop) {
+      const iD = kolom(kop, ['datum', 'date', 'transactiedatum', 'boekingsdatum']);
+      const iB = kolom(kop, ['bedrag (eur)', 'bedrag', 'amount', 'transactiebedrag']);
+      const iA = kolom(kop, ['af bij', 'af/bij', 'debit/credit', 'credit/debit']);
+      const iN = kolom(kop, ['naam / omschrijving', 'naam tegenpartij', 'name', 'naam', 'tegenpartij', 'counterparty']);
+      const iO = kolom(kop, ['mededelingen', 'omschrijving-1', 'omschrijving', 'description', 'beschrijving']);
+      if (iD < 0 || iB < 0) return { bank: null, items: [] };
+      const bank = kop.includes('af bij') ? 'ING' : kop.includes('naam tegenpartij') ? 'Rabobank' : kop.includes('counterparty') ? 'bunq' : 'je bank';
+      rijen.slice(1).forEach((r) => {
+        const datum = csvDatum(r[iD]); let b = csvBedrag(r[iB]);
+        if (!datum || !Number.isFinite(b)) return;
+        if (iA >= 0) { const a = (r[iA] || '').trim().toLowerCase(); if (a.startsWith('af') || a.startsWith('debit')) b = -Math.abs(b); else b = Math.abs(b); }
+        if (b >= 0) return;
+        const naam = (iN >= 0 && r[iN] && r[iN].trim()) || (iO >= 0 ? naamUitOmschrijving(r[iO]) : '') || 'Uitgave';
+        uit.push({ datum, bedrag: r2(-b), naam: naam.trim().slice(0, 60) });
+      });
+      return { bank, items: uit };
+    }
+    // Zonder kopregel: ABN AMRO (tab, 8 kolommen) of ASN / SNS / RegioBank (18+ kolommen)
+    const abn = sep === '\t' && rijen[0].length >= 8 && csvDatum(rijen[0][2]);
+    rijen.forEach((r) => {
+      let datum, b, naam;
+      if (abn) { datum = csvDatum(r[2]); b = csvBedrag(r[6]); naam = naamUitOmschrijving(r[7]); }
+      else if (r.length >= 18) { datum = csvDatum(r[0]); b = csvBedrag(r[10]); naam = (r[3] || '').trim() || naamUitOmschrijving(r[17]); }
+      else return;
+      if (!datum || !Number.isFinite(b) || b >= 0) return;
+      uit.push({ datum, bedrag: r2(-b), naam: (naam || 'Uitgave').slice(0, 60) });
+    });
+    return { bank: abn ? 'ABN AMRO' : uit.length ? 'ASN / SNS / RegioBank' : null, items: uit };
+  }
+  const SUPERMARKT = /albert ?heijn|\bah\b|ah to go|jumbo|lidl|aldi|\bplus\b|dirk|\bcoop\b|\bspar\b|deen|hoogvliet|vomar|picnic|ekoplaza|poiesz|dekamarkt|nettorama|boni\b|jan linders|crisp|flink|marqt|odin|\bpoiesz/i;
+  const VASTE_LAST = /huur|woonstichting|woningcorporatie|vattenfall|eneco|essent|greenchoice|energie|ziggo|kpn|odido|vodafone|zorgverzeker|\bcz\b|zilveren kruis|menzis|vgz|belastingdienst|klarna|riverty|in3|waternet|vitens|evides|dunea|pwn|brabant water|centraal beheer|interpolis|nationale.nederlanden|duo\b/i;
+  function sleutel(x) { return x.datum + '|' + x.bedrag.toFixed(2) + '|' + x.naam.toLowerCase(); }
+  let importRijen = [];
+  function toonImport(res) {
+    const S = state.start, E = state.eind;
+    const bestaand = new Set(state.uitgaven.map((u) => u.bron).filter(Boolean));
+    const eigenVast = state.posten.filter((p) => (p.soort === 'vast' || p.soort === 'aflossing') && p.naam.trim().length >= 3).map((p) => p.naam.trim().toLowerCase());
+    const binnen = res.items.filter((x) => x.datum >= S && x.datum < E);
+    importRijen = binnen.sort((a, b) => (a.datum < b.datum ? 1 : -1)).map((x) => {
+      const n = x.naam.toLowerCase();
+      const dubbel = bestaand.has(sleutel(x));
+      const vast = VASTE_LAST.test(n) || eigenVast.some((v) => n.includes(v));
+      return { ...x, pot: SUPERMARKT.test(n) ? 'boodschappen' : 'eigen', mee: !dubbel && !vast, dubbel, vast };
+    });
+    const buiten = res.items.length - binnen.length;
+    $('imp-info').textContent = (res.bank ? 'Bestand van ' + res.bank + ' herkend. ' : '') + importRijen.length + ' uitgaven in deze periode'
+      + (buiten ? ' (' + buiten + ' buiten deze periode overgeslagen)' : '') + '. Vaste lasten en uitgaven die je al had staan, zijn standaard uitgevinkt.';
+    const lijst = $('imp-lijst'); lijst.replaceChildren();
+    importRijen.forEach((x) => {
+      const rij = document.createElement('label'); rij.className = 'imp-rij' + (x.dubbel ? ' dubbel' : '');
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = x.mee; cb.disabled = x.dubbel;
+      cb.addEventListener('change', () => { x.mee = cb.checked; telImport(); });
+      const mid = document.createElement('span'); mid.className = 'imp-mid';
+      const nm = document.createElement('span'); nm.className = 'e-nm'; nm.textContent = x.naam;
+      const dd = document.createElement('span'); dd.className = 'e-d'; dd.textContent = kortDag(x.datum) + (x.dubbel ? ' · staat er al in' : x.vast ? ' · lijkt een vaste last' : '');
+      mid.append(nm, dd);
+      const sel = document.createElement('select'); sel.className = 'dagsel'; sel.setAttribute('aria-label', 'Potje voor ' + x.naam);
+      sel.append(new Option('🛒 Boodschappen', 'boodschappen'), new Option('✨ Eigen', 'eigen')); sel.value = x.pot; sel.disabled = x.dubbel;
+      sel.addEventListener('change', () => { x.pot = sel.value; });
+      sel.addEventListener('click', (e) => e.preventDefault && e.stopPropagation());
+      const bd = document.createElement('span'); bd.className = 'e-b'; bd.textContent = eur.format(x.bedrag);
+      rij.append(cb, mid, bd, sel); lijst.append(rij);
+    });
+    if (!importRijen.length) { const p = document.createElement('p'); p.className = 'empty'; p.textContent = 'Geen uitgaven gevonden binnen deze periode (' + kort(S) + ' t/m ' + kort(E) + ').'; lijst.append(p); }
+    telImport(); $('import').hidden = false;
+  }
+  function telImport() { const n = importRijen.filter((x) => x.mee).length; $('imp-ok').textContent = n ? n + (n === 1 ? ' uitgave' : ' uitgaven') + ' toevoegen' : 'Toevoegen'; $('imp-ok').disabled = !n; }
+  $('csv-knop').addEventListener('click', () => { if (readOnly || !state) return; $('csv-file').value = ''; $('csv-file').click(); });
+  $('csv-file').addEventListener('change', async () => {
+    const file = $('csv-file').files && $('csv-file').files[0]; if (!file) return;
+    let tekst = await file.text();
+    if (tekst.includes('�')) { try { tekst = new TextDecoder('windows-1252').decode(await file.arrayBuffer()); } catch (e) {} }
+    const res = leesBankbestand(tekst);
+    if (!res.items.length) { showNotice('Dit bestand kon ik niet lezen als bankafschrift. Download bij je bank de transacties als CSV-bestand (bij ABN AMRO als TXT) en probeer het opnieuw.'); return; }
+    toonImport(res);
+  });
+  $('imp-annuleer').addEventListener('click', () => { $('import').hidden = true; });
+  $('imp-ok').addEventListener('click', () => {
+    const gekozen = importRijen.filter((x) => x.mee && !x.dubbel);
+    gekozen.forEach((x) => state.uitgaven.push({ id: uid(), datum: x.datum, pot: x.pot, naam: x.naam, bedrag: x.bedrag, bron: sleutel(x) }));
+    $('import').hidden = true; viewWeek = null;
+    renderWeek(); changed();
+    showNotice(gekozen.length + (gekozen.length === 1 ? ' uitgave' : ' uitgaven') + ' uit je bankafschrift toegevoegd.', true);
   });
 
   // ---------- spaardoelen ----------
@@ -1485,6 +1789,10 @@
     toonThema();
   });
   toonThema();
+
+  // ---------- instellingen: meenemen ----------
+  $('set-meenemen').addEventListener('change', (e) => { state.meenemen = e.target.checked; renderWeek(); changed(); });
+  $('set-rest').addEventListener('change', (e) => { state.restNaar = e.target.value; changed(); });
 
   // ---------- tabs ----------
   const TABS = ['overzicht', 'sparen', 'budget', 'periodes'];
