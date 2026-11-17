@@ -1566,7 +1566,7 @@
   $('csv-file').addEventListener('change', async () => {
     const file = $('csv-file').files && $('csv-file').files[0]; if (!file) return;
     let tekst = await file.text();
-    if (tekst.includes('�')) { try { tekst = new TextDecoder('windows-1252').decode(await file.arrayBuffer()); } catch (e) {} }
+    if (tekst.includes('\uFFFD')) { try { tekst = new TextDecoder('windows-1252').decode(await file.arrayBuffer()); } catch (e) {} }
     const res = leesBankbestand(tekst);
     if (!res.items.length) { showNotice('Dit bestand kon ik niet lezen als bankafschrift. Download bij je bank de transacties als CSV-bestand (bij ABN AMRO als TXT) en probeer het opnieuw.'); return; }
     toonImport(res);
