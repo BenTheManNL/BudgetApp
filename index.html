@@ -582,7 +582,7 @@
         <div class="col">
           <section class="card" data-soort="inkomsten">
             <div class="ed-head"><h2><span class="dot" style="background:var(--bood)"></span>Inkomsten</h2><span class="sum" data-sum="inkomsten">—</span></div>
-            <p class="ed-hint">Kies op welke dag je je inkomen ontvangt. Het geld telt dan pas vanaf die dag mee in je weekbudget.</p>
+            <p class="ed-hint">Vul in op welke dag je je inkomen ontvangt, als geheugensteun. Je weekbudget blijft gelijk verdeeld over de hele periode.</p>
             <ul class="rows"></ul>
             <button class="add" data-add="inkomsten">+ Inkomen toevoegen</button>
           </section>
@@ -940,15 +940,15 @@
   function dagGewichten(s, t) {
     const D = t.dagen; if (!(D > 0)) return [];
     const g = new Array(D).fill(0);
-    // Geld met een ontvangstdatum (tijdelijk inkomen, of inkomen met een dag) telt pas vanaf die dag mee
-    const ontvangDatum = (p) => p.soort === 'extra' ? (p.datum || s.start) : afschrijfDatum(s, p.dag);
-    const gedateerd = s.posten.filter((p) => p.bedrag > 0 && (p.soort === 'extra' || (p.soort === 'inkomsten' && ontvangDatum(p))));
-    const basis = Math.max(0, r2(t.vrij - gedateerd.reduce((a, p) => a + p.bedrag, 0)));
-    for (let d = 0; d < D; d++) g[d] += basis / D;
-    gedateerd.forEach((p) => {
-      const i0 = Math.min(D - 1, Math.max(0, dagIndex(s, ontvangDatum(p))));
-      for (let d = i0; d < D; d++) g[d] += p.bedrag / (D - i0);
-    });
+    // Tijdelijk inkomen telt mee vanaf de ontvangstdatum.
+    // De dag bij gewoon inkomen is alleen een geheugensteun: dat deel wordt gelijk over de periode verdeeld.
+    const vanaf = (datum, bedrag) => {
+      const i0 = Math.min(D - 1, Math.max(0, dagIndex(s, datum)));
+      for (let d = i0; d < D; d++) g[d] += bedrag / (D - i0);
+    };
+    const extras = s.posten.filter((p) => p.soort === 'extra' && p.bedrag > 0);
+    extras.forEach((p) => vanaf(p.datum || s.start, p.bedrag));
+    vanaf(s.start, Math.max(0, r2(t.vrij - extras.reduce((a, p) => a + p.bedrag, 0))));
     const tot = g.reduce((a, b) => a + b, 0);
     return tot > 0 ? g.map((x) => x / tot) : g.map(() => 1 / D);
   }
