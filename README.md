@@ -14,14 +14,18 @@ Je ziet in één oogopslag wat je deze week nog kunt uitgeven.
 
 ## Wat kan de app?
 
-- **Weekbudget:** je vrije geld wordt verdeeld over de weken van je periode. Een ring laat zien hoeveel je deze week nog over hebt.
-- **Potjes:** verdeel je vrije budget over 🛒 Boodschappen, 🐷 Sparen en ✨ Eigen invulling (in procenten of vaste bedragen).
-- **Uitgaven bijhouden:** voer snel in wat je uitgeeft en zie direct wat er nog over is.
-- **Vaste lasten en inkomsten:** met automatische icoontjes (🏠 huur, ⚡ energie, 💧 water…).
+- **Weekbudget:** je vrije geld wordt verdeeld over de weken van je periode. Een ring laat zien hoeveel je deze week nog over hebt, en hoeveel je nog **per dag** kunt uitgeven.
+- **Tempo-waarschuwing:** geef je sneller uit dan je budget toelaat, dan waarschuwt de app op tijd.
+- **Meenemen:** wat je in een week overhoudt (of te veel uitgeeft) telt mee in de volgende week. Aan het einde van de periode gaat de rest naar de volgende periode of naar je spaardoel.
+- **Potjes:** verdeel je vrije budget over 🛒 Boodschappen, 🐷 Sparen en ✨ Eigen invulling met schuifjes. Eigen invulling vangt de verschillen op.
+- **Uitgaven bijhouden:** voer snel in wat je uitgeeft, of **importeer je bankafschrift** (CSV van ING, Rabobank, ABN AMRO, ASN/SNS/RegioBank en bunq, of PDF van ING).
+- **Inzicht:** grafieken van je uitgaven per week, per winkel en per periode.
+- **Vaste lasten en inkomsten:** met automatische icoontjes (🏠 huur, ⚡ energie, 💧 water…) en afschrijfdatums, zodat je ziet wat er nog van je rekening af gaat.
+- **Tijdelijke inkomsten:** extra geld telt mee vanaf de dag dat je het krijgt.
 - **Aflossingen:** vul je restschuld in en zie wanneer je schuldvrij bent. Elke periode gaat de restschuld automatisch omlaag.
 - **Spaardoelen:** met voortgangsbalk en hoeveel periodes je nog nodig hebt.
 - **Periodes:** je kiest zelf wanneer een periode begint (bijvoorbeeld van de 20e tot de 20e). Als een periode voorbij is, start de app vanzelf een nieuwe. Oude periodes blijven bewaard.
-- **Werkt offline** en heeft een donkere modus.
+- **Werkt offline**, met lichte, donkere of automatische weergave.
 
 ## Privacy
 
@@ -49,3 +53,5 @@ Daarom zit er een knop in om een **back-up** te maken (tabblad *Periodes*). Bewa
 Je mag de app gratis gebruiken voor persoonlijk gebruik via de link hierboven.
 Het is **niet** toegestaan de app aan te passen, te kopiëren, opnieuw te publiceren of commercieel te gebruiken.
 Zie [LICENSE](LICENSE) voor de volledige voorwaarden.
+
+De app gebruikt [PDF.js](https://mozilla.github.io/pdf.js/) van Mozilla (Apache-2.0) om PDF-afschriften te lezen, zie `lib/pdfjs`.

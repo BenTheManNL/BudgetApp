@@ -447,7 +447,7 @@
 
       <form class="card" id="u-form" autocomplete="off">
         <div class="card-h" style="margin-bottom:10px"><h2>Uitgave toevoegen</h2><button type="button" class="btn btn-sm" id="csv-knop">🏦 Bankafschrift</button></div>
-        <input type="file" id="csv-file" accept=".csv,.txt,text/csv,text/plain" hidden>
+        <input type="file" id="csv-file" accept=".csv,.txt,.pdf,text/csv,text/plain,application/pdf" hidden>
         <div class="potpick" role="radiogroup" aria-label="Potje">
           <label style="--pot:var(--bood)"><input type="radio" name="u-pot" value="boodschappen" checked><span>🛒 Boodschappen</span></label>
           <label style="--pot:var(--eigen)"><input type="radio" name="u-pot" value="eigen"><span>✨ Eigen invulling</span></label>
@@ -1593,6 +1593,61 @@
     });
     return { bank: abn ? 'ABN AMRO' : uit.length ? 'ASN / SNS / RegioBank' : null, items: uit };
   }
+  // ---------- PDF-afschrift (getest met ING) ----------
+  // PDF.js wordt pas geladen als je een PDF kiest; het staat in de map lib/pdfjs van de app zelf
+  async function laadPdfJs() {
+    if (window.__pdfjs) return window.__pdfjs;
+    const basis = new URL('lib/pdfjs/', location.href).href;
+    const lib = await import(basis + 'pdf.min.mjs');
+    lib.GlobalWorkerOptions.workerSrc = basis + 'pdf.worker.min.mjs';
+    window.__pdfjs = lib;
+    return lib;
+  }
+  // Haalt de tekst per regel uit de PDF. Stukjes tekst op dezelfde hoogte vormen één regel;
+  // een groot gat tussen twee stukjes wordt drie spaties, zodat kolommen te herkennen blijven.
+  async function pdfRegels(buffer) {
+    const lib = await laadPdfJs();
+    const doc = await lib.getDocument({ data: new Uint8Array(buffer) }).promise;
+    const regels = [];
+    for (let p = 1; p <= doc.numPages; p++) {
+      const pagina = await doc.getPage(p);
+      const inhoud = await pagina.getTextContent();
+      const rijen = [];
+      inhoud.items.forEach((it) => {
+        if (!it.str || !it.str.trim()) return;
+        const x = it.transform[4], y = it.transform[5];
+        let rij = rijen.find((r) => Math.abs(r.y - y) < 3);
+        if (!rij) { rij = { y, stukjes: [] }; rijen.push(rij); }
+        rij.stukjes.push({ x, w: it.width, s: it.str });
+      });
+      rijen.sort((a, b) => b.y - a.y).forEach((rij) => {
+        rij.stukjes.sort((a, b) => a.x - b.x);
+        let regel = '', eind = null;
+        rij.stukjes.forEach((st) => {
+          if (eind !== null) { const gat = st.x - eind; regel += gat > 12 ? '   ' : gat > 1 ? ' ' : ''; }
+          regel += st.s; eind = st.x + st.w;
+        });
+        regels.push(regel);
+      });
+    }
+    return regels;
+  }
+  const PDF_TYPES = /\s+(Betaalautomaat|Incasso|Online bankieren|Overschrijving|iDEAL|Geldautomaat|Diversen|Verzamelbetaling|Mobiel betalen|Betaalverzoek|Periodieke overb\.?|Acceptgiro|Rente|Kosten|Overboeking)$/i;
+  function leesPdfAfschrift(regels) {
+    const items = [];
+    regels.forEach((r) => {
+      // Een transactie: datum aan het begin, bedrag met + of - aan het eind
+      const m = /^\s*(\d{2}-\d{2}-\d{4})\s+(.+?)\s+([+-])\s?([\d.]+,\d{2})\s*$/.exec(r);
+      if (!m || m[3] !== '-') return;
+      let naam = (m[2].split(/\s{3,}/)[0] || '').trim().replace(PDF_TYPES, '');
+      const datum = csvDatum(m[1]), bedrag = csvBedrag(m[4]);
+      if (!datum || !Number.isFinite(bedrag)) return;
+      items.push({ datum, bedrag: r2(bedrag), naam: (naam || 'Uitgave').slice(0, 60) });
+    });
+    const bank = regels.some((r) => /INGB|ING Bank/.test(r)) ? 'ING (PDF)' : items.length ? 'je bank (PDF)' : null;
+    return { bank, items };
+  }
+
   const SUPERMARKT = /albert ?heijn|\bah\b|ah to go|jumbo|lidl|aldi|\bplus\b|dirk|\bcoop\b|\bspar\b|deen|hoogvliet|vomar|picnic|ekoplaza|poiesz|dekamarkt|nettorama|boni\b|jan linders|crisp|flink|marqt|odin|\bpoiesz/i;
   const VASTE_LAST = /huur|woonstichting|woningcorporatie|vattenfall|eneco|essent|greenchoice|energie|ziggo|kpn|odido|vodafone|zorgverzeker|\bcz\b|zilveren kruis|menzis|vgz|belastingdienst|klarna|riverty|in3|waternet|vitens|evides|dunea|pwn|brabant water|centraal beheer|interpolis|nationale.nederlanden|duo\b/i;
   function sleutel(x) { return x.datum + '|' + x.bedrag.toFixed(2) + '|' + x.naam.toLowerCase(); }
@@ -1627,13 +1682,27 @@
       const bd = document.createElement('span'); bd.className = 'e-b'; bd.textContent = eur.format(x.bedrag);
       rij.append(cb, mid, bd, sel); lijst.append(rij);
     });
-    if (!importRijen.length) { const p = document.createElement('p'); p.className = 'empty'; p.textContent = 'Geen uitgaven gevonden binnen deze periode (' + kort(S) + ' t/m ' + kort(E) + ').'; lijst.append(p); }
+    if (!importRijen.length) {
+      const p = document.createElement('p'); p.className = 'empty';
+      const data = res.items.map((x) => x.datum).sort();
+      p.textContent = 'Je afschrift gaat over ' + kort(data[0]) + (data.length > 1 && data[data.length - 1] !== data[0] ? ' t/m ' + kort(data[data.length - 1]) : '')
+        + '. Dat valt buiten je huidige periode (' + kort(S) + ' t/m ' + kort(E) + '). Ga bij Periodes naar de periode waar deze uitgaven bij horen en importeer het daar.';
+      lijst.append(p);
+    }
     telImport(); $('import').hidden = false;
   }
   function telImport() { const n = importRijen.filter((x) => x.mee).length; $('imp-ok').textContent = n ? n + (n === 1 ? ' uitgave' : ' uitgaven') + ' toevoegen' : 'Toevoegen'; $('imp-ok').disabled = !n; }
   $('csv-knop').addEventListener('click', () => { if (readOnly || !state) return; $('csv-file').value = ''; $('csv-file').click(); });
   $('csv-file').addEventListener('change', async () => {
     const file = $('csv-file').files && $('csv-file').files[0]; if (!file) return;
+    if (/\.pdf$/i.test(file.name) || file.type === 'application/pdf') {
+      let res = null;
+      try { setStatus('PDF lezen…'); res = leesPdfAfschrift(await pdfRegels(await file.arrayBuffer())); }
+      catch (e) { res = null; }
+      setStatus(readOnly ? 'Alleen lezen' : 'Opgeslagen ✓');
+      if (!res || !res.items.length) { showNotice('In deze PDF kon ik geen afschrijvingen vinden. Het lezen van PDF-afschriften is getest met ING. Lukt het niet, download dan bij je bank de transacties als CSV-bestand.'); return; }
+      toonImport(res); return;
+    }
     let tekst = await file.text();
     if (tekst.includes('\uFFFD')) { try { tekst = new TextDecoder('windows-1252').decode(await file.arrayBuffer()); } catch (e) {} }
     const res = leesBankbestand(tekst);
