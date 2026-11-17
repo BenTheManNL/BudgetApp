@@ -328,9 +328,14 @@
   .sel { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--ink-2); }
   .dagsel { border: 1.5px solid var(--line); background: var(--surface); border-radius: 9px; padding: 5px 8px; font-weight: 600; min-width: 0; }
   .arow .dagrij { grid-template-columns: 78px auto; }
-  .entries.afs li { grid-template-columns: 40px 1fr auto; }
-  .entries.afs li.done { opacity: .5; }
-  .entries.afs li.done .e-b { text-decoration: line-through; }
+  .entries.afs li { grid-template-columns: 40px 1fr auto 36px; }
+  .entries.afs li.done .e-ic, .entries.afs li.done .e-nm, .entries.afs li.done .e-b { opacity: .5; }
+  .entries.afs li.done .e-nm, .entries.afs li.done .e-b { text-decoration: line-through; }
+  .entries.afs li.late .e-d { color: var(--bad); font-weight: 600; }
+  .vink { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--line); background: var(--surface); color: #fff; font-weight: 800; font-size: 16px; line-height: 1; padding: 0; display: grid; place-items: center; justify-self: end; }
+  .vink:hover { border-color: var(--ok); }
+  .vink[aria-pressed="true"] { background: var(--ok); border-color: var(--ok); }
+  .entries.afs li.late .vink { border-color: var(--bad); }
   .modal.wide { max-width: 640px; max-height: 88vh; display: flex; flex-direction: column; }
   .imp-lijst { overflow-y: auto; margin: 0 -6px 16px; padding: 0 6px; flex: 1; min-height: 0; }
   .imp-rij { display: grid; grid-template-columns: 22px 1fr auto; grid-template-areas: "cb mid bd" "cb sel sel"; gap: 2px 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); cursor: pointer; }
@@ -462,7 +467,7 @@
       </form>
 
       <section class="card" id="afschrijvingen">
-        <div class="card-h"><h2>Nog af te schrijven</h2><span class="card-sub">deze periode</span></div>
+        <div class="card-h"><h2>Nog af te schrijven</h2><span class="card-sub">vink af wat betaald is</span></div>
         <div class="wb-big" id="afs-nog">—</div>
         <div class="card-sub" id="afs-sub" style="margin-bottom:6px">—</div>
         <ul class="entries afs" id="afs-lijst"></ul>
@@ -816,6 +821,8 @@
       })),
       meenemen: o.meenemen !== false,
       restNaar: ['volgende', 'sparen', 'niets'].includes(o.restNaar) ? o.restNaar : 'volgende',
+      betaald: o.betaald && typeof o.betaald === 'object' && !Array.isArray(o.betaald)
+        ? Object.fromEntries(Object.keys(o.betaald).filter((k) => o.betaald[k] === true).map((k) => [k, true])) : {},
       spaarGeboekt: o.spaarGeboekt && typeof o.spaarGeboekt === 'object' && typeof o.spaarGeboekt.doelId === 'string' && Number.isFinite(Number(o.spaarGeboekt.bedrag))
         ? { doelId: o.spaarGeboekt.doelId, bedrag: r2(Number(o.spaarGeboekt.bedrag)) } : null,
     };
@@ -1032,21 +1039,37 @@
     const items = state.posten.filter((p) => (p.soort === 'vast' || p.soort === 'aflossing') && p.bedrag > 0);
     const metDatum = items.map((p) => ({ p, datum: afschrijfDatum(state, p.dag) })).filter((x) => x.datum).sort((a, b) => (a.datum < b.datum ? -1 : a.datum > b.datum ? 1 : 0));
     const zonder = items.filter((p) => !p.dag).length;
-    const nog = r2(metDatum.filter((x) => x.datum >= vandaagIso).reduce((a, x) => a + x.p.bedrag, 0));
-    const al = r2(metDatum.filter((x) => x.datum < vandaagIso).reduce((a, x) => a + x.p.bedrag, 0));
+    // Afgevinkt = betaald. Alles wat niet is afgevinkt telt mee bij "nog af te schrijven", ook als de datum al voorbij is.
+    const isBetaald = (p) => state.betaald[p.id] === true;
+    const nog = r2(metDatum.filter((x) => !isBetaald(x.p)).reduce((a, x) => a + x.p.bedrag, 0));
+    const al = r2(metDatum.filter((x) => isBetaald(x.p)).reduce((a, x) => a + x.p.bedrag, 0));
+    const telaat = metDatum.filter((x) => !isBetaald(x.p) && x.datum < vandaagIso).length;
     $('afs-nog').textContent = eur.format(nog);
-    $('afs-sub').textContent = metDatum.length ? 'Al afgeschreven: ' + eur.format(al) : 'Vul bij Budget in op welke dag je vaste lasten worden afgeschreven.';
+    $('afs-sub').textContent = metDatum.length
+      ? 'Al afgevinkt: ' + eur.format(al) + (telaat ? ' · ' + telaat + (telaat === 1 ? ' betaling is' : ' betalingen zijn') + ' over datum, check je rekening' : '')
+      : 'Vul bij Budget in op welke dag je vaste lasten worden afgeschreven.';
     const ul = $('afs-lijst'); ul.replaceChildren();
     metDatum.forEach(({ p, datum }) => {
-      const li = document.createElement('li'); if (datum < vandaagIso) li.className = 'done';
+      const betaald = isBetaald(p), over = !betaald && datum < vandaagIso;
+      const li = document.createElement('li'); li.className = betaald ? 'done' : over ? 'late' : '';
       li.style.setProperty('--pot', p.soort === 'aflossing' ? 'var(--schuld)' : 'var(--vast)');
       const ic = document.createElement('span'); ic.className = 'e-ic'; ic.textContent = icoonVoor(p);
       const mid = document.createElement('div');
       const nm = document.createElement('div'); nm.className = 'e-nm'; nm.textContent = p.naam || 'Vaste last';
-      const dd = document.createElement('div'); dd.className = 'e-d'; dd.textContent = kortDag(datum) + (datum < vandaagIso ? ' · afgeschreven' : datum === vandaagIso ? ' · vandaag' : '');
+      const dd = document.createElement('div'); dd.className = 'e-d';
+      dd.textContent = kortDag(datum) + (betaald ? ' · betaald' : over ? ' · ⚠️ over datum, nog niet afgevinkt' : datum === vandaagIso ? ' · vandaag' : '');
       mid.append(nm, dd);
       const bd = document.createElement('span'); bd.className = 'e-b'; bd.textContent = eur.format(p.bedrag);
-      li.append(ic, mid, bd); ul.append(li);
+      const vink = document.createElement('button'); vink.type = 'button'; vink.className = 'vink';
+      vink.setAttribute('aria-pressed', String(betaald));
+      vink.setAttribute('aria-label', (betaald ? 'Markeer als niet betaald: ' : 'Afvinken als betaald: ') + (p.naam || 'vaste last'));
+      vink.textContent = betaald ? '✓' : '';
+      vink.disabled = readOnly;
+      vink.addEventListener('click', () => {
+        if (betaald) delete state.betaald[p.id]; else state.betaald[p.id] = true;
+        renderAfschrijvingen(); changed();
+      });
+      li.append(ic, mid, bd, vink); ul.append(li);
     });
     $('afs-zonder').hidden = !zonder;
     $('afs-zonder').textContent = zonder + (zonder === 1 ? ' vaste last heeft' : ' vaste lasten hebben') + ' nog geen afschrijfdag. Vul die in bij Budget.';
@@ -1263,7 +1286,7 @@
       if (p.rest < p.bedrag) p.bedrag = p.rest;
       return true;
     });
-    state.uitgaven = []; state.spaarGeboekt = null; viewWeek = null;
+    state.uitgaven = []; state.spaarGeboekt = null; state.betaald = {}; viewWeek = null;
     restMelding = '';
     if (rest >= 0.01 && state.restNaar !== 'niets') {
       const doel = state.restNaar === 'sparen' && doelen ? doelen.doelen.find((g) => !(g.doel > 0 && g.gespaard >= g.doel)) : null;
