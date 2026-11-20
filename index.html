@@ -718,7 +718,7 @@
       <p class="bon-check" id="bon-check"></p>
       <details class="bon-tekst">
         <summary>Gelezen tekst bekijken of zelf plakken</summary>
-        <p class="hint">Gaat het lezen mis? Op een iPhone open je de foto in Foto's, houd je je vinger op de tekst en kies je "Kopieer alles". Plak het hier en tik op Opnieuw verwerken. <span style="opacity:.6">(lezer v3)</span></p>
+        <p class="hint">Gaat het lezen mis? Op een iPhone open je de foto in Foto's, houd je je vinger op de tekst en kies je "Kopieer alles". Plak het hier en tik op Opnieuw verwerken. <span style="opacity:.6">(lezer v4)</span></p>
         <textarea class="field" id="bon-ruw" rows="6"></textarea>
         <button type="button" class="btn btn-sm" id="bon-herlees">Opnieuw verwerken</button>
       </details>
@@ -1710,15 +1710,24 @@
         for (let j = i + 1; j < alt.length && !keus; j++) if (past([alt[i], alt[j]])) keus = [alt[i], alt[j]];
       }
       if (keus) { keus.forEach((a) => { a.bedrag = a.anders; }); som = doel; }
+      else {
+        // Geen precieze match: neem stap voor stap de berekende prijs die het verschil het kleinst maakt
+        for (let ronde = 0; ronde < alt.length; ronde++) {
+          let best = null, rest = Math.abs(som - doel);
+          alt.forEach((a) => { const v = Math.abs(som + a.anders - a.bedrag - doel); if (a.anders !== a.bedrag && v < rest - 0.005) { rest = v; best = a; } });
+          if (!best) break;
+          som = r2(som + best.anders - best.bedrag); best.bedrag = best.anders;
+        }
+      }
     }
     artikelen.forEach((a) => { delete a.anders; });
-    return { winkel: bonWinkel(winkelRegels), datum: bonDatum(tekst), totaal: totaal !== null ? totaal : betaald !== null ? betaald : som, artikelen };
+    return { winkel: bonWinkel(winkelRegels), datum: bonDatum(tekst), totaal: totaal !== null ? totaal : betaald !== null ? betaald : som, totaalGelezen: totaal !== null || betaald !== null, artikelen };
   }
 
 
   // Maakt de foto klaar om te lezen: rechtop, alleen de bon zelf (de achtergrond wordt wit),
   // en per stukje zwart-wit gemaakt zodat schaduw en ongelijk licht niet uitmaken.
-  async function bonBeeld(file, maxW, soort, voorLezer) {
+  async function bonBeeld(file, maxW, soort, voorLezer, instelling) {
     let bmp;
     try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (e) { bmp = await createImageBitmap(file); }
     const W = bmp.width, H = bmp.height;
@@ -1774,7 +1783,7 @@
       for (let x = 0; x < w; x++) { const kxx = Math.min(sw - 1, Math.floor((X0 + x / f) * s)); if (!vorm[ky * sw + kxx]) g[y * w + x] = 255; }
     }
     // 3. Zwart-wit per stukje: een pixel is zwart als hij duidelijk donkerder is dan zijn omgeving
-    const r = Math.max(8, Math.round(w / 80)), k = 0.12, ii = new Float64Array((w + 1) * (h + 1));
+    const r = Math.max(8, Math.round(w / ((instelling && instelling.d) || 80))), k = (instelling && instelling.k) || 0.12, ii = new Float64Array((w + 1) * (h + 1));
     for (let y = 0; y < h; y++) { let rij = 0; for (let x = 0; x < w; x++) { rij += g[y * w + x]; ii[(y + 1) * (w + 1) + x + 1] = ii[y * (w + 1) + x + 1] + rij; } }
     for (let y = 0; y < h; y++) {
       const ya = Math.max(0, y - r), yb = Math.min(h, y + r + 1);
@@ -1824,6 +1833,14 @@
     return { winkel: String(r.winkel || '').slice(0, 80), datum: /^\d{4}-\d{2}-\d{2}$/.test(r.datum || '') ? r.datum : '', totaal: Math.abs(r2(Number(r.totaal) || 0)), artikelen, doorClaude: true };
   }
 
+  const BON_INSTELLINGEN = [{ d: 80, k: 0.12 }, { d: 53, k: 0.15 }, { d: 40, k: 0.10 }];
+  // Hoe goed is een leesresultaat? Het best: het totaal staat op de bon én de artikelen tellen daar precies tot op.
+  function bonScore(r) {
+    const som = r2(r.artikelen.reduce((a, x) => a + x.bedrag, 0));
+    if (!r.totaalGelezen) return r.artikelen.length;
+    const verschil = Math.abs(som - r.totaal);
+    return verschil < 0.01 ? 1000 + r.artikelen.length : 500 - Math.min(400, verschil * 10) + r.artikelen.length / 10;
+  }
   let bonData = null;
   function bonStatus(t) { $('bon-status').textContent = t; }
   function bonOpen() {
@@ -1839,10 +1856,15 @@
     } catch (e) { res = null; }
     if (!res) {
       try {
-        bonStatus('Foto klaarmaken…');
-        const blob = await bonBeeld(file, 1600, 'image/png', true);
-        const tekst = await ocrLees(blob, (f) => bonStatus(f === 'laden' ? 'Lezer laden… (de eerste keer duurt dit even)' : 'Tekst van je bon lezen…'));
-        res = leesBonTekst(tekst); res.tekst = tekst;
+        // Lees de bon; tellen de artikelen niet op tot het totaal, probeer dan een andere zwart-witinstelling
+        for (let i = 0; i < BON_INSTELLINGEN.length; i++) {
+          bonStatus(i ? 'Nog een keer lezen voor de zekerheid (' + (i + 1) + ' van ' + BON_INSTELLINGEN.length + ')…' : 'Foto klaarmaken…');
+          const blob = await bonBeeld(file, 1600, 'image/png', true, BON_INSTELLINGEN[i]);
+          const tekst = await ocrLees(blob, (f) => { if (!i) bonStatus(f === 'laden' ? 'Lezer laden… (de eerste keer duurt dit even)' : 'Tekst van je bon lezen…'); });
+          const r = leesBonTekst(tekst); r.tekst = tekst; r.score = bonScore(r);
+          if (!res || r.score > res.score) res = r;
+          if (r.score >= 1000) break;
+        }
       } catch (e) {
         res = { winkel: '', datum: '', totaal: 0, artikelen: [], tekst: '', fout: e.message };
       }
@@ -1857,7 +1879,7 @@
     $('bon-datum').min = S; $('bon-datum').value = okDatum ? res.datum : ($('u-datum').value || vandaag());
     const pot = SUPERMARKT.test(res.winkel || '') || !res.winkel ? 'boodschappen' : 'eigen';
     document.querySelectorAll('input[name="bon-pot"]').forEach((r) => { r.checked = r.value === pot; });
-    $('bon-totaal').value = res.totaal ? String(res.totaal.toFixed(2)).replace('.', ',') : '';
+    $('bon-totaal').value = res.totaal && res.totaalGelezen !== false ? String(res.totaal.toFixed(2)).replace('.', ',') : '';
     $('bon-ruw').value = res.tekst !== undefined ? res.tekst : res.artikelen.map((a) => a.naam + '   ' + a.bedrag.toFixed(2).replace('.', ',')).join('\n');
     $('bon-info').textContent = res.fout ? 'Het lezen lukte niet (' + res.fout + '). Vul de bon hieronder zelf in, of plak de tekst.'
       : res.doorClaude ? 'Claude heeft je bon gelezen. Kijk even of alles klopt.'
@@ -1890,13 +1912,14 @@
     if (!bonData.artikelen.length) { el.textContent = ''; el.classList.remove('mis'); return; }
     const verschil = r2((tot > 0 ? tot : 0) - som);
     el.classList.toggle('mis', Math.abs(verschil) >= 0.01);
+    if (bonData.totaalGelezen === false && !bonData.totaalAangepast) { el.classList.add('mis'); el.textContent = 'Het totaal is niet op de bon gevonden. Vul het totaal van je bon hierboven zelf in.'; return; }
     el.textContent = Math.abs(verschil) < 0.01 ? '✓ De artikelen tellen precies op tot het totaal.'
       : 'Artikelen samen ' + eur.format(som) + ', dat is ' + eur.format(Math.abs(verschil)) + (verschil > 0 ? ' minder' : ' meer') + ' dan het totaal. Controleer de bedragen.';
   }
   $('bon-knop').addEventListener('click', () => { if (!readOnly) { $('bon-file').value = ''; $('bon-file').click(); } });
   $('bon-file').addEventListener('change', () => { const f = $('bon-file').files[0]; if (f) bonVerwerk(f); });
   $('bon-plus').addEventListener('click', () => { bonData.artikelen.push({ naam: '', bedrag: 0 }); bonLijst(); const v = $('bon-items').querySelectorAll('input'); if (v.length > 1) v[v.length - 2].focus(); });
-  $('bon-totaal').addEventListener('input', bonCheck);
+  $('bon-totaal').addEventListener('input', () => { if (bonData) bonData.totaalAangepast = true; bonCheck(); });
   $('bon-herlees').addEventListener('click', () => { const t = $('bon-ruw').value; const r = leesBonTekst(t); r.tekst = t; r.geplakt = true; bonToon(r); });
   $('bon-annuleer').addEventListener('click', () => { $('bon').hidden = true; bonData = null; });
   $('bon-ok').addEventListener('click', () => {
