@@ -718,7 +718,7 @@
       <p class="bon-check" id="bon-check"></p>
       <details class="bon-tekst">
         <summary>Gelezen tekst bekijken of zelf plakken</summary>
-        <p class="hint">Gaat het lezen mis? Op een iPhone open je de foto in Foto's, houd je je vinger op de tekst en kies je "Kopieer alles". Plak het hier en tik op Opnieuw verwerken.</p>
+        <p class="hint">Gaat het lezen mis? Op een iPhone open je de foto in Foto's, houd je je vinger op de tekst en kies je "Kopieer alles". Plak het hier en tik op Opnieuw verwerken. <span style="opacity:.6">(lezer v3)</span></p>
         <textarea class="field" id="bon-ruw" rows="6"></textarea>
         <button type="button" class="btn btn-sm" id="bon-herlees">Opnieuw verwerken</button>
       </details>
@@ -1679,7 +1679,8 @@
       if (/sub ?totaal/i.test(r)) { klaar = true; continue; }
       if (/(^|\s)[t|l1!i]ota+l?\b|te betalen|\btotal\b/i.test(r)) { const p = bonPrijs(r, false); if (p && totaal === null) totaal = Math.abs(p.bedrag); klaar = true; continue; }
       if (BON_BETAALD.test(r)) { const p = bonPrijs(r, false); if (p && betaald === null) betaald = Math.abs(p.bedrag); klaar = true; continue; }
-      if (klaar) { const p = bonPrijs(r, false); if (p && totaal !== null && betaald === null && Math.abs(Math.abs(p.bedrag) - totaal) < 0.01) betaald = totaal; continue; }
+      // Na "Totaal" of "Betaald:" staat het bedrag soms op een eigen regel; het eerste bedrag daar is wat je betaald hebt
+      if (klaar) { const p = bonPrijs(r, false); if (p && betaald === null && p.bedrag > 0) betaald = p.bedrag; continue; }
       // "2 X 0,99    1,98": het aantal (en vaak de prijs) bij het artikel op de regel erboven, of erna
       const q = r.match(/^(\d{1,3})\s?[x×*]{1,2}\s?(?:€\s?)?\d/i);
       if (q && !/\p{L}{3,}/u.test(r.replace(/^\d+\s?[x×*]+/i, ''))) {
