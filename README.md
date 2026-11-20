@@ -8,9 +8,9 @@ Je ziet in één oogopslag wat je deze week nog kunt uitgeven.
 
 <p>
   <img src="docs/overzicht.png" width="250" alt="Overzicht: een grote cirkel voor boodschappen en kleine cirkels voor eigen invulling en sparen">
+  <img src="docs/inzicht.png" width="250" alt="Inzicht: waar je geld naartoe gaat">
   <img src="docs/budget.png" width="250" alt="Budget: inkomsten, vaste lasten en potjes">
   <img src="docs/sparen.png" width="250" alt="Spaardoelen met voortgang">
-  <img src="docs/donker.png" width="250" alt="Overzicht in de donkere stand">
 </p>
 
 ## Wat kan de app?
