@@ -1,7 +1,7 @@
 {
-  "name": "Mijn budget",
-  "short_name": "Budget",
-  "description": "Je persoonlijke budget met potjes, weekbudget, spaardoelen en aflossingen.",
+  "name": "Duppie",
+  "short_name": "Duppie",
+  "description": "Duppie: je budget met potjes, weekbudget, spaardoelen en aflossingen. Weet wat je deze week nog kunt uitgeven.",
   "lang": "nl",
   "start_url": "./",
   "scope": "./",
@@ -10,8 +10,23 @@
   "background_color": "#EAF0ED",
   "theme_color": "#1F5C4D",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }

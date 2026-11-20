@@ -1,6 +1,6 @@
-# 🫙 Mijn budget
+<p><img src="docs/duppie-logo.svg" alt="Duppie" height="72"></p>
 
-Een gratis, eenvoudige budget-app voor je telefoon, gebaseerd op de **potjesmethode**.
+**Duppie** is een gratis, eenvoudige budget-app voor je telefoon, gebaseerd op de **potjesmethode**.
 Je ziet in één oogopslag wat je deze week nog kunt uitgeven.
 
 **👉 Gebruik de app:** [benthemannl.github.io/BudgetApp](https://benthemannl.github.io/BudgetApp/)
