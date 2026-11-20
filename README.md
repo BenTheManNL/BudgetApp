@@ -1,4 +1,4 @@
-<p><img src="docs/duppie-logo.svg" alt="Duppie" height="72"></p>
+<p><img src="docs/duppie-logo.png" alt="Duppie" height="96"></p>
 
 **Duppie** is een gratis, eenvoudige budget-app voor je telefoon, gebaseerd op de **potjesmethode**.
 Je ziet in één oogopslag wat je deze week nog kunt uitgeven.
