@@ -2123,7 +2123,6 @@
     const url = URL.createObjectURL(new Blob([tekst], { type: 'text/calendar;charset=utf-8' }));
     const a = document.createElement('a'); a.href = url; a.download = naam; document.body.append(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 10000);
-    showNotice('Open het bestand ' + naam + ' en kies "Voeg alles toe". Dan zet je telefoon ' + aantal + (aantal === 1 ? ' herinnering' : ' herinneringen') + ' in je agenda.');
   });
 
   // ---------- bonnetjes ----------
