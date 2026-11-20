@@ -302,6 +302,50 @@
   .modal h3 { font-family: var(--display); margin: 0 0 8px; font-size: 20px; }
   .modal p { margin: 0 0 18px; color: var(--ink-2); }
   .modal .btns { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+
+  /* ---------- fase 2: startgids, betaaldag, meldingen, slot ---------- */
+  .modal.gids { max-width: 480px; max-height: calc(100dvh - 32px); overflow-y: auto; }
+  .g-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .g-dots { display: flex; gap: 6px; }
+  .g-dots i { width: 22px; height: 5px; border-radius: 9px; background: var(--line); }
+  .g-dots i.on { background: var(--pine-2); }
+  .g-tel { font-size: 13px; color: var(--ink-3); }
+  .g-veld { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; font-size: 14px; font-weight: 600; color: var(--ink); }
+  .g-veld .hint { font-weight: 400; }
+  .g-rij { display: grid; grid-template-columns: minmax(0,1fr) 120px; gap: 8px; }
+  .g-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 14px; }
+  .g-chip { border: 1.5px dashed var(--line); background: var(--surface); color: var(--ink-2); border-radius: 99px; padding: 7px 12px; font-size: 13px; font-weight: 600; }
+  .g-chip:hover, .g-chip:focus-visible { border-color: var(--pine-2); color: var(--ink); }
+  .g-vast { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+  .g-vrow { display: grid; grid-template-columns: minmax(0,1fr) 110px 34px; gap: 6px; align-items: center; }
+  .g-x { border: none; background: none; color: var(--ink-3); font-size: 20px; line-height: 1; height: 34px; border-radius: 10px; }
+  .g-x:hover { color: var(--bad); background: var(--surface-2); }
+  .g-fout { color: var(--bad); font-size: 14px; margin: 0 0 12px !important; }
+  .g-slider { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; margin-bottom: 12px; font-size: 14px; font-weight: 600; }
+  .g-slider input { grid-column: 1 / -1; width: 100%; accent-color: var(--pot); height: 28px; }
+  .g-slider output { font-variant-numeric: tabular-nums; color: var(--ink-2); }
+  .g-week { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 6px 0 16px; }
+  .g-week div { border-radius: 14px; padding: 10px; background: color-mix(in srgb, var(--pot) 12%, var(--surface)); }
+  .g-week b { display: block; font-size: 17px; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+  .g-week span { font-size: 12px; color: var(--ink-2); }
+  .gids .btns { margin-top: 4px; }
+  .gids .linkdel { display: block; margin: 14px auto 0; }
+  .strip { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 14px; padding: 14px 16px; }
+  .strip .badge { flex: none; }
+  .strip-t { flex: 1; min-width: 0; font-size: 14px; color: var(--ink-2); }
+  .strip-t b { color: var(--ink); display: block; font-size: 15px; margin-bottom: 2px; }
+  .strip-t ul { list-style: none; margin: 4px 0 0; padding: 0; }
+  .strip-t li { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; }
+  .strip-t li span:last-child { font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+  .strip-k { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .strip-k .btn { padding: 7px 12px; font-size: 13px; }
+  .ritme { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0 4px; font-size: 14px; color: var(--ink-2); }
+  .ritme select { width: auto; min-height: 40px; padding: 6px 10px; }
+  .opties { display: flex; flex-direction: column; gap: 12px; margin: 4px 0 14px; }
+  .slot { position: fixed; inset: 0; z-index: 60; background: var(--bg); display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; }
+  .slot h2 { font-family: var(--display); margin: 18px 0 6px; }
+  .slot .hint { margin: 0 0 18px; }
+  .slot .linkdel { display: block; margin: 14px auto 0; align-self: center; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
   @media (max-width: 759px) {
     input:not(#u-bedrag), select, textarea { font-size: 16px !important; }
@@ -504,18 +548,39 @@
 
   <div id="leeg" class="card center" hidden>
     <div class="logo-lg" aria-hidden="true"><svg width="84" height="84" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="116" fill="#1F5C4D"/><g transform="translate(0.6 14.1) scale(0.96)"><g transform="scale(1 -1)"><circle cx="246" cy="-270" r="150" fill="#F6C77A"/><circle cx="246" cy="-270" r="126" fill="none" stroke="#E3A94F" stroke-width="8"/><path transform="translate(154.3 -366.5) scale(0.1378)" d="M1312 405Q1304 343 1271.5 270.0Q1239 197 1177.5 131.5Q1116 66 1020.5 24.0Q925 -18 790 -18Q595 -18 455.5 68.0Q316 154 241.5 311.5Q167 469 167 683Q167 894 248.5 1060.5Q330 1227 491.5 1323.0Q653 1419 892 1419Q966 1419 1023.5 1409.5Q1081 1400 1127.5 1383.0Q1174 1366 1212 1344Q1271 1310 1293.5 1263.0Q1316 1216 1301 1162L1265 1030Q1254 988 1238.5 959.5Q1223 931 1190 931Q1145 931 1124.0 955.5Q1103 980 1093 1023Q1078 1090 1052.0 1136.5Q1026 1183 985.0 1208.0Q944 1233 883 1233Q828 1233 781.5 1200.5Q735 1168 700.0 1103.0Q665 1038 645.5 942.0Q626 846 626 720Q626 546 656.0 445.0Q686 344 746.5 301.0Q807 258 897 258Q993 258 1048.0 296.0Q1103 334 1143 404Q1166 444 1183.0 466.0Q1200 488 1215.0 497.0Q1230 506 1248 506Q1284 506 1301.0 479.5Q1318 453 1312 405ZM18 809Q18 835 32.5 852.0Q47 869 66 869H1036Q1060 869 1074.5 852.0Q1089 835 1089 809Q1089 748 1036 748H66Q18 748 18 809ZM18 573Q18 599 33.0 616.0Q48 633 69 633H968Q992 633 1006.5 616.0Q1021 599 1021 573Q1021 513 968 513H66Q18 513 18 573Z" fill="#1F5C4D"/></g><path d="M392 84 Q399.92 120.08 436 128 Q399.92 135.92 392 172 Q384.08 135.92 348 128 Q384.08 120.08 392 84 Z" fill="#E7F3EE"/></g></svg></div>
-    <h2>Nog geen budget</h2>
-    <p class="hint" style="margin-bottom:16px">Begin met een leeg budget en vul je inkomsten en uitgaven in.</p>
+    <h2>Welkom bij Duppie</h2>
+    <p class="hint" style="margin-bottom:16px">In drie korte stappen zie je wat je elke week kunt uitgeven.</p>
     <div class="period-nav" style="justify-content:center">
-      <button class="btn btn-primary" id="begin">Leeg budget starten</button>
-      <button class="btn" id="bk-terug-leeg">Back-up terugzetten</button>
+      <button class="btn btn-primary" id="begin">Begin met je budget</button>
+      <button class="btn" id="voorbeeld">Bekijk eerst een voorbeeld</button>
     </div>
+    <button class="linkdel" id="bk-terug-leeg" style="margin:14px auto 0;display:block">Ik heb een back-up</button>
     <input type="file" id="bk-file" accept=".json,application/json" hidden>
   </div>
 
   <main id="app" hidden>
     <!-- ================= OVERZICHT ================= -->
     <section class="pane" data-pane="overzicht" id="overzicht">
+      <div class="card strip" id="vb-banner" hidden style="--pot:var(--spaar)">
+        <span class="badge"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg></span>
+        <div class="strip-t"><b>Dit is een voorbeeld</b>Kijk rustig rond. Als je klaar bent, maak je in drie stappen je eigen budget. Het voorbeeld verdwijnt dan.
+          <div class="strip-k"><button class="btn btn-primary" id="vb-start">Begin met je eigen budget</button></div></div>
+      </div>
+      <div class="card strip" id="binnenkort" hidden style="--pot:var(--eigen)">
+        <span class="badge"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span>
+        <div class="strip-t"><b>Binnenkort eraf</b><ul id="bk-lijst"></ul>
+          <div class="strip-k"><button class="btn" id="bk-naar">Afvinken bij Budget</button></div></div>
+      </div>
+      <div class="card strip" id="bk-tip" hidden style="--pot:var(--bood)">
+        <span class="badge"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7.5 3v5.5c0 4.5-3.2 8-7.5 9.5-4.3-1.5-7.5-5-7.5-9.5V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></span>
+        <div class="strip-t"><b>Maak een back-up</b><span id="bk-tip-t"></span>
+          <div class="strip-k"><button class="btn btn-primary" id="bk-tip-maak">Back-up maken</button><button class="btn btn-ghost" id="bk-tip-later">Later</button></div></div>
+      </div>
+      <div class="card strip" id="a2hs" hidden style="--pot:var(--pine-2)">
+        <span class="badge"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M12 8v6M9 11h6"/></svg></span>
+        <div class="strip-t"><b>Zet Duppie op je beginscherm</b>Tik in Safari op het deel-icoon en kies <i>Zet op beginscherm</i>. Dan opent Duppie als een echte app en blijft je budget goed bewaard.
+          <div class="strip-k"><button class="btn btn-ghost" id="a2hs-weg">Begrepen</button></div></div>
+      </div>
       <div class="hero" id="dezeweek">
         <div class="hero-top">
           <div><h2 id="wk-titel">Deze week</h2><div id="wk-datums">—</div></div>
@@ -715,6 +780,11 @@
     <section class="pane" data-pane="periodes" id="periodes" hidden>
       <div class="card period-cur">
         <div class="card-h" style="margin:0"><h2>Huidige periode</h2></div>
+        <div class="ritme">
+          <label for="r-type">Je krijgt je geld</label>
+          <select class="field" id="r-type"><option value="maand">elke maand</option><option value="4weken">elke 4 weken</option></select>
+          <span id="r-dag-wrap"><label for="r-dag">op dag</label> <select class="field" id="r-dag" aria-label="Betaaldag"></select></span>
+        </div>
         <div class="period" id="periode" hidden>
           <input type="date" id="start" aria-label="Begin van de periode">
           <span>t/m</span>
@@ -741,16 +811,84 @@
         <p class="arch-empty">Nog geen andere periodes. Als je een nieuwe periode start, komt de huidige hier te staan.</p>
       </div>
       <div class="card" id="backup">
-        <div class="card-h"><h2>Back-up</h2></div>
+        <div class="card-h"><h2>Gegevens veilig</h2></div>
         <p class="hint" style="margin-bottom:12px">Je budget staat alleen op deze telefoon. Maak af en toe een back-up en bewaar die bijvoorbeeld in iCloud Drive, zodat je niets kwijtraakt als je van telefoon wisselt.</p>
         <div class="period-nav">
           <button class="btn btn-primary" id="bk-maak">Back-up maken</button>
           <button class="btn" id="bk-terug">Back-up terugzetten</button>
         </div>
         <p class="hint" id="bk-laatste" style="margin-top:10px"></p>
+        <div class="settings" id="slot-rij" hidden>
+          <label class="switch"><input type="checkbox" id="slot-aan"><span class="sw-track"><span class="sw-dot"></span></span><span>Vergrendel met Face ID</span></label>
+          <p class="hint" style="margin:0">Ben je langer dan een minuut weg, dan vraagt Duppie om je gezicht of toegangscode. Zo kan niemand meekijken. Je gegevens worden er niet mee versleuteld.</p>
+        </div>
+      </div>
+      <div class="card" id="herinner">
+        <div class="card-h"><h2>Herinneringen</h2></div>
+        <p class="hint" style="margin-bottom:12px">Duppie kan zelf nog geen meldingen sturen. Zet de belangrijke momenten daarom in de agenda van je telefoon, dan waarschuwt die je.</p>
+        <div class="opties">
+          <label class="switch"><input type="checkbox" id="ag-af" checked><span class="sw-track"><span class="sw-dot"></span></span><span>Een dag voordat een vaste last eraf gaat, om 9:00</span></label>
+          <label class="switch"><input type="checkbox" id="ag-geld" checked><span class="sw-track"><span class="sw-dot"></span></span><span>Op de dag dat je geld krijgt en je nieuwe periode begint</span></label>
+          <label class="switch"><input type="checkbox" id="ag-week"><span class="sw-track"><span class="sw-dot"></span></span><span>Elke zondag om 19:00: even je uitgaven bijwerken</span></label>
+        </div>
+        <button class="btn btn-primary" id="ag-maak">Zet in mijn agenda</button>
+        <p class="hint" style="margin-top:10px">Veranderen je vaste lasten? Zet ze dan opnieuw in je agenda en verwijder de oude afspraken.</p>
       </div>
     </section>
   </main>
+</div>
+
+<div class="slot" id="slot" hidden role="dialog" aria-modal="true" aria-labelledby="slot-t">
+  <div>
+    <img src="icons/icon-192.png" width="72" height="72" alt="" style="border-radius:18px">
+    <h2 id="slot-t">Duppie is vergrendeld</h2>
+    <p class="hint" id="slot-msg">Ontgrendel om je budget te zien.</p>
+    <button class="btn btn-primary" id="slot-open">Ontgrendel met Face ID</button>
+    <button class="linkdel" id="slot-uit" hidden>Lukt het niet? Slot uitzetten</button>
+  </div>
+</div>
+
+<div class="modal-bg" id="gids" hidden>
+  <div class="modal gids" role="dialog" aria-modal="true" aria-labelledby="g-titel">
+    <div class="g-top"><div class="g-dots" aria-hidden="true"><i></i><i></i><i></i></div><span class="g-tel" id="g-tel">Stap 1 van 3</span></div>
+    <h3 id="g-titel">Wanneer krijg je je geld?</h3>
+    <div data-g="1">
+      <p>Duppie rekent van betaaldag tot betaaldag. Zo weet je precies wat je tot de volgende keer hebt.</p>
+      <div class="potpick" role="radiogroup" aria-label="Hoe vaak krijg je je geld" style="margin-bottom:14px;--pot:var(--pine-2)">
+        <label><input type="radio" name="g-ritme" value="maand" checked><span>Elke maand</span></label>
+        <label><input type="radio" name="g-ritme" value="4weken"><span>Elke 4 weken</span></label>
+      </div>
+      <label class="g-veld" id="g-dag-wrap">Op welke dag van de maand?<select class="field" id="g-dag"></select></label>
+      <label class="g-veld">Wanneer kreeg je voor het laatst je geld?<input class="field" type="date" id="g-start"></label>
+      <div class="g-veld"><span>Hoeveel krijg je dan?</span>
+        <div class="g-rij"><input class="field" id="g-ink-naam" value="Salaris" aria-label="Naam van je inkomen"><input class="field" id="g-ink" inputmode="decimal" placeholder="€ 0,00" aria-label="Bedrag"></div>
+        <span class="hint">Krijg je ook toeslagen of ander geld? Die kun je straks bij Budget toevoegen.</span>
+      </div>
+    </div>
+    <div data-g="2" hidden>
+      <p>Wat gaat er elke periode vast af? Tik op wat je hebt en vul het bedrag in.</p>
+      <div class="g-vast" id="g-vast"></div>
+      <div class="g-chips" id="g-chips"></div>
+      <p class="hint" id="g-som" style="margin:0 0 16px"></p>
+    </div>
+    <div data-g="3" hidden>
+      <p id="g-vrij-t"></p>
+      <div class="g-slider" style="--pot:var(--bood)"><label for="g-bood">Boodschappen</label><output id="g-bood-o"></output><input type="range" id="g-bood" min="0" max="100" step="5"></div>
+      <div class="g-slider" style="--pot:var(--spaar)"><label for="g-spaar">Sparen</label><output id="g-spaar-o"></output><input type="range" id="g-spaar" min="0" max="100" step="5"></div>
+      <p class="hint" style="margin:0 0 6px">Wat overblijft is voor eigen invulling. Dit kun je later altijd aanpassen.</p>
+      <div class="g-week" aria-live="polite">
+        <div style="--pot:var(--bood)"><b id="g-w-b">—</b><span>boodschappen per week</span></div>
+        <div style="--pot:var(--eigen)"><b id="g-w-e">—</b><span>eigen invulling per week</span></div>
+        <div style="--pot:var(--spaar)"><b id="g-w-s">—</b><span>sparen per periode</span></div>
+      </div>
+    </div>
+    <p class="g-fout" id="g-fout" role="alert" hidden></p>
+    <div class="btns">
+      <button class="btn" id="g-terug">Terug</button>
+      <button class="btn btn-primary" id="g-verder">Verder</button>
+    </div>
+    <button class="linkdel" id="g-skip">Overslaan, ik vul alles zelf in</button>
+  </div>
 </div>
 
 <div class="modal-bg" id="import" hidden>
@@ -873,6 +1011,7 @@
 <script>
 (function () {
   const DOC = 'budget/huidig';
+  const naRender = []; // extra onderdelen die na renderAll() bijgewerkt worden
   const SOORTEN = ['inkomsten', 'extra', 'vast', 'aflossing', 'tijdelijk'];
   const DOELEN = 'doelen/lijst';
   const eur = new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' });
@@ -901,6 +1040,32 @@
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
     if (!m) return iso;
     return toISO(Date.UTC(+m[1], +m[2], +m[3]));
+  }
+
+  // ---------- betaalritme ----------
+  // Een periode loopt van betaaldag tot betaaldag: elke maand op dezelfde dag, of elke 4 weken.
+  function dagVan(iso) { const t = parseISO(iso); return Number.isFinite(t) ? new Date(t).getUTCDate() : 20; }
+  function normRitme(r, start) {
+    if (r && r.type === '4weken') return { type: '4weken' };
+    const d = r ? Number(r.dag) : NaN;
+    return { type: 'maand', dag: Number.isInteger(d) && d >= 1 && d <= 31 ? d : dagVan(start) };
+  }
+  // Dag 31 bestaat niet in elke maand: dan wordt het de laatste dag van die maand
+  function opDag(y, mo, dag) { return Date.UTC(y, mo, Math.min(dag, new Date(Date.UTC(y, mo + 1, 0)).getUTCDate())); }
+  // Eerstvolgende betaaldag ná iso
+  function volgendeGrens(ritme, iso) {
+    const t = parseISO(iso); if (!Number.isFinite(t)) return iso;
+    if (ritme && ritme.type === '4weken') return toISO(t + 28 * 86400000);
+    const dag = (ritme && ritme.dag) || dagVan(iso), d = new Date(t);
+    for (let m = 0; m < 3; m++) { const x = opDag(d.getUTCFullYear(), d.getUTCMonth() + m, dag); if (x > t) return toISO(x); }
+    return addMonth(iso);
+  }
+  // Laatste betaaldag op of vóór iso
+  function vorigeGrens(ritme, iso) {
+    const t = parseISO(iso); if (!Number.isFinite(t) || !ritme || ritme.type !== 'maand') return iso;
+    const d = new Date(t);
+    for (let m = 0; m > -3; m--) { const x = opDag(d.getUTCFullYear(), d.getUTCMonth() + m, ritme.dag); if (x <= t) return toISO(x); }
+    return iso;
   }
   function kort(iso) {
     const t = parseISO(iso); if (!Number.isFinite(t)) return '?';
@@ -956,6 +1121,8 @@
       restNaar: ['volgende', 'sparen', 'niets'].includes(o.restNaar) ? o.restNaar : 'volgende',
       betaald: o.betaald && typeof o.betaald === 'object' && !Array.isArray(o.betaald)
         ? Object.fromEntries(Object.keys(o.betaald).filter((k) => o.betaald[k] === true).map((k) => [k, true])) : {},
+      ritme: normRitme(o.ritme, typeof o.start === 'string' ? o.start : ''),
+      voorbeeld: o.voorbeeld === true ? true : undefined,
       spaarGeboekt: o.spaarGeboekt && typeof o.spaarGeboekt === 'object' && typeof o.spaarGeboekt.doelId === 'string' && Number.isFinite(Number(o.spaarGeboekt.bedrag))
         ? { doelId: o.spaarGeboekt.doelId, bedrag: r2(Number(o.spaarGeboekt.bedrag)) } : null,
     };
@@ -1288,6 +1455,9 @@
     $('titel').textContent = state.start && state.eind ? kort(state.start).replace(/ \d{4}$/, '') + ' – ' + kort(state.eind) : 'Geen periode gekozen';
     $('tabbar').hidden = false;
     renderLists(); renderTotals();
+    renderRitme(); renderBinnenkort();
+    $('vb-banner').hidden = !state.voorbeeld;
+    naRender.forEach((f) => { try { f(); } catch (e) {} });
   }
 
   // ---------- saving ----------
@@ -1389,12 +1559,6 @@
   $('start').addEventListener('change', () => { state.start = $('start').value; renderAll(); changed(); });
   $('eind').addEventListener('change', () => { state.eind = $('eind').value; renderAll(); changed(); });
 
-  $('begin').addEventListener('click', () => {
-    const now = new Date(); const y = now.getFullYear(), m = now.getMonth();
-    const start = toISO(Date.UTC(y, now.getDate() >= 20 ? m : m - 1, 20));
-    state = normalize({ start, eind: addMonth(start), posten: [] });
-    renderAll(); changed();
-  });
 
   let modalAction = null;
   function openModal({ title, text, ok, danger, onOk }) {
@@ -1420,7 +1584,7 @@
     const t = totalen(state);
     const rest = periodeRest(state, t);
     await db.doc('archief/' + keyOf(state.start)).set({ ...JSON.parse(JSON.stringify(state)), totalen: t, bewaardOp: new Date().toISOString() });
-    state.start = state.eind; state.eind = addMonth(state.eind);
+    state.start = state.eind; state.eind = volgendeGrens(state.ritme, state.eind);
     const afgelost = [];
     state.posten = state.posten.filter((p) => p.soort !== 'tijdelijk' && p.soort !== 'extra').filter((p) => {
       if (p.soort !== 'aflossing' || p.rest === null) return true;
@@ -1469,7 +1633,7 @@
   }
 
   $('nieuw').addEventListener('click', () => {
-    const ns = state.eind, ne = addMonth(state.eind);
+    const ns = state.eind, ne = volgendeGrens(state.ritme, state.eind);
     openModal({
       title: 'Nieuwe periode starten?',
       text: 'De huidige periode wordt bewaard bij "Vorige periodes". Je inkomsten en vaste lasten blijven staan. De tijdelijke inkomsten, tijdelijke uitgaven en je bijgehouden uitgaven worden leeggemaakt, en de restschuld van je aflossingen gaat omlaag. Nieuwe periode: ' + kort(ns) + ' t/m ' + kort(ne) + '.',
@@ -1714,6 +1878,252 @@
     $('u-bedrag').value = ''; $('u-naam').value = '';
     viewWeek = weekVan(weken(state), datum);
     renderWeek(); changed();
+  });
+
+
+  // ---------- betaaldag instellen (Periodes) ----------
+  (function () {
+    const sel = $('r-dag');
+    for (let d = 1; d <= 31; d++) sel.append(new Option(String(d), String(d)));
+  })();
+  function renderRitme() {
+    const r = state.ritme || normRitme(null, state.start);
+    $('r-type').value = r.type; $('r-dag').value = String(r.dag || dagVan(state.start));
+    $('r-dag-wrap').hidden = r.type !== 'maand';
+    $('r-type').disabled = $('r-dag').disabled = readOnly;
+  }
+  function zetRitme() {
+    if (!state || readOnly) return;
+    state.ritme = normRitme({ type: $('r-type').value, dag: Number($('r-dag').value) }, state.start);
+    let melding = 'Je betaaldag is aangepast.';
+    if (!buren().next) {
+      // Laat de huidige periode eindigen op de eerstvolgende nieuwe betaaldag (minstens een week na de start)
+      const min = Math.max(parseISO(state.start) + 6 * 86400000, parseISO(vandaag()));
+      const e = state.ritme.type === '4weken' ? volgendeGrens(state.ritme, state.start) : volgendeGrens(state.ritme, toISO(min - 86400000));
+      if (e && e !== state.eind) { state.eind = e; melding += ' Je huidige periode loopt nu tot ' + kort(e) + '.'; }
+    }
+    viewWeek = null; renderAll(); changed(); showNotice(melding);
+  }
+  $('r-type').addEventListener('change', zetRitme);
+  $('r-dag').addEventListener('change', zetRitme);
+
+  // ---------- binnenkort eraf ----------
+  const NOEM = ['vandaag', 'morgen', 'overmorgen'];
+  function renderBinnenkort() {
+    const box = $('binnenkort'), nu = vandaag(), t0 = parseISO(nu);
+    const lijst = buren().next || state.voorbeeld ? [] : state.posten
+      .filter((p) => (p.soort === 'vast' || p.soort === 'aflossing') && p.bedrag > 0 && p.dag && state.betaald[p.id] !== true)
+      .map((p) => ({ p, d: afschrijfDatum(state, p.dag) }))
+      .filter((x) => x.d && x.d >= nu && (parseISO(x.d) - t0) / 86400000 <= 2)
+      .sort((a, b) => (a.d < b.d ? -1 : a.d > b.d ? 1 : 0));
+    box.hidden = !lijst.length;
+    const ul = $('bk-lijst'); ul.textContent = '';
+    lijst.forEach(({ p, d }) => {
+      const li = document.createElement('li'), a = document.createElement('span'), b = document.createElement('span');
+      a.textContent = (p.naam || 'Vaste last') + ', ' + NOEM[Math.round((parseISO(d) - t0) / 86400000)];
+      b.textContent = eur.format(p.bedrag); li.append(a, b); ul.append(li);
+    });
+  }
+  $('bk-naar').addEventListener('click', () => showTab('budget', true));
+
+  // ---------- startgids ----------
+  const VASTE_KEUZES = ['Huur', 'Hypotheek', 'Energie', 'Water', 'Zorgverzekering', 'Internet en tv', 'Telefoon', 'Verzekeringen', 'Gemeentebelasting', 'Autoverzekering', 'Abonnementen', 'Sportschool'];
+  let gids = null;
+  (function () {
+    const sel = $('g-dag');
+    for (let d = 1; d <= 31; d++) sel.append(new Option(String(d), String(d)));
+  })();
+  function gidsOpen() {
+    const r = state && !state.voorbeeld && state.ritme ? state.ritme : { type: 'maand', dag: 25 };
+    gids = { stap: 1, ritme: { ...r, dag: r.dag || 25 }, startHand: false, vast: [], bood: 60, spaar: 15 };
+    document.querySelector('input[name="g-ritme"][value="' + gids.ritme.type + '"]').checked = true;
+    $('g-dag').value = String(gids.ritme.dag);
+    $('g-start').value = gids.ritme.type === 'maand' ? vorigeGrens(gids.ritme, vandaag()) : vandaag();
+    $('g-start').max = vandaag();
+    $('g-ink').value = ''; $('g-ink-naam').value = 'Salaris';
+    $('g-bood').value = gids.bood; $('g-spaar').value = gids.spaar;
+    gidsToon(); $('gids').hidden = false;
+    setTimeout(() => $('g-ink').focus({ preventScroll: true }), 50);
+  }
+  function gidsDicht() { $('gids').hidden = true; gids = null; }
+  function gidsInkomen() { return Math.max(0, parseBedrag($('g-ink').value)); }
+  function gidsVast() { return r2(gids.vast.reduce((a, v) => a + Math.max(0, parseBedrag(v.bedrag)), 0)); }
+  const GIDS_TITELS = ['Wanneer krijg je je geld?', 'Je vaste lasten', 'Verdeel wat overblijft'];
+  function gidsToon() {
+    const s = gids.stap;
+    document.querySelectorAll('#gids [data-g]').forEach((el) => { el.hidden = Number(el.dataset.g) !== s; });
+    document.querySelectorAll('#gids .g-dots i').forEach((el, i) => el.classList.toggle('on', i < s));
+    $('g-tel').textContent = 'Stap ' + s + ' van 3';
+    $('g-titel').textContent = GIDS_TITELS[s - 1];
+    $('g-terug').hidden = s === 1;
+    $('g-verder').textContent = s === 3 ? 'Klaar' : 'Verder';
+    $('g-fout').hidden = true;
+    $('g-dag-wrap').hidden = gids.ritme.type !== 'maand';
+    if (s === 2) gidsVastToon();
+    if (s === 3) gidsVerdeling();
+  }
+  function gidsVastToon() {
+    const box = $('g-vast'); box.textContent = '';
+    gids.vast.forEach((v, i) => {
+      const row = document.createElement('div'); row.className = 'g-vrow';
+      const n = document.createElement('input'); n.className = 'field'; n.value = v.naam; n.setAttribute('aria-label', 'Naam');
+      n.addEventListener('input', () => { v.naam = n.value; });
+      const b = document.createElement('input'); b.className = 'field'; b.inputMode = 'decimal'; b.placeholder = '€ 0,00'; b.value = v.bedrag; b.setAttribute('aria-label', 'Bedrag voor ' + (v.naam || 'vaste last'));
+      b.addEventListener('input', () => { v.bedrag = b.value; gidsSom(); });
+      const x = document.createElement('button'); x.type = 'button'; x.className = 'g-x'; x.textContent = '×'; x.setAttribute('aria-label', 'Verwijder ' + (v.naam || 'vaste last'));
+      x.addEventListener('click', () => { gids.vast.splice(i, 1); gidsVastToon(); });
+      row.append(n, b, x); box.append(row);
+      v.el = b;
+    });
+    const chips = $('g-chips'); chips.textContent = '';
+    VASTE_KEUZES.filter((k) => !gids.vast.some((v) => v.naam === k)).concat(['Iets anders']).forEach((k) => {
+      const c = document.createElement('button'); c.type = 'button'; c.className = 'g-chip'; c.textContent = '+ ' + k;
+      c.addEventListener('click', () => {
+        const v = { naam: k === 'Iets anders' ? '' : k, bedrag: '' };
+        gids.vast.push(v); gidsVastToon();
+        const rows = box.querySelectorAll('.g-vrow'), last = rows[rows.length - 1];
+        last.querySelectorAll('input')[k === 'Iets anders' ? 0 : 1].focus();
+      });
+      chips.append(c);
+    });
+    gidsSom();
+  }
+  function gidsSom() {
+    const som = gidsVast();
+    $('g-som').textContent = gids.vast.length ? 'Samen ' + eur.format(som) + ' per periode. Wanneer iets eraf gaat, kun je later bij Budget invullen.' : 'Geen vaste lasten? Ga dan gewoon verder.';
+  }
+  function gidsProef() {
+    const start = $('g-start').value;
+    return normalize({ start, eind: volgendeGrens(gids.ritme, start), ritme: gids.ritme,
+      posten: [{ soort: 'inkomsten', naam: $('g-ink-naam').value.trim() || 'Inkomen', bedrag: gidsInkomen(), dag: gids.ritme.type === 'maand' ? gids.ritme.dag : null }]
+        .concat(gids.vast.filter((v) => parseBedrag(v.bedrag) > 0).map((v) => ({ soort: 'vast', naam: v.naam.trim() || 'Vaste last', bedrag: parseBedrag(v.bedrag) }))),
+      verdeling: { boodschappen: { type: 'pct', waarde: gids.bood }, sparen: { type: 'pct', waarde: gids.spaar } } });
+  }
+  function gidsVerdeling() {
+    if (gids.bood + gids.spaar > 100) gids.spaar = 100 - gids.bood;
+    $('g-bood').value = gids.bood; $('g-spaar').value = gids.spaar;
+    $('g-bood-o').textContent = gids.bood + '%'; $('g-spaar-o').textContent = gids.spaar + '%';
+    const t = totalen(gidsProef());
+    $('g-vrij-t').textContent = t.vrij > 0
+      ? 'Na je vaste lasten hou je ' + eur.format(t.vrij) + ' over tot je volgende betaaldag. Hoe wil je dat verdelen?'
+      : 'Je vaste lasten zijn even hoog als je inkomen of hoger. Je kunt alles later bij Budget nog aanpassen.';
+    $('g-w-b').textContent = t.wBoodschappen === null ? '—' : eur.format(t.wBoodschappen);
+    $('g-w-e').textContent = t.wEigen === null ? '—' : eur.format(t.wEigen);
+    $('g-w-s').textContent = eur.format(t.sparen);
+  }
+  function gidsFout(t) { $('g-fout').textContent = t; $('g-fout').hidden = false; }
+  document.querySelectorAll('input[name="g-ritme"]').forEach((r) => r.addEventListener('change', () => {
+    if (!r.checked) return;
+    gids.ritme = r.value === 'maand' ? { type: 'maand', dag: Number($('g-dag').value) || 25 } : { type: '4weken' };
+    if (!gids.startHand) $('g-start').value = gids.ritme.type === 'maand' ? vorigeGrens(gids.ritme, vandaag()) : vandaag();
+    gidsToon();
+  }));
+  $('g-dag').addEventListener('change', () => {
+    gids.ritme = { type: 'maand', dag: Number($('g-dag').value) };
+    if (!gids.startHand) $('g-start').value = vorigeGrens(gids.ritme, vandaag());
+  });
+  $('g-start').addEventListener('change', () => { gids.startHand = true; });
+  $('g-bood').addEventListener('input', () => { gids.bood = Number($('g-bood').value); gidsVerdeling(); });
+  $('g-spaar').addEventListener('input', () => { gids.spaar = Math.min(Number($('g-spaar').value), 100 - gids.bood); gidsVerdeling(); });
+  $('g-terug').addEventListener('click', () => { gids.stap--; gidsToon(); });
+  $('g-verder').addEventListener('click', () => {
+    if (gids.stap === 1) {
+      const s = $('g-start').value;
+      if (!s) return gidsFout('Kies de datum waarop je voor het laatst je geld kreeg.');
+      if (s > vandaag()) return gidsFout('Die datum ligt in de toekomst. Kies de laatste keer dat je geld kreeg.');
+      if (volgendeGrens(gids.ritme, s) <= vandaag()) return gidsFout('Die datum is langer dan een periode geleden. Kies de laatste keer dat je geld kreeg.');
+      if (!(gidsInkomen() > 0)) return gidsFout('Vul in hoeveel je krijgt. Dan kan Duppie je weekbudget uitrekenen.');
+    }
+    if (gids.stap < 3) { gids.stap++; gidsToon(); $('gids').querySelector('.modal').scrollTop = 0; return; }
+    const nieuw = gidsProef();
+    const wasVoorbeeld = !!(state && state.voorbeeld);
+    state = nieuw; viewWeek = null; gidsDicht();
+    renderAll(); changed(); showTab('overzicht', true);
+    showNotice((wasVoorbeeld ? 'Het voorbeeld is weg. ' : '') + 'Je budget staat klaar. Hieronder zie je wat je deze week nog kunt uitgeven. Bij Budget kun je alles aanvullen, zoals de dag waarop je vaste lasten eraf gaan.'
+      + (parseISO(vandaag()) - parseISO(state.start) >= 7 * 86400000 ? ' Je periode liep al sinds ' + kort(state.start) + '. Zet wat je sindsdien hebt uitgegeven erbij, anders telt Duppie dat geld als meegenomen.' : ''), true);
+  });
+  $('g-skip').addEventListener('click', () => {
+    const start = $('g-start').value && volgendeGrens(gids.ritme, $('g-start').value) > vandaag() ? $('g-start').value : (gids.ritme.type === 'maand' ? vorigeGrens(gids.ritme, vandaag()) : vandaag());
+    state = normalize({ start, eind: volgendeGrens(gids.ritme, start), ritme: gids.ritme, posten: [] });
+    viewWeek = null; gidsDicht(); renderAll(); changed(); showTab('budget', true);
+  });
+  $('gids').addEventListener('click', (e) => { if (e.target === $('gids')) gidsDicht(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('gids').hidden) gidsDicht(); });
+  $('begin').addEventListener('click', () => { if (!readOnly) gidsOpen(); });
+  $('vb-start').addEventListener('click', () => { if (!readOnly) gidsOpen(); });
+
+  // ---------- voorbeeld ----------
+  $('voorbeeld').addEventListener('click', () => {
+    if (readOnly) return;
+    // Het voorbeeld begint twee dagen geleden, zodat je meteen een gevulde eerste week ziet
+    const t = parseISO(vandaag()) - 2 * 86400000, start = toISO(t), ritme = { type: 'maand', dag: dagVan(start) };
+    const dag = (n) => toISO(t + n * 86400000);
+    state = normalize({ start, eind: volgendeGrens(ritme, start), ritme, voorbeeld: true,
+      verdeling: { boodschappen: { type: 'pct', waarde: 60 }, sparen: { type: 'pct', waarde: 15 } },
+      posten: [
+        { soort: 'inkomsten', naam: 'Salaris', bedrag: 2150, dag: 25 },
+        { soort: 'vast', naam: 'Huur', bedrag: 950, dag: 1 }, { soort: 'vast', naam: 'Energie', bedrag: 135, dag: 28 },
+        { soort: 'vast', naam: 'Zorgverzekering', bedrag: 148, dag: 1 }, { soort: 'vast', naam: 'Internet en tv', bedrag: 45, dag: 22 },
+        { soort: 'vast', naam: 'Telefoon', bedrag: 18, dag: 15 },
+        { soort: 'aflossing', naam: 'Studieschuld', bedrag: 90, rest: 4200, dag: 27 },
+      ],
+      uitgaven: [
+        { datum: dag(0), pot: 'boodschappen', naam: 'Albert Heijn', bedrag: 34.85 },
+        { datum: dag(1), pot: 'eigen', naam: 'Bioscoop', bedrag: 12.5 },
+        { datum: dag(2), pot: 'boodschappen', naam: 'Bakker', bedrag: 6.4 },
+      ] });
+    // Wat al geweest is, staat in het voorbeeld als betaald
+    state.posten.forEach((p) => { const d = p.dag && afschrijfDatum(state, p.dag); if (d && d < vandaag()) state.betaald[p.id] = true; });
+    viewWeek = null; renderAll(); changed(); showTab('overzicht', true);
+  });
+
+  // ---------- herinneringen in je agenda (.ics) ----------
+  function icsTekst(o) {
+    const nu = vandaag(), ymd = (iso) => iso.replace(/-/g, '');
+    const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+    const esc = (s) => String(s).replace(/[\\;,]/g, (c) => '\\' + c).replace(/\n/g, '\\n');
+    // Dag 29-31 bestaat niet elke maand: kies dan de laatste dag die wel bestaat
+    const opMaanddag = (d) => d >= 29 ? 'BYMONTHDAY=' + Array.from({ length: d - 27 }, (_, i) => 28 + i).join(',') + ';BYSETPOS=-1' : 'BYMONTHDAY=' + d;
+    const eerstvolgende = (d) => { const t = parseISO(nu), x = new Date(t); for (let m = 0; m < 3; m++) { const v = opDag(x.getUTCFullYear(), x.getUTCMonth() + m, d); if (v >= t) return toISO(v); } return nu; };
+    const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Duppie//Budget//NL', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:Duppie'];
+    let n = 0;
+    const dagEvent = (id, iso, titel, regel, alarm, tekst) => {
+      n++;
+      L.push('BEGIN:VEVENT', 'UID:' + id + '@duppie', 'DTSTAMP:' + stamp, 'DTSTART;VALUE=DATE:' + ymd(iso), 'DTEND;VALUE=DATE:' + ymd(toISO(parseISO(iso) + 86400000)),
+        'SUMMARY:' + esc(titel), 'RRULE:' + regel, 'TRANSP:TRANSPARENT',
+        'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + esc(tekst), 'TRIGGER:' + alarm, 'END:VALARM', 'END:VEVENT');
+    };
+    if (o.af) state.posten.filter((p) => (p.soort === 'vast' || p.soort === 'aflossing') && p.bedrag > 0 && p.dag).forEach((p) => {
+      let regel = 'FREQ=MONTHLY;' + opMaanddag(p.dag);
+      if (p.soort === 'aflossing' && p.rest > 0) regel += ';COUNT=' + Math.max(1, Math.ceil(p.rest / p.bedrag));
+      const naam = p.naam || 'Vaste last';
+      // Hele-dag-afspraak begint om 0:00; 15 uur eerder is 9:00 de dag ervoor
+      dagEvent('vast-' + p.id, eerstvolgende(p.dag), naam + ' gaat eraf (' + eur.format(p.bedrag) + ')', regel, '-PT15H', 'Morgen gaat ' + naam + ' eraf: ' + eur.format(p.bedrag) + '. Staat het geld klaar?');
+    });
+    if (o.geld && state.eind) {
+      const r = state.ritme || normRitme(null, state.start);
+      dagEvent('geld', state.eind, 'Geld binnen: nieuwe periode in Duppie', r.type === '4weken' ? 'FREQ=WEEKLY;INTERVAL=4' : 'FREQ=MONTHLY;' + opMaanddag(r.dag), 'PT9H',
+        'Je nieuwe periode is begonnen. Open Duppie en kijk wat je deze week kunt uitgeven.');
+    }
+    if (o.week) {
+      const t = parseISO(nu), zo = toISO(t + ((7 - new Date(t).getUTCDay()) % 7) * 86400000);
+      n++;
+      L.push('BEGIN:VEVENT', 'UID:weekcheck@duppie', 'DTSTAMP:' + stamp, 'DTSTART:' + ymd(zo) + 'T190000', 'DURATION:PT10M',
+        'SUMMARY:' + esc('Duppie: uitgaven bijwerken'), 'RRULE:FREQ=WEEKLY;BYDAY=SU', 'TRANSP:TRANSPARENT',
+        'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + esc('Even je uitgaven van deze week in Duppie zetten.'), 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT');
+    }
+    L.push('END:VCALENDAR');
+    return { tekst: L.join('\r\n') + '\r\n', aantal: n };
+  }
+  $('ag-maak').addEventListener('click', async () => {
+    if (!state) return;
+    const { tekst, aantal } = icsTekst({ af: $('ag-af').checked, geld: $('ag-geld').checked, week: $('ag-week').checked });
+    if (!aantal) { showNotice($('ag-af').checked && !$('ag-geld').checked && !$('ag-week').checked ? 'Je vaste lasten hebben nog geen datum. Vul bij Budget in op welke dag ze eraf gaan.' : 'Kies eerst wat je in je agenda wilt zetten.'); return; }
+    const naam = 'duppie-herinneringen.ics';
+    const url = URL.createObjectURL(new Blob([tekst], { type: 'text/calendar;charset=utf-8' }));
+    const a = document.createElement('a'); a.href = url; a.download = naam; document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    showNotice('Open het bestand ' + naam + ' en kies "Voeg alles toe". Dan zet je telefoon ' + aantal + (aantal === 1 ? ' herinnering' : ' herinneringen') + ' in je agenda.');
   });
 
   // ---------- bonnetjes ----------
@@ -2225,8 +2635,7 @@
   }
   function telImport() { const n = importRijen.filter((x) => x.mee).length; $('imp-ok').textContent = n ? n + (n === 1 ? ' uitgave' : ' uitgaven') + ' toevoegen' : 'Toevoegen'; $('imp-ok').disabled = !n; }
   $('csv-knop').addEventListener('click', () => { if (readOnly || !state) return; $('csv-file').value = ''; $('csv-file').click(); });
-  $('csv-file').addEventListener('change', async () => {
-    const file = $('csv-file').files && $('csv-file').files[0]; if (!file) return;
+  async function importBestand(file) {
     if (/\.pdf$/i.test(file.name) || file.type === 'application/pdf') {
       let res = null;
       try { setStatus('PDF lezen…'); res = leesPdfAfschrift(await pdfRegels(await file.arrayBuffer())); }
@@ -2240,7 +2649,8 @@
     const res = leesBankbestand(tekst);
     if (!res.items.length) { showNotice('Dit bestand kon ik niet lezen als bankafschrift. Download bij je bank de transacties als CSV-bestand (bij ABN AMRO als TXT) en probeer het opnieuw.'); return; }
     toonImport(res);
-  });
+  }
+  $('csv-file').addEventListener('change', () => { const f = $('csv-file').files && $('csv-file').files[0]; if (f) importBestand(f); });
   $('imp-annuleer').addEventListener('click', () => { $('import').hidden = true; });
   $('imp-ok').addEventListener('click', () => {
     const gekozen = importRijen.filter((x) => x.mee && !x.dubbel);
@@ -2619,7 +3029,7 @@
       setTimeout(() => URL.revokeObjectURL(url), 4000);
     }
     try { localStorage.setItem('mijnbudget:laatsteBackup', vandaagNL()); } catch (e) {}
-    toonLaatste(); setStatus('Back-up gemaakt ✓');
+    toonLaatste(); renderBackupTip(); setStatus('Back-up gemaakt ✓');
   });
   const kiesBackup = () => { $('bk-file').value = ''; $('bk-file').click(); };
   $('bk-terug').addEventListener('click', kiesBackup);
@@ -2637,6 +3047,120 @@
       onOk: async () => { window.__budgetStore.replace(obj.data); location.reload(); },
     });
   });
+
+
+  // ---------- back-up-herinnering ----------
+  function dagenGeleden(iso) { const t = parseISO(iso); return Number.isFinite(t) ? Math.round((parseISO(vandaagNL()) - t) / 86400000) : Infinity; }
+  function renderBackupTip() {
+    let l = null, weg = null;
+    try { l = localStorage.getItem('mijnbudget:laatsteBackup'); weg = localStorage.getItem('mijnbudget:backupTipWeg'); } catch (e) {}
+    const heeftData = state && !state.voorbeeld && (state.posten.length > 0 || state.uitgaven.length > 0);
+    $('bk-tip').hidden = !(heeftData && dagenGeleden(l) >= 14 && dagenGeleden(weg) >= 7);
+    $('bk-tip-t').textContent = l ? 'Je laatste back-up is van ' + kort(l) + '. Maak een nieuwe, zodat je niets kwijtraakt als er iets met je telefoon gebeurt.'
+      : 'Je budget staat alleen op deze telefoon. Met een back-up raak je niets kwijt als je telefoon kapotgaat of je een nieuwe krijgt.';
+  }
+  naRender.push(renderBackupTip);
+  $('bk-tip-maak').addEventListener('click', () => $('bk-maak').click());
+  $('bk-tip-later').addEventListener('click', () => { try { localStorage.setItem('mijnbudget:backupTipWeg', vandaagNL()); } catch (e) {} renderBackupTip(); });
+
+  // ---------- tip: op beginscherm zetten ----------
+  function renderA2hs() {
+    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const standalone = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+    let weg = null; try { weg = localStorage.getItem('mijnbudget:a2hsWeg'); } catch (e) {}
+    $('a2hs').hidden = !(ios && !standalone && !weg);
+  }
+  naRender.push(renderA2hs);
+  $('a2hs-weg').addEventListener('click', () => { try { localStorage.setItem('mijnbudget:a2hsWeg', '1'); } catch (e) {} renderA2hs(); });
+
+  // ---------- slot met Face ID (passkey) ----------
+  // Dit is een privacyscherm: het houdt meekijkers buiten, maar versleutelt je gegevens niet.
+  const SLOT = 'mijnbudget:slot';
+  const naarB64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
+  const vanB64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+  function slotId() { try { return localStorage.getItem(SLOT); } catch (e) { return null; } }
+  let slotFouten = 0, wegSinds = 0;
+  async function bevestig() {
+    await navigator.credentials.get({ publicKey: {
+      challenge: crypto.getRandomValues(new Uint8Array(32)),
+      allowCredentials: [{ type: 'public-key', id: vanB64(slotId()) }],
+      userVerification: 'required', timeout: 60000 } });
+  }
+  function vergrendel() {
+    if (!slotId()) return;
+    slotFouten = 0; $('slot-uit').hidden = true;
+    $('slot-msg').textContent = 'Ontgrendel om je budget te zien.';
+    $('slot').hidden = false; $('slot-open').focus();
+  }
+  $('slot-open').addEventListener('click', async () => {
+    try { await bevestig(); $('slot').hidden = true; }
+    catch (e) {
+      slotFouten++;
+      $('slot-msg').textContent = 'Dat lukte niet. Probeer het nog een keer.';
+      if (slotFouten >= 2) $('slot-uit').hidden = false;
+    }
+  });
+  $('slot-uit').addEventListener('click', () => {
+    try { localStorage.removeItem(SLOT); } catch (e) {}
+    $('slot').hidden = true; $('slot-aan').checked = false;
+    showNotice('Het slot staat uit. Je kunt het bij Periodes, onder Gegevens veilig, weer aanzetten.');
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) wegSinds = Date.now();
+    else if (slotId() && wegSinds && Date.now() - wegSinds > 60000) vergrendel();
+  });
+  if (slotId()) vergrendel();
+  (async () => {
+    let kan = false;
+    try { kan = !!(window.PublicKeyCredential && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()); } catch (e) {}
+    $('slot-rij').hidden = !kan && !slotId();
+    $('slot-aan').checked = !!slotId();
+  })();
+  $('slot-aan').addEventListener('change', async () => {
+    const aan = $('slot-aan').checked;
+    $('slot-aan').disabled = true;
+    try {
+      if (aan) {
+        const cred = await navigator.credentials.create({ publicKey: {
+          challenge: crypto.getRandomValues(new Uint8Array(32)),
+          rp: { name: 'Duppie' },
+          user: { id: crypto.getRandomValues(new Uint8Array(16)), name: 'Duppie', displayName: 'Duppie' },
+          pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+          authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'preferred' },
+          attestation: 'none', timeout: 60000 } });
+        localStorage.setItem(SLOT, naarB64(cred.rawId));
+        showNotice('Het slot staat aan. Ben je langer dan een minuut weg, dan vraagt Duppie om Face ID.', true);
+      } else {
+        await bevestig();
+        localStorage.removeItem(SLOT);
+        showNotice('Het slot staat uit.');
+      }
+    } catch (e) {
+      $('slot-aan').checked = !aan;
+      if (!(e && e.name === 'NotAllowedError')) showNotice(aan ? 'Face ID kon niet worden ingesteld op dit toestel.' : 'Bevestig met Face ID om het slot uit te zetten.');
+    } finally { $('slot-aan').disabled = false; }
+  });
+
+  // ---------- gedeeld met Duppie (Android) ----------
+  async function gedeeldOphalen() {
+    if (!new URLSearchParams(location.search).has('gedeeld') || !('caches' in window)) return;
+    try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) {}
+    let file = null;
+    try {
+      const c = await caches.open('duppie-gedeeld'), res = await c.match('gedeeld-bestand');
+      if (res) {
+        await c.delete('gedeeld-bestand');
+        const blob = await res.blob();
+        file = new File([blob], decodeURIComponent(res.headers.get('x-naam') || 'gedeeld'), { type: blob.type });
+      }
+    } catch (e) {}
+    if (!file) { showNotice('Het gedeelde bestand kwam niet aan. Probeer het nog een keer.'); return; }
+    for (let i = 0; i < 100 && !state; i++) await new Promise((r) => setTimeout(r, 100));
+    if (!state || readOnly) { showNotice('Maak eerst je budget en deel het bestand daarna opnieuw met Duppie.'); return; }
+    if (/^image\//.test(file.type)) { showTab('overzicht', true); bonVerwerk(file); }
+    else importBestand(file);
+  }
+  gedeeldOphalen();
 
   // ---------- offline ----------
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
