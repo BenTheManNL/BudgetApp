@@ -404,7 +404,7 @@
 
   /* ---------- nieuw ontwerp: licht = Helder, donker = Nachtkluis ---------- */
   body { font-variant-numeric: tabular-nums; }
-  .appbar { background: color-mix(in srgb, var(--bg) 90%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); color: var(--ink); border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+  .appbar { background: var(--bg); color: var(--ink); border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
   .brand-name { color: var(--ink); }
   .brand-name svg { height: 24px; margin: 1px 0 2px; }
   .logo { box-shadow: none; border-radius: 10px; }
@@ -419,7 +419,7 @@
   .iconbtn { border-radius: 12px; }
   .iconbtn svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
   /* menubalk */
-  .tabbar { background: color-mix(in srgb, var(--surface) 94%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); padding-top: 4px; }
+  .tabbar { background: var(--surface); padding-top: 4px; }
   .tab { font-size: 11px; font-weight: 500; gap: 2px; color: var(--ink-3); }
   .tab svg { width: 56px; height: 32px; padding: 4px 16px; border-radius: 16px; stroke-width: 2.2; box-sizing: border-box; transition: background .2s; }
   .tab[aria-selected="true"], :root[data-theme="dark"] .tab[aria-selected="true"] { color: var(--pine); font-weight: 650; }
@@ -432,7 +432,9 @@
   #wk-titel { font-weight: 650; font-size: 17px; }
   #wk-datums { color: var(--ink-2); opacity: 1; }
   .hero .iconbtn { background: transparent; border-color: var(--line); color: var(--ink); }
-  .hero .btn-ghost { color: var(--ink-2); opacity: 1; }
+  .hero .btn-ghost { color: var(--ink); opacity: 1; font-weight: 650; min-width: 76px; }
+  .hero #wk-nu:disabled { opacity: 1; cursor: default; color: var(--ink-2); }
+  .hero #wk-nu:not(:disabled) { border-color: var(--line); background: var(--surface-2); color: var(--pine); }
   .ring-big { position: relative; width: 236px; height: 236px; margin: 6px auto 0; }
   .ring-big svg, .mini-ring svg { width: 100%; height: 100%; display: block; overflow: visible; }
   .ring-big .bg, .mini-ring .bg { stroke: var(--ring-off); }
@@ -516,7 +518,7 @@
           <div><h2 id="wk-titel">Deze week</h2><div id="wk-datums">—</div></div>
           <div class="wk-nav">
             <button class="iconbtn" id="wk-prev" aria-label="Vorige week"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
-            <button class="btn btn-ghost" id="wk-nu">Vandaag</button>
+            <button class="btn btn-ghost" id="wk-nu" aria-label="Terug naar deze week">Week 1</button>
             <button class="iconbtn" id="wk-next" aria-label="Volgende week"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
           </div>
         </div>
@@ -1632,8 +1634,15 @@
     if (viewWeek === null || viewWeek >= ws.length) viewWeek = auto;
     const w = ws[viewWeek];
     const nu = viewWeek === auto && vandaag() >= ws[0].start && vandaag() <= ws[ws.length - 1].end;
-    $('wk-titel').textContent = nu ? 'Deze week' : 'Week ' + (w.i + 1) + ' van ' + ws.length;
-    $('wk-datums').textContent = (nu ? 'Week ' + (w.i + 1) + ' van ' + ws.length + ' · ' : '') + kortDag(w.start) + ' t/m ' + kortDag(w.end) + (w.dagen < 7 ? ' (' + w.dagen + ' dagen)' : '');
+    // Titel ten opzichte van vandaag (Deze week, Volgende week, …); de knop in het midden toont het weeknummer
+    const inPeriode = vandaag() >= ws[0].start && vandaag() <= ws[ws.length - 1].end;
+    const verschil = viewWeek - auto;
+    $('wk-titel').textContent = !inPeriode ? 'Week ' + (w.i + 1) + ' van ' + ws.length
+      : verschil === 0 ? 'Deze week' : verschil === 1 ? 'Volgende week' : verschil === -1 ? 'Vorige week'
+      : verschil > 1 ? 'Over ' + verschil + ' weken' : (-verschil) + ' weken geleden';
+    $('wk-datums').textContent = kortDag(w.start) + ' t/m ' + kortDag(w.end) + (w.dagen < 7 ? ' (' + w.dagen + ' dagen)' : '');
+    $('wk-nu').textContent = 'Week ' + (w.i + 1);
+    $('wk-nu').title = viewWeek === auto ? 'Je kijkt naar deze week' : 'Terug naar deze week';
     $('wk-prev').disabled = viewWeek <= 0; $('wk-next').disabled = viewWeek >= ws.length - 1; $('wk-nu').disabled = viewWeek === auto;
     const inWeek = state.uitgaven.filter((u) => u.datum >= w.start && u.datum <= w.end);
     const som = (arr, pot) => r2(arr.filter((u) => u.pot === pot).reduce((a, u) => a + u.bedrag, 0));
