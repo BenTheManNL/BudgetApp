@@ -1747,21 +1747,17 @@
     return r2(Math.max(0, t.boodschappen) + Math.max(0, t.eigen) - uit);
   }
 
-  // Tempo: hoeveel kun je nog per dag uitgeven, en ga je te snel?
+  // Hoeveel kun je nog per dag uitgeven?
   function toonTempo(nu, w, budget, spent, left) {
     const el = $('tempo');
     if (!nu || budget <= 0) { el.hidden = true; return; }
     const verstreken = Math.min(w.dagen, Math.max(1, Math.round((parseISO(vandaag()) - parseISO(w.start)) / 86400000) + 1));
     const dagenOver = w.dagen - verstreken + 1;
     const perDag = r2(Math.max(0, left) / dagenOver);
-    const verwacht = r2(spent / verstreken * w.dagen);
-    const voorTempo = spent > budget * (verstreken / w.dagen) * 1.1;
+    // Geen tempo-waarschuwing: wie in één keer weekboodschappen doet, geeft vroeg in de week veel uit en doet het juist goed
     let tekst, waarschuwing = false;
     if (left < 0) { tekst = '⚠️ Je zit deze week ' + eur.format(-left) + ' boven je budget.'; waarschuwing = true; }
-    else if (verstreken >= 2 && voorTempo && verwacht > budget + 1 && verstreken < w.dagen) {
-      tekst = '⚠️ Op dit tempo geef je deze week ' + eur.format(verwacht) + ' uit, dat is ' + eur.format(r2(verwacht - budget)) + ' te veel. Probeer onder ' + eur.format(perDag) + ' per dag te blijven.';
-      waarschuwing = true;
-    } else tekst = 'Je kunt nog ' + eur.format(perDag) + ' per dag uitgeven' + (dagenOver > 1 ? ' (nog ' + dagenOver + ' dagen, vandaag meegeteld).' : ' (laatste dag van de week).');
+    else tekst = 'Je kunt nog ' + eur.format(perDag) + ' per dag uitgeven' + (dagenOver > 1 ? ' (nog ' + dagenOver + ' dagen, vandaag meegeteld).' : ' (laatste dag van de week).');
     el.textContent = tekst; el.classList.toggle('warn-tempo', waarschuwing); el.hidden = false;
   }
 
