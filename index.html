@@ -1617,17 +1617,30 @@
 
   // ---------- bonnetjes ----------
   // Maakt van de gelezen tekst van een kassabon: winkel, datum, totaal en de losse artikelen
-  const BON_STOP = /sub ?totaal|totaal|te betalen|\btotal\b|pinnen|\bpin\b|betaald|contant|wisselgeld|terug|\bbtw\b|\bvat\b|kassa|maestro|v ?pay|visa|mastercard|bankpas|betaalpas|contactloos|aantal|artikelen|spaarzegel|koopzegel|\bbon ?nr|transactie|terminal|merchant|autorisatie|kaart|saldo/i;
+  const BON_STOP = /sub ?totaal|totaal|te betalen|\btotal\b|pinnen|\bpin\b|betaald|contant|wisselgeld|terug|\bbtw\b|\bvat\b|kassa|maestro|v ?pay|visa|mastercard|bankpas|betaalpas|contactloos|aantal|artikelen|spaarzegel|koopzegel|\bbon ?nr|transactie|terminal|merchant|autorisatie|kaart|saldo|omschrijving|bedrag/i;
   const BON_KORTING = /korting|bonus|actie|voordeel|aanbieding|gratis|\bkort\b/i;
-  function bonPrijs(regel) {
-    // Een prijs aan het eind van de regel: 1,29 / -1,50 / 14, 24 / 2.85 B / € 3,10
-    const m = regel.match(/(^|[^\d,.])([-−–„]?)\s*(\d{1,4})\s?[,.]\s?(\d{2})\s*(?:€|eur|[a-d]|\*)?\s*$/i);
+  const BON_BETAALD = /pinnen|\bpin\b|betaald|contant|bankpas|betaalpas|visa|maestro|mastercard|v ?pay|contactloos/i;
+  const BON_GELD = /([-−–„]?)\s?(\d{1,4})\s?[,.\/]\s?(\d{2})(?!\d)/g;
+  // Alle bedragen op een regel, met waar ze staan
+  function bonBedragen(regel) {
+    const uit = []; let m; BON_GELD.lastIndex = 0;
+    while ((m = BON_GELD.exec(regel))) uit.push({ bedrag: (m[1] ? -1 : 1) * Number(m[2] + '.' + m[3]), index: m.index, eind: m.index + m[0].length });
+    return uit;
+  }
+  // Een prijs aan het eind van de regel. Bij een bon met kolommen moet er een flinke ruimte voor staan,
+  // zodat "Hef. sup 0,01" in een naam niet als prijs telt. Een komma die de lezer miste ("198") kan ook.
+  function bonPrijs(regel, kolom) {
+    const r = regel.replace(/[\s'‚`.,:;|_~*€]+$/u, (s) => (/[.,]\d/.test(s) ? s : '')).replace(/\s+(?:€|eur|[a-d])$/i, '');
+    const m = r.match(/(^|\s+)([-−–„]?)\s?(\d{1,4})\s?[,.\/]\s?(\d{2})$/) || (kolom ? r.match(/(\s{2,})([-−–„]?)(\d{1,2})(\d{2})$/) : null);
     if (!m) return null;
+    if (kolom && m.index > 0 && m[1].length < 2) return null;
     const bedrag = Number(m[3] + '.' + m[4]);
-    return { bedrag: m[2] ? -bedrag : bedrag, voor: regel.slice(0, m.index + m[1].length).trim() };
+    return { bedrag: m[2] ? -bedrag : bedrag, voor: r.slice(0, m.index).trim() };
   }
   function bonNaam(s) {
-    return s.replace(/[|_~=<>«»"]+/g, ' ').replace(/\s{2,}/g, ' ').replace(/^[^\p{L}\d]+|[^\p{L}\d)%]+$/gu, '').trim().slice(0, 80);
+    let n = s.replace(/[|_~=<>«»"\\]+/g, ' ').replace(/\s{2,}/g, ' ').replace(/^[^\p{L}\d]+|[^\p{L}\d)%']+$/gu, '').trim().slice(0, 80);
+    if (n === n.toUpperCase()) { n = n.toLowerCase().replace(/\b(ah|xl|xxl|bbq|nl)\b/g, (w) => w.toUpperCase()); n = n.charAt(0).toUpperCase() + n.slice(1); }
+    return n;
   }
   function bonDatum(tekst) {
     const re = /\b(\d{1,2})\s?[-\/.]\s?(\d{1,2})\s?[-\/.]\s?(\d{4}|\d{2})\b/g; let m;
@@ -1638,59 +1651,143 @@
     return '';
   }
   function bonWinkel(regels) {
-    for (const [re, naam] of KETENS) if (regels.slice(0, 8).some((r) => re.test(r))) return naam;
-    const eerste = regels.find((r) => /\p{L}{3,}/u.test(r) && !bonPrijs(r));
-    return eerste ? bonNaam(eerste).replace(/\S+/g, (w) => w.charAt(0) + w.slice(1).toLowerCase()) : '';
+    for (const [re, naam] of KETENS) if (regels.slice(0, 10).some((r) => re.test(r))) return naam;
+    const eerste = regels.find((r) => /\p{L}{3,}/u.test(r) && !bonPrijs(r, false));
+    return eerste ? bonNaam(eerste) : '';
   }
   function leesBonTekst(tekst) {
-    const regels = String(tekst || '').split(/\r?\n/).map((r) => r.replace(/\s+/g, ' ').trim()).filter(Boolean);
-    const artikelen = []; let totaal = null, betaald = null, aantal = '', klaar = false;
-    for (const r of regels) {
-      const p = bonPrijs(r);
-      if (/sub ?totaal/i.test(r)) { klaar = true; continue; }
-      if (/totaal|te betalen|\btotal\b/i.test(r)) { if (p && totaal === null) totaal = Math.abs(p.bedrag); klaar = true; continue; }
-      if (/pinnen|\bpin\b|betaald|contant|bankpas|betaalpas/i.test(r)) { if (p && betaald === null) betaald = Math.abs(p.bedrag); klaar = true; continue; }
-      if (klaar || !p) continue;
-      // "2 X 0,89" op een eigen regel: dat is het aantal voor het volgende artikel
-      const q = r.match(/^(\d{1,3})\s?[x×*]\s?(?:€\s?)?\d/i);
-      if (q && !/\p{L}{3,}/u.test(r.replace(/^\d+\s?[x×*]/i, ''))) { aantal = q[1] + '× '; continue; }
-      if (BON_STOP.test(p.voor)) continue;
-      let naam = bonNaam(p.voor.replace(/\s[-−]?\d{1,4}\s?[,.]\s?\d{2}$/, ''));
-      if (!/\p{L}{2,}/u.test(naam)) continue;
+    // Rommel aan het begin van een regel weg ("j    4 X 0,75", "__JUM LATTE"), maar de ruimtes tussen naam en prijs laten staan
+    let regels = String(tekst || '').split(/\r?\n/).map((r) => r.replace(/\t/g, '    ').replace(/^[^\p{L}\d-]*(?:\p{L}\s{2,}|\p{L}?_+\s*)?/u, '').trimEnd()).filter((r) => r.trim());
+    // Alles boven de kop "Omschrijving … Bedrag" is adres en telefoonnummer
+    const kop = regels.findIndex((r) => /omschrijving|artikel.{0,20}(prijs|bedrag)|bedrag in/i.test(r));
+    const winkelRegels = regels;
+    if (kop >= 0) regels = regels.slice(kop + 1);
+    // Staan de prijzen in een kolom (met een flinke ruimte ervoor)? Dan zijn we strenger.
+    const kolom = regels.filter((r) => /\S\s{2,}[-−–„]?\d{1,4}\s?[,.\/]?\s?\d{2}\W*$/.test(r)).length >= 3;
+    const artikelen = []; let totaal = null, betaald = null, aantal = '', naamRegel = null, klaar = false;
+    const voegToe = (naam, bedrag, anders) => {
+      naam = bonNaam(naam.replace(/\s[-−]?\d{1,4}\s?[,.\/]\s?\d{2}$/, '')); bedrag = r2(bedrag);
+      if (!/\p{L}{2,}/u.test(naam) || !bedrag) { aantal = ''; return; }
       const voor = naam.match(/^(\d{1,3})\s?[x×]?\s(?=\p{L})/u);
-      if (voor) { naam = naam.slice(voor[0].length); if (Number(voor[1]) > 1 && !aantal) aantal = voor[1] + '× '; }
-      if (naam === naam.toUpperCase()) { naam = naam.toLowerCase().replace(/\b(ah|xl|xxl|bbq)\b/g, (w) => w.toUpperCase()); naam = naam.charAt(0).toUpperCase() + naam.slice(1); }
-      let bedrag = p.bedrag;
+      if (voor) { naam = naam.slice(voor[0].length); if (Number(voor[1]) > 1 && !aantal) aantal = voor[1] + '× '; naam = naam.charAt(0).toUpperCase() + naam.slice(1); }
       if (BON_KORTING.test(naam) && bedrag > 0) bedrag = -bedrag;
-      artikelen.push({ naam: aantal + naam, bedrag: r2(bedrag) });
-      aantal = '';
+      const a = { naam: aantal + naam, bedrag };
+      if (anders !== undefined && Math.abs(anders - bedrag) >= 0.01) a.anders = r2(Math.sign(bedrag) * Math.abs(anders));
+      artikelen.push(a); aantal = '';
+    };
+    for (const r of regels) {
+      if (/sub ?totaal/i.test(r)) { klaar = true; continue; }
+      if (/(^|\s)[t|l1!i]ota+l?\b|te betalen|\btotal\b/i.test(r)) { const p = bonPrijs(r, false); if (p && totaal === null) totaal = Math.abs(p.bedrag); klaar = true; continue; }
+      if (BON_BETAALD.test(r)) { const p = bonPrijs(r, false); if (p && betaald === null) betaald = Math.abs(p.bedrag); klaar = true; continue; }
+      if (klaar) { const p = bonPrijs(r, false); if (p && totaal !== null && betaald === null && Math.abs(Math.abs(p.bedrag) - totaal) < 0.01) betaald = totaal; continue; }
+      // "2 X 0,99    1,98": het aantal (en vaak de prijs) bij het artikel op de regel erboven, of erna
+      const q = r.match(/^(\d{1,3})\s?[x×*]{1,2}\s?(?:€\s?)?\d/i);
+      if (q && !/\p{L}{3,}/u.test(r.replace(/^\d+\s?[x×*]+/i, ''))) {
+        const b = bonBedragen(r), n = Number(q[1]);
+        if (naamRegel) {
+          const bedrag = b.length >= 2 ? b[b.length - 1].bedrag : b.length ? b[0].bedrag * n : 0;
+          // Aantal × stukprijs als tweede mogelijkheid, voor als de lezer een cijfer van het totaal mis las
+          aantal = n > 1 ? n + '× ' : ''; voegToe(naamRegel, bedrag, b.length >= 2 ? b[0].bedrag * n : undefined); naamRegel = null;
+        } else aantal = n > 1 && b.length <= 1 ? n + '× ' : '';  // met een eigen totaal hoort het bij de regel erboven
+        continue;
+      }
+      const p = bonPrijs(r, kolom);
+      if (!p) { naamRegel = /\p{L}{3,}/u.test(r) && !BON_STOP.test(r) ? r : null; continue; }
+      if (BON_STOP.test(p.voor)) { naamRegel = null; continue; }
+      voegToe(/\p{L}{2,}/u.test(p.voor) ? p.voor : naamRegel || '', p.bedrag);
+      naamRegel = null;
     }
-    const som = r2(artikelen.reduce((a, x) => a + x.bedrag, 0));
-    return { winkel: bonWinkel(regels), datum: bonDatum(tekst), totaal: totaal !== null ? totaal : betaald !== null ? betaald : som, artikelen };
+    let som = r2(artikelen.reduce((a, x) => a + x.bedrag, 0));
+    const doel = totaal !== null ? totaal : betaald;
+    // Klopt het niet met het totaal? Probeer bij artikelen met een aantal de berekende prijs (één of twee tegelijk).
+    if (doel !== null && Math.abs(som - doel) >= 0.01) {
+      const alt = artikelen.filter((a) => a.anders !== undefined);
+      const past = (keus) => Math.abs(r2(som + keus.reduce((t, a) => t + a.anders - a.bedrag, 0)) - doel) < 0.01;
+      let keus = null;
+      for (let i = 0; i < alt.length && !keus; i++) {
+        if (past([alt[i]])) keus = [alt[i]];
+        for (let j = i + 1; j < alt.length && !keus; j++) if (past([alt[i], alt[j]])) keus = [alt[i], alt[j]];
+      }
+      if (keus) { keus.forEach((a) => { a.bedrag = a.anders; }); som = doel; }
+    }
+    artikelen.forEach((a) => { delete a.anders; });
+    return { winkel: bonWinkel(winkelRegels), datum: bonDatum(tekst), totaal: totaal !== null ? totaal : betaald !== null ? betaald : som, artikelen };
   }
 
-  // Maakt de foto klaar: rechtop gedraaid, grijs, met meer contrast en een handige grootte
-  async function bonBeeld(file, maxW, soort) {
+
+  // Maakt de foto klaar om te lezen: rechtop, alleen de bon zelf (de achtergrond wordt wit),
+  // en per stukje zwart-wit gemaakt zodat schaduw en ongelijk licht niet uitmaken.
+  async function bonBeeld(file, maxW, soort, voorLezer) {
     let bmp;
     try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (e) { bmp = await createImageBitmap(file); }
-    let sc = Math.min(maxW / bmp.width, 4000 / bmp.height);
-    if (bmp.width * sc < 900) sc = 900 / bmp.width;
-    const w = Math.max(1, Math.round(bmp.width * sc)), h = Math.max(1, Math.round(bmp.height * sc));
-    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-    const cx = cv.getContext('2d', { willReadFrequently: true });
-    cx.drawImage(bmp, 0, 0, w, h);
-    if (bmp.close) bmp.close();
-    const img = cx.getImageData(0, 0, w, h), px = img.data, hist = new Array(256).fill(0);
-    for (let i = 0; i < px.length; i += 4) { const g = (px[i] * 299 + px[i + 1] * 587 + px[i + 2] * 114) / 1000 | 0; px[i] = g; hist[g]++; }
-    // Rek het grijs op: de donkerste 2% wordt zwart, de lichtste 2% wit
-    const n = w * h; let lo = 0, hi = 255, acc = 0;
-    for (let g = 0; g < 256; g++) { acc += hist[g]; if (acc > n * 0.02) { lo = g; break; } }
-    acc = 0; for (let g = 255; g >= 0; g--) { acc += hist[g]; if (acc > n * 0.02) { hi = g; break; } }
-    const f = 255 / Math.max(1, hi - lo);
-    for (let i = 0; i < px.length; i += 4) { const g = Math.max(0, Math.min(255, (px[i] - lo) * f)); px[i] = px[i + 1] = px[i + 2] = g; }
+    const W = bmp.width, H = bmp.height;
+    const maak = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return [c, c.getContext('2d', { willReadFrequently: true })]; };
+    const grijs = (data) => { const g = new Uint8ClampedArray(data.length / 4); for (let i = 0, j = 0; i < data.length; i += 4, j++) g[j] = (data[i] * 299 + data[i + 1] * 587 + data[i + 2] * 114) / 1000; return g; };
+    if (!voorLezer) {
+      // Voor Claude: alleen verkleinen
+      const sc = Math.min(1, maxW / W, 2400 / H), [cv, cx] = maak(Math.round(W * sc), Math.round(H * sc));
+      cx.drawImage(bmp, 0, 0, cv.width, cv.height); if (bmp.close) bmp.close();
+      return new Promise((ok) => cv.toBlob(ok, soort, 0.85));
+    }
+    // 1. Klein plaatje: zoek het grootste lichte vlak, dat is de bon
+    const s = 300 / Math.max(W, H), sw = Math.max(1, Math.round(W * s)), sh = Math.max(1, Math.round(H * s));
+    const [, kx] = maak(sw, sh); kx.drawImage(bmp, 0, 0, sw, sh);
+    const kg = grijs(kx.getImageData(0, 0, sw, sh).data);
+    const hist = new Array(256).fill(0); kg.forEach((v) => hist[v]++);
+    let drempel = 128, beste = -1, wB = 0, sB = 0; const alles = hist.reduce((t, n, i) => t + n * i, 0);
+    for (let t = 0; t < 256; t++) { // Otsu: de drempel die licht en donker het best scheidt
+      wB += hist[t]; if (!wB) continue; const wF = kg.length - wB; if (!wF) break;
+      sB += t * hist[t]; const v = wB * wF * ((sB / wB) - (alles - sB) / wF) ** 2;
+      if (v > beste) { beste = v; drempel = t; }
+    }
+    const lab = new Int32Array(kg.length); let grootste = 0, grootsteN = 0, nr = 0; const stapel = [];
+    for (let i = 0; i < kg.length; i++) {
+      if (kg[i] <= drempel || lab[i]) continue;
+      nr++; lab[i] = nr; stapel.push(i); let n = 0;
+      while (stapel.length) {
+        const p = stapel.pop(); n++; const x = p % sw;
+        for (const q of [p - sw, p + sw, x > 0 ? p - 1 : -1, x < sw - 1 ? p + 1 : -1]) if (q >= 0 && q < kg.length && !lab[q] && kg[q] > drempel) { lab[q] = nr; stapel.push(q); }
+      }
+      if (n > grootsteN) { grootsteN = n; grootste = nr; }
+    }
+    // Per rij: alles tussen het eerste en laatste stukje bon hoort erbij (ook de donkere letters)
+    const vorm = new Uint8Array(kg.length); let x0 = sw, x1 = 0, y0 = sh, y1 = 0;
+    for (let y = 0; y < sh; y++) {
+      let a = -1, b = -1;
+      for (let x = 0; x < sw; x++) if (lab[y * sw + x] === grootste) { if (a < 0) a = x; b = x; }
+      if (a < 0) continue;
+      for (let x = a; x <= b; x++) vorm[y * sw + x] = 1;
+      x0 = Math.min(x0, a); x1 = Math.max(x1, b); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+    }
+    const goed = grootsteN > kg.length * 0.05;
+    if (!goed) { x0 = 0; y0 = 0; x1 = sw - 1; y1 = sh - 1; vorm.fill(1); }
+    // 2. Uitsnijden en op een vaste breedte zetten (ongeveer 1600 pixels: letters groot genoeg om te lezen)
+    const X0 = Math.floor(x0 / s), Y0 = Math.floor(y0 / s), CW = Math.max(1, Math.ceil((x1 + 1) / s) - X0), CH = Math.max(1, Math.ceil((y1 + 1) / s) - Y0);
+    let f = maxW / CW; if (CH * f > 5000) f = 5000 / CH;
+    const w = Math.max(1, Math.round(CW * f)), h = Math.max(1, Math.round(CH * f));
+    const [cv, cx] = maak(w, h); cx.drawImage(bmp, X0, Y0, CW, CH, 0, 0, w, h); if (bmp.close) bmp.close();
+    const img = cx.getImageData(0, 0, w, h), px = img.data, g = grijs(px);
+    // Achtergrond naast de bon wit maken
+    for (let y = 0; y < h; y++) {
+      const ky = Math.min(sh - 1, Math.floor((Y0 + y / f) * s));
+      for (let x = 0; x < w; x++) { const kxx = Math.min(sw - 1, Math.floor((X0 + x / f) * s)); if (!vorm[ky * sw + kxx]) g[y * w + x] = 255; }
+    }
+    // 3. Zwart-wit per stukje: een pixel is zwart als hij duidelijk donkerder is dan zijn omgeving
+    const r = Math.max(8, Math.round(w / 80)), k = 0.12, ii = new Float64Array((w + 1) * (h + 1));
+    for (let y = 0; y < h; y++) { let rij = 0; for (let x = 0; x < w; x++) { rij += g[y * w + x]; ii[(y + 1) * (w + 1) + x + 1] = ii[y * (w + 1) + x + 1] + rij; } }
+    for (let y = 0; y < h; y++) {
+      const ya = Math.max(0, y - r), yb = Math.min(h, y + r + 1);
+      for (let x = 0; x < w; x++) {
+        const xa = Math.max(0, x - r), xb = Math.min(w, x + r + 1);
+        const som = ii[yb * (w + 1) + xb] - ii[ya * (w + 1) + xb] - ii[yb * (w + 1) + xa] + ii[ya * (w + 1) + xa];
+        const v = g[y * w + x] < (som / ((yb - ya) * (xb - xa))) * (1 - k) ? 0 : 255, i = (y * w + x) * 4;
+        px[i] = px[i + 1] = px[i + 2] = v; px[i + 3] = 255;
+      }
+    }
     cx.putImageData(img, 0, 0);
     return new Promise((ok) => cv.toBlob(ok, soort, 0.85));
   }
+
 
   let ocrWorker = null, ocrNr = 0;
   function ocrLees(blob, opFase) {
@@ -1715,7 +1812,7 @@
     try { sample = await window.claude.use('sample'); } catch (e) { sample = null; }
     if (!sample) return null;
     try { const lim = await sample.limits(); if (!lim || !lim.images) return null; } catch (e) { return null; }
-    const blob = await bonBeeld(file, 1600, 'image/jpeg');
+    const blob = await bonBeeld(file, 1600, 'image/jpeg', false);
     const vraag = 'Dit is een foto van een kassabon. Lees hem uit en geef alleen JSON terug, zonder uitleg, in deze vorm: '
       + '{"winkel": "naam van de winkel", "datum": "JJJJ-MM-DD of leeg", "totaal": getal, "artikelen": [{"naam": "artikel", "bedrag": getal}]}. '
       + 'Bedragen in euro als getal met een punt (1.29). Kortingen en bonus als negatief bedrag. Statiegeld is een artikel. '
@@ -1742,7 +1839,7 @@
     if (!res) {
       try {
         bonStatus('Foto klaarmaken…');
-        const blob = await bonBeeld(file, 1800, 'image/png');
+        const blob = await bonBeeld(file, 1600, 'image/png', true);
         const tekst = await ocrLees(blob, (f) => bonStatus(f === 'laden' ? 'Lezer laden… (de eerste keer duurt dit even)' : 'Tekst van je bon lezen…'));
         res = leesBonTekst(tekst); res.tekst = tekst;
       } catch (e) {
