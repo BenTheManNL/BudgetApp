@@ -19,6 +19,7 @@ Je ziet in één oogopslag wat je deze week nog kunt uitgeven.
 - **Meenemen:** wat je in een week overhoudt (of te veel uitgeeft) telt mee in de volgende week. Aan het einde van de periode gaat de rest naar de volgende periode of naar je spaardoel.
 - **Potjes:** verdeel je vrije budget over 🛒 Boodschappen, 🐷 Sparen en ✨ Eigen invulling met schuifjes. Eigen invulling vangt de verschillen op.
 - **Uitgaven bijhouden:** voer snel in wat je uitgeeft, of **importeer je bankafschrift** (CSV van ING, Rabobank, ABN AMRO, ASN/SNS/RegioBank en bunq, of PDF van ING).
+- **Bonnetjes scannen:** maak een foto van je kassabon. De app leest de winkel, de datum, het totaal en wat je gekocht hebt, en zet het als uitgave neer. Je controleert alles eerst. Het lezen gebeurt op je eigen telefoon: de foto gaat niet het internet op.
 - **Inzicht:** grafieken van je uitgaven per week, per winkel en per periode.
 - **Vaste lasten en inkomsten:** met automatische icoontjes (🏠 huur, ⚡ energie, 💧 water…) en afschrijfdatums, zodat je ziet wat er nog van je rekening af gaat.
 - **Tijdelijke inkomsten:** extra geld telt mee vanaf de dag dat je het krijgt.
@@ -55,3 +56,4 @@ Het is **niet** toegestaan de app aan te passen, te kopiëren, opnieuw te public
 Zie [LICENSE](LICENSE) voor de volledige voorwaarden.
 
 De app gebruikt [PDF.js](https://mozilla.github.io/pdf.js/) van Mozilla (Apache-2.0) om PDF-afschriften te lezen, zie `lib/pdfjs`.
+Voor het lezen van bonnetjes gebruikt de app [tesseract.js-core](https://github.com/naptha/tesseract.js-core) en de Nederlandse taaldata uit [tessdata_fast](https://github.com/tesseract-ocr/tessdata_fast) (beide Apache-2.0), zie `lib/ocr`.

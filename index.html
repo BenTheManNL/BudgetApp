@@ -372,6 +372,31 @@
   .data-tbl th { color: var(--ink-3); font-weight: 500; border-top: none; }
   .data-tbl .n { text-align: right; }
   @media (max-width: 380px) { .tab { font-size: 11px; } }
+  .kop-knoppen { display: flex; gap: 6px; flex-wrap: wrap; }
+  .bon-bezig { padding: 8px 0 18px; }
+  .bon-balk { height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+  .bon-balk div { height: 100%; width: 35%; border-radius: 99px; background: var(--pine-2); animation: bonbalk 1.2s ease-in-out infinite; }
+  @keyframes bonbalk { 0% { transform: translateX(-100%); } 100% { transform: translateX(290%); } }
+  @media (prefers-reduced-motion: reduce) { .bon-balk div { animation: none; width: 100%; opacity: .5; } }
+  #bon-status { margin: 10px 0 0; color: var(--ink-2); }
+  .bon-form { overflow-y: auto; flex: 1; min-height: 0; margin: 0 -6px 14px; padding: 0 6px; }
+  .bon-form .potpick { margin-top: 10px; }
+  .bon-kop { display: flex; justify-content: space-between; align-items: center; margin: 14px 0 4px; font-weight: 600; }
+  .bon-items { list-style: none; margin: 0; padding: 0; }
+  .bon-items li { display: grid; grid-template-columns: 1fr 92px 32px; gap: 6px; align-items: center; padding: 4px 0; }
+  .bon-items .field { min-height: 40px; padding: 7px 10px; }
+  .bon-items .b { text-align: right; font-variant-numeric: tabular-nums; }
+  .bon-items .leeg { display: block; color: var(--ink-3); font-size: 14px; padding: 8px 0; }
+  .bon-tot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 10px; font-weight: 600; }
+  .bon-tot .amount-in { margin: 0; max-width: 190px; }
+  .bon-check { font-size: 13px; color: var(--ink-3); margin: 6px 0 10px !important; }
+  .bon-check.mis { color: var(--bad); font-weight: 600; }
+  .bon-tekst summary { cursor: pointer; color: var(--ink-2); font-size: 14px; padding: 6px 0; }
+  .bon-tekst textarea { font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; margin-bottom: 8px; resize: vertical; }
+  .e-items-knop { border: none; background: none; padding: 2px 0 0; color: var(--ink-2); font-size: 12px; font-weight: 600; cursor: pointer; }
+  .e-items { grid-column: 2 / 4; list-style: none; margin: -2px 0 0; padding: 8px 12px; font-size: 13px; color: var(--ink-2); background: var(--surface-2); border-radius: 12px; }
+  .e-items li { display: flex !important; justify-content: space-between; gap: 10px; padding: 2px 0 !important; border: none !important; }
+  .e-items li span:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -451,7 +476,8 @@
       </div>
 
       <form class="card" id="u-form" autocomplete="off">
-        <div class="card-h" style="margin-bottom:10px"><h2>Uitgave toevoegen</h2><button type="button" class="btn btn-sm" id="csv-knop">🏦 Bankafschrift</button></div>
+        <div class="card-h" style="margin-bottom:10px"><h2>Uitgave toevoegen</h2><span class="kop-knoppen"><button type="button" class="btn btn-sm" id="bon-knop">🧾 Bon scannen</button><button type="button" class="btn btn-sm" id="csv-knop">🏦 Bankafschrift</button></span></div>
+        <input type="file" id="bon-file" accept="image/*" hidden>
         <input type="file" id="csv-file" accept=".csv,.txt,.pdf,text/csv,text/plain,application/pdf" hidden>
         <div class="potpick" role="radiogroup" aria-label="Potje">
           <label style="--pot:var(--bood)"><input type="radio" name="u-pot" value="boodschappen" checked><span>🛒 Boodschappen</span></label>
@@ -669,6 +695,41 @@
   </div>
 </div>
 
+<div class="modal-bg" id="bon" hidden>
+  <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="bon-titel">
+    <h3 id="bon-titel">Bon controleren</h3>
+    <div id="bon-bezig" class="bon-bezig">
+      <div class="bon-balk"><div></div></div>
+      <p id="bon-status">Bon lezen…</p>
+    </div>
+    <div id="bon-form" class="bon-form" hidden>
+      <p id="bon-info" class="hint"></p>
+      <div class="add-row">
+        <input class="field" id="bon-winkel" placeholder="Winkel" aria-label="Winkel">
+        <input class="field" type="date" id="bon-datum" aria-label="Datum">
+      </div>
+      <div class="potpick" role="radiogroup" aria-label="Potje">
+        <label style="--pot:var(--bood)"><input type="radio" name="bon-pot" value="boodschappen" checked><span>🛒 Boodschappen</span></label>
+        <label style="--pot:var(--eigen)"><input type="radio" name="bon-pot" value="eigen"><span>✨ Eigen invulling</span></label>
+      </div>
+      <div class="bon-kop"><span>Wat je gekocht hebt</span><button type="button" class="btn btn-sm" id="bon-plus">+ Artikel</button></div>
+      <ul class="bon-items" id="bon-items"></ul>
+      <div class="bon-tot"><span>Totaal op de bon</span><div class="amount-in"><span class="eur">€</span><input id="bon-totaal" inputmode="decimal" placeholder="0,00" aria-label="Totaal"></div></div>
+      <p class="bon-check" id="bon-check"></p>
+      <details class="bon-tekst">
+        <summary>Gelezen tekst bekijken of zelf plakken</summary>
+        <p class="hint">Gaat het lezen mis? Op een iPhone open je de foto in Foto's, houd je je vinger op de tekst en kies je "Kopieer alles". Plak het hier en tik op Opnieuw verwerken.</p>
+        <textarea class="field" id="bon-ruw" rows="6"></textarea>
+        <button type="button" class="btn btn-sm" id="bon-herlees">Opnieuw verwerken</button>
+      </details>
+    </div>
+    <div class="btns">
+      <button class="btn" id="bon-annuleer">Annuleren</button>
+      <button class="btn btn-primary" id="bon-ok" disabled>Uitgave toevoegen</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="modal" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="m-title">
     <h3 id="m-title">Nieuwe periode starten?</h3>
@@ -819,6 +880,7 @@
         naam: typeof u.naam === 'string' ? u.naam : '',
         bedrag: Number.isFinite(Number(u.bedrag)) ? r2(Number(u.bedrag)) : 0,
         bron: typeof u.bron === 'string' ? u.bron : undefined,
+        items: Array.isArray(u.items) && u.items.length ? u.items.filter((i) => i && typeof i === 'object').slice(0, 200).map((i) => ({ naam: String(i.naam || '').slice(0, 80), bedrag: Number.isFinite(Number(i.bedrag)) ? r2(Number(i.bedrag)) : 0 })) : undefined,
       })),
       meenemen: o.meenemen !== false,
       restNaar: ['volgende', 'sparen', 'niets'].includes(o.restNaar) ? o.restNaar : 'volgende',
@@ -1519,10 +1581,19 @@
       const nm = document.createElement('div'); nm.className = 'e-nm'; nm.textContent = u.naam || (u.pot === 'eigen' ? 'Eigen invulling' : 'Boodschappen');
       const dd = document.createElement('div'); dd.className = 'e-d'; dd.textContent = kortDag(u.datum) + ' · ' + (u.pot === 'eigen' ? 'Eigen invulling' : 'Boodschappen');
       mid.append(nm, dd);
+      if (u.items && u.items.length) {
+        // Bij een gescande bon: een knopje dat de gekochte artikelen laat zien
+        const knop = document.createElement('button'); knop.type = 'button'; knop.className = 'e-items-knop';
+        const lijst = document.createElement('ul'); lijst.className = 'e-items'; lijst.hidden = true;
+        u.items.forEach((i) => { const r = document.createElement('li'); const a = document.createElement('span'); a.textContent = i.naam; const b = document.createElement('span'); b.textContent = eur.format(i.bedrag); r.append(a, b); lijst.append(r); });
+        const zet = () => { knop.textContent = '🧾 ' + u.items.length + (u.items.length === 1 ? ' artikel ' : ' artikelen ') + (lijst.hidden ? '▾' : '▴'); knop.setAttribute('aria-expanded', String(!lijst.hidden)); };
+        knop.addEventListener('click', () => { lijst.hidden = !lijst.hidden; zet(); });
+        zet(); mid.append(knop); li._items = lijst;
+      }
       const bd = document.createElement('span'); bd.className = 'e-b'; bd.textContent = '− ' + eur.format(u.bedrag);
       const x = document.createElement('button'); x.className = 'x'; x.textContent = '×'; x.setAttribute('aria-label', 'Verwijder uitgave'); x.disabled = readOnly;
       x.addEventListener('click', () => { state.uitgaven = state.uitgaven.filter((v) => v !== u); renderWeek(); changed(); });
-      li.append(ic, mid, bd, x); ul.append(li);
+      li.append(ic, mid, bd, x); if (li._items) li.append(li._items); ul.append(li);
     });
     if (!inWeek.length) { const li = document.createElement('li'); li.className = 'empty'; li.style.display = 'block'; li.textContent = 'Nog geen uitgaven deze week. Voeg hierboven je eerste toe.'; ul.append(li); }
     const pb = som(state.uitgaven, 'boodschappen'), pe = som(state.uitgaven, 'eigen');
@@ -1542,6 +1613,206 @@
     $('u-bedrag').value = ''; $('u-naam').value = '';
     viewWeek = weekVan(weken(state), datum);
     renderWeek(); changed();
+  });
+
+  // ---------- bonnetjes ----------
+  // Maakt van de gelezen tekst van een kassabon: winkel, datum, totaal en de losse artikelen
+  const BON_STOP = /sub ?totaal|totaal|te betalen|\btotal\b|pinnen|\bpin\b|betaald|contant|wisselgeld|terug|\bbtw\b|\bvat\b|kassa|maestro|v ?pay|visa|mastercard|bankpas|betaalpas|contactloos|aantal|artikelen|spaarzegel|koopzegel|\bbon ?nr|transactie|terminal|merchant|autorisatie|kaart|saldo/i;
+  const BON_KORTING = /korting|bonus|actie|voordeel|aanbieding|gratis|\bkort\b/i;
+  function bonPrijs(regel) {
+    // Een prijs aan het eind van de regel: 1,29 / -1,50 / 14, 24 / 2.85 B / € 3,10
+    const m = regel.match(/(^|[^\d,.])([-−–„]?)\s*(\d{1,4})\s?[,.]\s?(\d{2})\s*(?:€|eur|[a-d]|\*)?\s*$/i);
+    if (!m) return null;
+    const bedrag = Number(m[3] + '.' + m[4]);
+    return { bedrag: m[2] ? -bedrag : bedrag, voor: regel.slice(0, m.index + m[1].length).trim() };
+  }
+  function bonNaam(s) {
+    return s.replace(/[|_~=<>«»"]+/g, ' ').replace(/\s{2,}/g, ' ').replace(/^[^\p{L}\d]+|[^\p{L}\d)%]+$/gu, '').trim().slice(0, 80);
+  }
+  function bonDatum(tekst) {
+    const re = /\b(\d{1,2})\s?[-\/.]\s?(\d{1,2})\s?[-\/.]\s?(\d{4}|\d{2})\b/g; let m;
+    while ((m = re.exec(tekst))) {
+      const d = Number(m[1]), mo = Number(m[2]); let j = Number(m[3]); if (j < 100) j += 2000;
+      if (d >= 1 && d <= 31 && mo >= 1 && mo <= 12 && j >= 2000 && j <= 2100) return j + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    }
+    return '';
+  }
+  function bonWinkel(regels) {
+    for (const [re, naam] of KETENS) if (regels.slice(0, 8).some((r) => re.test(r))) return naam;
+    const eerste = regels.find((r) => /\p{L}{3,}/u.test(r) && !bonPrijs(r));
+    return eerste ? bonNaam(eerste).replace(/\S+/g, (w) => w.charAt(0) + w.slice(1).toLowerCase()) : '';
+  }
+  function leesBonTekst(tekst) {
+    const regels = String(tekst || '').split(/\r?\n/).map((r) => r.replace(/\s+/g, ' ').trim()).filter(Boolean);
+    const artikelen = []; let totaal = null, betaald = null, aantal = '', klaar = false;
+    for (const r of regels) {
+      const p = bonPrijs(r);
+      if (/sub ?totaal/i.test(r)) { klaar = true; continue; }
+      if (/totaal|te betalen|\btotal\b/i.test(r)) { if (p && totaal === null) totaal = Math.abs(p.bedrag); klaar = true; continue; }
+      if (/pinnen|\bpin\b|betaald|contant|bankpas|betaalpas/i.test(r)) { if (p && betaald === null) betaald = Math.abs(p.bedrag); klaar = true; continue; }
+      if (klaar || !p) continue;
+      // "2 X 0,89" op een eigen regel: dat is het aantal voor het volgende artikel
+      const q = r.match(/^(\d{1,3})\s?[x×*]\s?(?:€\s?)?\d/i);
+      if (q && !/\p{L}{3,}/u.test(r.replace(/^\d+\s?[x×*]/i, ''))) { aantal = q[1] + '× '; continue; }
+      if (BON_STOP.test(p.voor)) continue;
+      let naam = bonNaam(p.voor.replace(/\s[-−]?\d{1,4}\s?[,.]\s?\d{2}$/, ''));
+      if (!/\p{L}{2,}/u.test(naam)) continue;
+      const voor = naam.match(/^(\d{1,3})\s?[x×]?\s(?=\p{L})/u);
+      if (voor) { naam = naam.slice(voor[0].length); if (Number(voor[1]) > 1 && !aantal) aantal = voor[1] + '× '; }
+      if (naam === naam.toUpperCase()) { naam = naam.toLowerCase().replace(/\b(ah|xl|xxl|bbq)\b/g, (w) => w.toUpperCase()); naam = naam.charAt(0).toUpperCase() + naam.slice(1); }
+      let bedrag = p.bedrag;
+      if (BON_KORTING.test(naam) && bedrag > 0) bedrag = -bedrag;
+      artikelen.push({ naam: aantal + naam, bedrag: r2(bedrag) });
+      aantal = '';
+    }
+    const som = r2(artikelen.reduce((a, x) => a + x.bedrag, 0));
+    return { winkel: bonWinkel(regels), datum: bonDatum(tekst), totaal: totaal !== null ? totaal : betaald !== null ? betaald : som, artikelen };
+  }
+
+  // Maakt de foto klaar: rechtop gedraaid, grijs, met meer contrast en een handige grootte
+  async function bonBeeld(file, maxW, soort) {
+    let bmp;
+    try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (e) { bmp = await createImageBitmap(file); }
+    let sc = Math.min(maxW / bmp.width, 4000 / bmp.height);
+    if (bmp.width * sc < 900) sc = 900 / bmp.width;
+    const w = Math.max(1, Math.round(bmp.width * sc)), h = Math.max(1, Math.round(bmp.height * sc));
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const cx = cv.getContext('2d', { willReadFrequently: true });
+    cx.drawImage(bmp, 0, 0, w, h);
+    if (bmp.close) bmp.close();
+    const img = cx.getImageData(0, 0, w, h), px = img.data, hist = new Array(256).fill(0);
+    for (let i = 0; i < px.length; i += 4) { const g = (px[i] * 299 + px[i + 1] * 587 + px[i + 2] * 114) / 1000 | 0; px[i] = g; hist[g]++; }
+    // Rek het grijs op: de donkerste 2% wordt zwart, de lichtste 2% wit
+    const n = w * h; let lo = 0, hi = 255, acc = 0;
+    for (let g = 0; g < 256; g++) { acc += hist[g]; if (acc > n * 0.02) { lo = g; break; } }
+    acc = 0; for (let g = 255; g >= 0; g--) { acc += hist[g]; if (acc > n * 0.02) { hi = g; break; } }
+    const f = 255 / Math.max(1, hi - lo);
+    for (let i = 0; i < px.length; i += 4) { const g = Math.max(0, Math.min(255, (px[i] - lo) * f)); px[i] = px[i + 1] = px[i + 2] = g; }
+    cx.putImageData(img, 0, 0);
+    return new Promise((ok) => cv.toBlob(ok, soort, 0.85));
+  }
+
+  let ocrWorker = null, ocrNr = 0;
+  function ocrLees(blob, opFase) {
+    return new Promise(async (ok, fout) => {
+      if (!ocrWorker) ocrWorker = new Worker(new URL('lib/ocr/ocr-worker.js', location.href).href);
+      const id = ++ocrNr, buf = await blob.arrayBuffer();
+      const luister = (e) => {
+        if (e.data.id !== id) return;
+        if (e.data.fase) { opFase(e.data.fase); return; }
+        ocrWorker.removeEventListener('message', luister);
+        if (e.data.fout) fout(new Error(e.data.fout)); else ok(e.data.tekst || '');
+      };
+      ocrWorker.addEventListener('message', luister);
+      ocrWorker.addEventListener('error', (e) => { ocrWorker = null; fout(new Error(e.message || 'De lezer liep vast.')); }, { once: true });
+      ocrWorker.postMessage({ id, beeld: buf }, [buf]);
+    });
+  }
+
+  // In de Claude-versie kan Claude de bon lezen; dat is nauwkeuriger. Anders lezen we hem zelf.
+  async function bonMetClaude(file) {
+    let sample = null;
+    try { sample = await window.claude.use('sample'); } catch (e) { sample = null; }
+    if (!sample) return null;
+    try { const lim = await sample.limits(); if (!lim || !lim.images) return null; } catch (e) { return null; }
+    const blob = await bonBeeld(file, 1600, 'image/jpeg');
+    const vraag = 'Dit is een foto van een kassabon. Lees hem uit en geef alleen JSON terug, zonder uitleg, in deze vorm: '
+      + '{"winkel": "naam van de winkel", "datum": "JJJJ-MM-DD of leeg", "totaal": getal, "artikelen": [{"naam": "artikel", "bedrag": getal}]}. '
+      + 'Bedragen in euro als getal met een punt (1.29). Kortingen en bonus als negatief bedrag. Statiegeld is een artikel. '
+      + 'Laat subtotaal, btw, pinbetaling, wisselgeld en spaarzegels weg. Schrijf artikelnamen gewoon met een hoofdletter aan het begin, niet in hoofdletters.';
+    const r = await sample.json(vraag, { images: [blob], modelTier: 'default' });
+    if (!r || typeof r !== 'object') return null;
+    const artikelen = (Array.isArray(r.artikelen) ? r.artikelen : []).map((a) => ({ naam: bonNaam(String((a && a.naam) || '')), bedrag: r2(Number(a && a.bedrag) || 0) })).filter((a) => a.naam && a.bedrag);
+    return { winkel: String(r.winkel || '').slice(0, 80), datum: /^\d{4}-\d{2}-\d{2}$/.test(r.datum || '') ? r.datum : '', totaal: Math.abs(r2(Number(r.totaal) || 0)), artikelen, doorClaude: true };
+  }
+
+  let bonData = null;
+  function bonStatus(t) { $('bon-status').textContent = t; }
+  function bonOpen() {
+    $('bon').hidden = false; $('bon-bezig').hidden = false; $('bon-form').hidden = true; $('bon-ok').disabled = true;
+    bonStatus('Bon lezen…');
+  }
+  async function bonVerwerk(file) {
+    bonOpen();
+    let res = null;
+    try {
+      bonStatus('Claude leest je bon…');
+      res = await bonMetClaude(file);
+    } catch (e) { res = null; }
+    if (!res) {
+      try {
+        bonStatus('Foto klaarmaken…');
+        const blob = await bonBeeld(file, 1800, 'image/png');
+        const tekst = await ocrLees(blob, (f) => bonStatus(f === 'laden' ? 'Lezer laden… (de eerste keer duurt dit even)' : 'Tekst van je bon lezen…'));
+        res = leesBonTekst(tekst); res.tekst = tekst;
+      } catch (e) {
+        res = { winkel: '', datum: '', totaal: 0, artikelen: [], tekst: '', fout: e.message };
+      }
+    }
+    bonToon(res);
+  }
+  function bonToon(res) {
+    bonData = res;
+    const S = state.start, E = state.eind;
+    const okDatum = res.datum && res.datum >= S && res.datum < E && res.datum <= vandaag();
+    $('bon-winkel').value = res.winkel || '';
+    $('bon-datum').min = S; $('bon-datum').value = okDatum ? res.datum : ($('u-datum').value || vandaag());
+    const pot = SUPERMARKT.test(res.winkel || '') || !res.winkel ? 'boodschappen' : 'eigen';
+    document.querySelectorAll('input[name="bon-pot"]').forEach((r) => { r.checked = r.value === pot; });
+    $('bon-totaal').value = res.totaal ? String(res.totaal.toFixed(2)).replace('.', ',') : '';
+    $('bon-ruw').value = res.tekst !== undefined ? res.tekst : res.artikelen.map((a) => a.naam + '   ' + a.bedrag.toFixed(2).replace('.', ',')).join('\n');
+    $('bon-info').textContent = res.fout ? 'Het lezen lukte niet (' + res.fout + '). Vul de bon hieronder zelf in, of plak de tekst.'
+      : res.doorClaude ? 'Claude heeft je bon gelezen. Kijk even of alles klopt.'
+      : res.geplakt ? 'Tekst verwerkt. Kijk even of alles klopt.'
+      : !res.artikelen.length ? 'Er zijn geen artikelen herkend. Een scherpe, rechte foto met goed licht helpt. Je kunt ze ook zelf toevoegen.'
+      : 'Gelezen op je eigen telefoon. Kijk even of alles klopt; bij een vage foto kan er een cijfer mis zijn.';
+    bonLijst();
+    $('bon-bezig').hidden = true; $('bon-form').hidden = false;
+  }
+  function bonLijst() {
+    const ul = $('bon-items'); ul.replaceChildren();
+    bonData.artikelen.forEach((a) => {
+      const li = document.createElement('li');
+      const n = document.createElement('input'); n.className = 'field'; n.value = a.naam; n.placeholder = 'Artikel'; n.setAttribute('aria-label', 'Artikel');
+      n.addEventListener('input', () => { a.naam = n.value.slice(0, 80); });
+      const b = document.createElement('input'); b.className = 'field b'; b.inputMode = 'decimal'; b.value = a.bedrag ? a.bedrag.toFixed(2).replace('.', ',') : ''; b.placeholder = '0,00'; b.setAttribute('aria-label', 'Bedrag');
+      b.addEventListener('input', () => { const v = b.value.trim(); const neg = /^[-−]/.test(v); const x = parseBedrag(v.replace(/^[-−]\s*/, '')); a.bedrag = Number.isFinite(x) ? r2(neg ? -x : x) : 0; bonCheck(); });
+      const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = '×'; x.setAttribute('aria-label', 'Verwijder artikel');
+      x.addEventListener('click', () => { bonData.artikelen = bonData.artikelen.filter((y) => y !== a); bonLijst(); });
+      li.append(n, b, x); ul.append(li);
+    });
+    if (!bonData.artikelen.length) { const li = document.createElement('li'); li.className = 'leeg'; li.textContent = 'Nog geen artikelen.'; ul.append(li); }
+    bonCheck();
+  }
+  function bonCheck() {
+    const som = r2(bonData.artikelen.reduce((a, x) => a + (x.bedrag || 0), 0));
+    const tot = parseBedrag($('bon-totaal').value);
+    const el = $('bon-check');
+    $('bon-ok').disabled = !(tot > 0) || readOnly;
+    if (!bonData.artikelen.length) { el.textContent = ''; el.classList.remove('mis'); return; }
+    const verschil = r2((tot > 0 ? tot : 0) - som);
+    el.classList.toggle('mis', Math.abs(verschil) >= 0.01);
+    el.textContent = Math.abs(verschil) < 0.01 ? '✓ De artikelen tellen precies op tot het totaal.'
+      : 'Artikelen samen ' + eur.format(som) + ', dat is ' + eur.format(Math.abs(verschil)) + (verschil > 0 ? ' minder' : ' meer') + ' dan het totaal. Controleer de bedragen.';
+  }
+  $('bon-knop').addEventListener('click', () => { if (!readOnly) { $('bon-file').value = ''; $('bon-file').click(); } });
+  $('bon-file').addEventListener('change', () => { const f = $('bon-file').files[0]; if (f) bonVerwerk(f); });
+  $('bon-plus').addEventListener('click', () => { bonData.artikelen.push({ naam: '', bedrag: 0 }); bonLijst(); const v = $('bon-items').querySelectorAll('input'); if (v.length > 1) v[v.length - 2].focus(); });
+  $('bon-totaal').addEventListener('input', bonCheck);
+  $('bon-herlees').addEventListener('click', () => { const t = $('bon-ruw').value; const r = leesBonTekst(t); r.tekst = t; r.geplakt = true; bonToon(r); });
+  $('bon-annuleer').addEventListener('click', () => { $('bon').hidden = true; bonData = null; });
+  $('bon-ok').addEventListener('click', () => {
+    if (!state || readOnly || !bonData) return;
+    const bedrag = parseBedrag($('bon-totaal').value);
+    if (!(bedrag > 0)) return;
+    const datum = $('bon-datum').value || vandaag();
+    const pot = (document.querySelector('input[name="bon-pot"]:checked') || {}).value === 'eigen' ? 'eigen' : 'boodschappen';
+    const items = bonData.artikelen.filter((a) => a.naam.trim() && a.bedrag).map((a) => ({ naam: a.naam.trim(), bedrag: a.bedrag }));
+    state.uitgaven.push({ id: uid(), datum, pot, naam: ($('bon-winkel').value.trim() || 'Bon').slice(0, 80), bedrag, items: items.length ? items : undefined });
+    $('bon').hidden = true; bonData = null;
+    viewWeek = weekVan(weken(state), datum);
+    renderWeek(); changed();
+    showNotice('Bon toegevoegd: ' + eur.format(bedrag) + (items.length ? ' met ' + items.length + (items.length === 1 ? ' artikel.' : ' artikelen.') : '.'), true);
   });
 
   // ---------- bankafschrift importeren ----------
