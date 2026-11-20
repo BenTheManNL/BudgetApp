@@ -405,6 +405,9 @@
   /* ---------- nieuw ontwerp: licht = Helder, donker = Nachtkluis ---------- */
   body { font-variant-numeric: tabular-nums; }
   .appbar { background: var(--bg); color: var(--ink); border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+  /* iOS legt een vervagende strook over de bovenkant van het scherm (scroll edge effect).
+     In de app op het beginscherm geven we de kopbalk daarom extra ruimte, zodat het logo eronder valt. */
+  @media (display-mode: standalone) { .appbar { padding-top: calc(env(safe-area-inset-top) + 40px); } }
   .brand-name { color: var(--ink); }
   .brand-name svg { width: 83px; height: 24px; margin: 1px 0 2px; shape-rendering: geometricPrecision; }
   .logo { box-shadow: none; border-radius: 10px; }
