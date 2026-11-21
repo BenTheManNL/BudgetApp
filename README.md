@@ -7,10 +7,10 @@ Je ziet in één oogopslag wat je deze week nog kunt uitgeven.
 *(open de link op je telefoon en zet hem op je beginscherm, zie hieronder)*
 
 <p>
-  <img src="docs/scherm-overzicht.png" width="250" alt="Overzicht: een grote cirkel voor boodschappen en kleine cirkels voor eigen invulling en sparen">
-  <img src="docs/scherm-inzicht.png" width="250" alt="Inzicht: waar je geld naartoe gaat">
-  <img src="docs/scherm-budget.png" width="250" alt="Budget: inkomsten, vaste lasten en potjes">
-  <img src="docs/scherm-sparen.png" width="250" alt="Spaardoelen met voortgang">
+  <img src="docs/app-overzicht.png" width="250" alt="Overzicht: een grote cirkel voor boodschappen en kleine cirkels voor eigen invulling en sparen">
+  <img src="docs/app-inzicht.png" width="250" alt="Inzicht: waar je geld naartoe gaat">
+  <img src="docs/app-budget.png" width="250" alt="Budget: inkomsten, vaste lasten en potjes">
+  <img src="docs/app-sparen.png" width="250" alt="Spaardoelen met voortgang">
 </p>
 
 ## Wat kan de app?
