@@ -1963,7 +1963,8 @@
     $('u-add').disabled = $('u-bedrag').disabled = $('u-pot').disabled = $('u-naam').disabled = d.disabled = readOnly;
     document.querySelectorAll('input[name="u-pot"]').forEach((r) => { r.disabled = readOnly; });
     const ul = $('u-lijst'); ul.replaceChildren();
-    inWeek.slice().sort((a, b) => (a.datum < b.datum ? 1 : a.datum > b.datum ? -1 : 0)).forEach((u) => {
+    // Nieuwste bovenaan: eerst op datum, en op dezelfde dag wat je het laatst toevoegde (reverse + stabiele sort)
+    inWeek.slice().reverse().sort((a, b) => (a.datum < b.datum ? 1 : a.datum > b.datum ? -1 : 0)).forEach((u) => {
       const li = document.createElement('li');
       li.style.setProperty('--pot', u.pot === 'eigen' ? 'var(--eigen)' : 'var(--bood)');
       const ic = document.createElement('span'); ic.className = 'e-ic'; ic.innerHTML = u.pot === 'eigen' ? ICOON_EIGEN : ICOON_KAR;
