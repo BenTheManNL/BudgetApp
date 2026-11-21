@@ -303,6 +303,19 @@
   .modal p { margin: 0 0 18px; color: var(--ink-2); }
   .modal .btns { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 
+  /* voorgeschoten geld */
+  #u-lijst li { grid-template-columns: 40px 1fr auto auto; }
+  .e-acties { display: flex; gap: 2px; }
+  .e-voor { color: var(--ink-2); font-size: 12px; font-weight: 600; }
+  .vs-lijst { list-style: none; margin: 8px 0 0; padding: 0; }
+  .vs-lijst li { padding: 12px 0; border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; }
+  .vs-lijst li:first-child { border-top: none; }
+  .vs-wie { font-weight: 700; }
+  .vs-wat { color: var(--ink-3); font-size: 12px; }
+  .vs-b { font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+  .vs-k { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .vs-k .btn { padding: 7px 12px; font-size: 13px; min-height: 36px; }
+  .vs-k .x { margin-left: auto; }
   /* tabjes onbetaald / betaald */
   .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 14px; background: var(--surface-2); margin: 12px 0 4px; }
   .seg button { border: 0; background: transparent; border-radius: 10px; min-height: 40px; padding: 8px 10px; font-size: 14px; font-weight: 600; color: var(--ink-2); display: flex; align-items: center; justify-content: center; gap: 7px; cursor: pointer; }
@@ -666,6 +679,7 @@
           <input class="field" id="u-naam" placeholder="Waaraan? (optioneel)" aria-label="Omschrijving">
           <input class="field" type="date" id="u-datum" aria-label="Datum">
         </div>
+        <label class="switch" style="margin:2px 0 12px"><input type="checkbox" id="u-voor"><span class="sw-track"><span class="sw-dot"></span></span><span>Voorgeschoten voor iemand anders</span></label>
         <button class="btn btn-primary" type="submit" id="u-add">Toevoegen</button>
         </div>
       </form>
@@ -681,6 +695,13 @@
         <ul class="entries afs" id="afs-lijst" role="tabpanel"></ul>
         <p class="hint" id="afs-leeg" hidden style="margin:10px 0 2px"></p>
         <p class="hint" id="afs-zonder" hidden style="margin-top:10px"></p>
+      </section>
+
+      <section class="card" id="voorschot">
+        <div class="card-h"><h2>Voorgeschoten</h2><button class="btn" type="button" id="vs-plus" style="padding:7px 12px;font-size:13px">+ Voorgeschoten</button></div>
+        <div class="wb-big" id="vs-nog" hidden>—</div>
+        <div class="card-sub" id="vs-sub"></div>
+        <ul class="vs-lijst" id="vs-lijst"></ul>
       </section>
 
       <section class="card">
@@ -950,6 +971,19 @@
   </div>
 </div>
 
+<div class="modal-bg" id="voor" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="voor-t">
+    <h3 id="voor-t">Voorgeschoten</h3>
+    <p id="voor-uitleg"></p>
+    <label class="g-veld">Wie betaalt je terug?<input class="field" id="voor-wie" list="voor-namen" autocomplete="off" maxlength="40"></label>
+    <label class="g-veld">Hoeveel krijg je terug?<input class="field" id="voor-bedrag" inputmode="decimal" placeholder="€ 0,00"></label>
+    <label class="g-veld" id="voor-wat-wrap">Waarvoor?<input class="field" id="voor-wat" maxlength="80" placeholder="Bijvoorbeeld een bioscoopkaartje"></label>
+    <p class="g-fout" id="voor-fout" role="alert" hidden></p>
+    <div class="btns"><button class="btn" id="voor-annuleer">Annuleren</button><button class="btn btn-primary" id="voor-ok">Opslaan</button></div>
+  </div>
+  <datalist id="voor-namen"></datalist>
+</div>
+
 <div class="modal-bg" id="import" hidden>
   <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="imp-titel">
     <h3 id="imp-titel">Bankafschrift importeren</h3>
@@ -1071,6 +1105,8 @@
 (function () {
   const DOC = 'budget/huidig';
   const naRender = []; // extra onderdelen die na renderAll() bijgewerkt worden
+  // Wat telt mee voor je budget: het deel dat je voor een ander voorschoot niet
+  const telt = (u) => r2(u.bedrag - Math.min(u.bedrag, u.voor || 0));
   const SOORTEN = ['inkomsten', 'extra', 'vast', 'aflossing', 'tijdelijk'];
   const DOELEN = 'doelen/lijst';
   const eur = new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' });
@@ -1174,6 +1210,7 @@
         naam: typeof u.naam === 'string' ? u.naam : '',
         bedrag: Number.isFinite(Number(u.bedrag)) ? r2(Number(u.bedrag)) : 0,
         bron: typeof u.bron === 'string' ? u.bron : undefined,
+        voor: Number(u.voor) > 0 ? r2(Math.min(Number(u.voor), Number(u.bedrag) || 0)) : undefined,
         items: Array.isArray(u.items) && u.items.length ? u.items.filter((i) => i && typeof i === 'object').slice(0, 200).map((i) => ({ naam: String(i.naam || '').slice(0, 80), bedrag: Number.isFinite(Number(i.bedrag)) ? r2(Number(i.bedrag)) : 0 })) : undefined,
       })),
       meenemen: o.meenemen !== false,
@@ -1182,6 +1219,13 @@
         ? Object.fromEntries(Object.keys(o.betaald).filter((k) => o.betaald[k] === true).map((k) => [k, true])) : {},
       ritme: normRitme(o.ritme, typeof o.start === 'string' ? o.start : ''),
       voorbeeld: o.voorbeeld === true ? true : undefined,
+      voorschotten: (Array.isArray(o.voorschotten) ? o.voorschotten : []).filter((v) => v && typeof v === 'object' && Number(v.bedrag) > 0).slice(0, 500).map((v) => ({
+        id: typeof v.id === 'string' ? v.id : uid(),
+        wie: String(v.wie || '').slice(0, 40), waarvoor: String(v.waarvoor || '').slice(0, 80),
+        bedrag: r2(Number(v.bedrag)), datum: typeof v.datum === 'string' ? v.datum : '',
+        pot: v.pot === 'eigen' ? 'eigen' : 'boodschappen', uitgave: typeof v.uitgave === 'string' ? v.uitgave : null,
+        status: ['terug', 'kwijt'].includes(v.status) ? v.status : 'open', klaar: typeof v.klaar === 'string' ? v.klaar : undefined,
+      })),
       spaarGeboekt: o.spaarGeboekt && typeof o.spaarGeboekt === 'object' && typeof o.spaarGeboekt.doelId === 'string' && Number.isFinite(Number(o.spaarGeboekt.bedrag))
         ? { doelId: o.spaarGeboekt.doelId, bedrag: r2(Number(o.spaarGeboekt.bedrag)) } : null,
     };
@@ -1525,7 +1569,7 @@
     $('titel').textContent = state.start && state.eind ? kort(state.start).replace(/ \d{4}$/, '') + ' – ' + kort(state.eind) : 'Geen periode gekozen';
     $('tabbar').hidden = false;
     renderLists(); renderTotals();
-    renderRitme(); renderBinnenkort();
+    renderRitme(); renderBinnenkort(); renderVoorschot();
     $('vb-banner').hidden = !state.voorbeeld;
     naRender.forEach((f) => { try { f(); } catch (e) {} });
   }
@@ -1796,7 +1840,7 @@
   // Budget per week per potje. Met "meenemen" komt wat je in eerdere weken overhield (of te veel uitgaf) erbij.
   function weekBudgetten(s, t, ws) {
     const B = Math.max(0, t.boodschappen), E = Math.max(0, t.eigen);
-    const som = (wk, pot) => r2(s.uitgaven.filter((u) => u.pot === pot && u.datum >= wk.start && u.datum <= wk.end).reduce((a, u) => a + u.bedrag, 0));
+    const som = (wk, pot) => r2(s.uitgaven.filter((u) => u.pot === pot && u.datum >= wk.start && u.datum <= wk.end).reduce((a, u) => a + telt(u), 0));
     let carryB = 0, carryE = 0;
     return ws.map((wk) => {
       const deel = weekDeel(s, t, wk);
@@ -1809,7 +1853,7 @@
   }
   // Wat er van de hele periode over is: budget voor Boodschappen en Eigen invulling min alles wat je uitgaf
   function periodeRest(s, t) {
-    const uit = r2(s.uitgaven.filter((u) => u.datum >= s.start && u.datum < s.eind).reduce((a, u) => a + u.bedrag, 0));
+    const uit = r2(s.uitgaven.filter((u) => u.datum >= s.start && u.datum < s.eind).reduce((a, u) => a + telt(u), 0));
     return r2(Math.max(0, t.boodschappen) + Math.max(0, t.eigen) - uit);
   }
 
@@ -1878,7 +1922,7 @@
     $('wk-nu').title = viewWeek === auto ? 'Je kijkt naar deze week' : 'Terug naar deze week';
     $('wk-prev').disabled = viewWeek <= 0; $('wk-next').disabled = viewWeek >= ws.length - 1; $('wk-nu').disabled = viewWeek === auto;
     const inWeek = state.uitgaven.filter((u) => u.datum >= w.start && u.datum <= w.end);
-    const som = (arr, pot) => r2(arr.filter((u) => u.pot === pot).reduce((a, u) => a + u.bedrag, 0));
+    const som = (arr, pot) => r2(arr.filter((u) => u.pot === pot).reduce((a, u) => a + telt(u), 0));
     const wb = weekBudgetten(state, t, ws)[viewWeek];
     meter('b', wb.b, wb.spentB, wb.carryB);
     meter('e', wb.e, wb.spentE, wb.carryE, true);
@@ -1912,6 +1956,12 @@
       const nm = document.createElement('div'); nm.className = 'e-nm'; nm.textContent = u.naam || (u.pot === 'eigen' ? 'Eigen invulling' : 'Boodschappen');
       const dd = document.createElement('div'); dd.className = 'e-d'; dd.textContent = kortDag(u.datum) + ' · ' + (u.pot === 'eigen' ? 'Eigen invulling' : 'Boodschappen');
       mid.append(nm, dd);
+      if (u.voor > 0) {
+        const v = state.voorschotten.find((x) => x.uitgave === u.id);
+        const vd = document.createElement('div'); vd.className = 'e-voor';
+        vd.textContent = '↩\uFE0E ' + eur.format(u.voor) + (v ? (v.status === 'terug' ? ' terugbetaald door ' : v.status === 'kwijt' ? ' niet terugbetaald door ' : ' krijg je terug van ') + (v.wie || 'iemand') : ' voorgeschoten');
+        mid.append(vd);
+      }
       if (u.items && u.items.length) {
         // Bij een gescande bon: een knopje dat de gekochte artikelen laat zien
         const knop = document.createElement('button'); knop.type = 'button'; knop.className = 'e-items-knop';
@@ -1923,8 +1973,20 @@
       }
       const bd = document.createElement('span'); bd.className = 'e-b'; bd.textContent = '− ' + eur.format(u.bedrag);
       const x = document.createElement('button'); x.className = 'x'; x.textContent = '×'; x.setAttribute('aria-label', 'Verwijder uitgave'); x.disabled = readOnly;
-      x.addEventListener('click', () => { state.uitgaven = state.uitgaven.filter((v) => v !== u); renderWeek(); changed(); });
-      li.append(ic, mid, bd, x); if (li._items) li.append(li._items); ul.append(li);
+      x.addEventListener('click', () => {
+        state.uitgaven = state.uitgaven.filter((v) => v !== u);
+        // Een openstaand voorschot bij deze uitgave verdwijnt mee
+        state.voorschotten = state.voorschotten.filter((v) => !(v.uitgave === u.id && v.status === 'open'));
+        renderWeek(); renderVoorschot(); changed();
+      });
+      const acties = document.createElement('div'); acties.className = 'e-acties';
+      if (!(u.voor > 0)) {
+        const vk = document.createElement('button'); vk.className = 'x'; vk.textContent = '↩\uFE0E'; vk.title = 'Voorgeschoten voor iemand';
+        vk.setAttribute('aria-label', 'Voorgeschoten voor iemand: ' + (u.naam || 'uitgave')); vk.disabled = readOnly;
+        vk.addEventListener('click', () => voorOpen(u)); acties.append(vk);
+      }
+      acties.append(x);
+      li.append(ic, mid, bd, acties); if (li._items) li.append(li._items); ul.append(li);
     });
     if (!inWeek.length) { const li = document.createElement('li'); li.className = 'empty'; li.style.display = 'block'; li.textContent = 'Nog geen uitgaven deze week. Voeg hierboven je eerste toe.'; ul.append(li); }
     const pb = som(state.uitgaven, 'boodschappen'), pe = som(state.uitgaven, 'eigen');
@@ -1940,12 +2002,99 @@
     const bedrag = parseBedrag($('u-bedrag').value);
     if (!(bedrag > 0)) { $('u-bedrag').focus(); return; }
     const datum = $('u-datum').value || vandaag();
-    state.uitgaven.push({ id: uid(), datum, pot: $('u-pot').value === 'eigen' ? 'eigen' : 'boodschappen', naam: $('u-naam').value.trim().slice(0, 80), bedrag });
+    const nieuw = { id: uid(), datum, pot: $('u-pot').value === 'eigen' ? 'eigen' : 'boodschappen', naam: $('u-naam').value.trim().slice(0, 80), bedrag };
+    state.uitgaven.push(nieuw);
     $('u-bedrag').value = ''; $('u-naam').value = '';
     viewWeek = weekVan(weken(state), datum);
     renderWeek(); changed();
+    if ($('u-voor').checked) { $('u-voor').checked = false; voorOpen(nieuw); }
   });
 
+
+
+  // ---------- voorgeschoten geld ----------
+  // Geld dat je voor een ander betaalde telt niet mee voor je budget, zolang het terugkomt.
+  let voorVoor = null; // de uitgave waar het venster bij hoort (of null: los voorschot)
+  function voorOpen(u) {
+    if (!state || readOnly) return;
+    voorVoor = u || null;
+    const namen = [...new Set(state.voorschotten.map((v) => v.wie).filter(Boolean))];
+    $('voor-namen').replaceChildren(...namen.map((n) => new Option(n)));
+    $('voor-wie').value = ''; $('voor-wat').value = ''; $('voor-fout').hidden = true;
+    $('voor-wat-wrap').hidden = !!u;
+    if (u) {
+      $('voor-uitleg').textContent = (u.naam || 'Deze uitgave') + ' kostte ' + eur.format(u.bedrag) + '. Het deel dat je terugkrijgt telt niet mee voor je budget.';
+      $('voor-bedrag').value = String(u.bedrag.toFixed(2)).replace('.', ',');
+    } else {
+      $('voor-uitleg').textContent = 'Betaalde of leende je geld voor iemand anders? Zet het hier, dan vergeet je het niet. Het telt niet mee voor je budget.';
+      $('voor-bedrag').value = '';
+    }
+    $('voor').hidden = false; setTimeout(() => $('voor-wie').focus(), 50);
+  }
+  function voorDicht() { $('voor').hidden = true; voorVoor = null; }
+  $('voor-annuleer').addEventListener('click', voorDicht);
+  $('voor').addEventListener('click', (e) => { if (e.target === $('voor')) voorDicht(); });
+  $('voor-ok').addEventListener('click', () => {
+    if (!state || readOnly) return;
+    const wie = $('voor-wie').value.trim(), bedrag = r2(parseBedrag($('voor-bedrag').value)), u = voorVoor;
+    const fout = (t) => { $('voor-fout').textContent = t; $('voor-fout').hidden = false; };
+    if (!wie) return fout('Vul in wie je terugbetaalt.');
+    if (!(bedrag > 0)) return fout('Vul in hoeveel je terugkrijgt.');
+    if (u && bedrag > u.bedrag) return fout('Je kunt niet meer terugkrijgen dan de uitgave kostte (' + eur.format(u.bedrag) + ').');
+    if (u) u.voor = bedrag;
+    state.voorschotten.push({ id: uid(), wie, bedrag, datum: u ? u.datum : vandaag(), waarvoor: u ? (u.naam || '') : $('voor-wat').value.trim(),
+      pot: u ? u.pot : 'boodschappen', uitgave: u ? u.id : null, status: 'open' });
+    voorDicht(); renderAll(); changed();
+    showNotice(eur.format(bedrag) + ' van ' + wie + ' staat bij Voorgeschoten. Het telt niet mee voor je budget.');
+  });
+  $('vs-plus').addEventListener('click', () => voorOpen(null));
+
+  function renderVoorschot() {
+    if (!state) return;
+    const open = state.voorschotten.filter((v) => v.status === 'open').sort((a, b) => (a.datum < b.datum ? -1 : a.datum > b.datum ? 1 : 0));
+    const totaal = r2(open.reduce((t, v) => t + v.bedrag, 0));
+    $('vs-plus').disabled = readOnly;
+    $('vs-nog').hidden = !open.length; $('vs-nog').textContent = eur.format(totaal);
+    if (open.length) {
+      const per = new Map(); open.forEach((v) => per.set(v.wie, r2((per.get(v.wie) || 0) + v.bedrag)));
+      $('vs-sub').textContent = 'Krijg je nog terug' + (per.size > 1 ? ': ' + [...per].map(([w, b]) => w + ' ' + eur.format(b)).join(', ') : ' van ' + open[0].wie);
+    } else $('vs-sub').textContent = 'Betaal je iets voor een ander? Zet het hier. Dan telt het niet mee voor je budget en vergeet je niet dat je het terugkrijgt.';
+    const ul = $('vs-lijst'); ul.replaceChildren();
+    open.forEach((v) => {
+      const li = document.createElement('li');
+      const links = document.createElement('div');
+      const w = document.createElement('div'); w.className = 'vs-wie'; w.textContent = v.wie;
+      const d = document.createElement('div'); d.className = 'vs-wat'; d.textContent = (v.waarvoor ? v.waarvoor + ' · ' : '') + kortDag(v.datum);
+      links.append(w, d);
+      const b = document.createElement('div'); b.className = 'vs-b'; b.textContent = eur.format(v.bedrag);
+      const k = document.createElement('div'); k.className = 'vs-k';
+      const ok = document.createElement('button'); ok.className = 'btn btn-primary'; ok.textContent = 'Terugbetaald';
+      const nee = document.createElement('button'); nee.className = 'btn'; nee.textContent = 'Krijg ik niet terug';
+      const weg = document.createElement('button'); weg.className = 'x'; weg.textContent = '×'; weg.setAttribute('aria-label', 'Voorschot van ' + v.wie + ' wissen');
+      [ok, nee, weg].forEach((x) => { x.disabled = readOnly; });
+      ok.addEventListener('click', () => {
+        v.status = 'terug'; v.klaar = vandaag(); renderAll(); changed();
+        showNotice(v.wie + ' heeft ' + eur.format(v.bedrag) + ' terugbetaald.', true);
+      });
+      nee.addEventListener('click', () => openModal({
+        title: 'Krijg je het niet terug?',
+        text: 'Dan telt ' + eur.format(v.bedrag) + ' alsnog als uitgave, vandaag, bij ' + (v.pot === 'eigen' ? 'Eigen invulling' : 'Boodschappen') + '.',
+        ok: 'Ja, telt als uitgave', danger: true,
+        onOk: () => {
+          v.status = 'kwijt'; v.klaar = vandaag();
+          state.uitgaven.push({ id: uid(), datum: vandaag(), pot: v.pot, naam: ('Niet terug van ' + v.wie + (v.waarvoor ? ': ' + v.waarvoor : '')).slice(0, 80), bedrag: v.bedrag });
+          viewWeek = null; renderAll(); changed();
+        } }));
+      weg.addEventListener('click', () => {
+        // Per ongeluk gemaakt: weghalen, en de uitgave telt weer helemaal mee
+        const u = v.uitgave && state.uitgaven.find((x) => x.id === v.uitgave);
+        if (u) delete u.voor;
+        state.voorschotten = state.voorschotten.filter((x) => x !== v); renderAll(); changed();
+      });
+      k.append(ok, nee, weg);
+      li.append(links, b, k); ul.append(li);
+    });
+  }
 
   // ---------- betaaldag instellen (Periodes) ----------
   (function () {
@@ -2830,7 +2979,7 @@
     tabel('ch-week-tbl', ['Week', 'Boodschappen', 'Eigen', 'Budget'], weekData.map((d) => [d.lang, eur.format(d.b), eur.format(d.e), eur.format(d.budget)]));
     // 2. per winkel
     const groepen = new Map();
-    state.uitgaven.filter((u) => u.datum >= state.start && u.datum < state.eind).forEach((u) => { const k = winkelNaam(u); groepen.set(k, r2((groepen.get(k) || 0) + u.bedrag)); });
+    state.uitgaven.filter((u) => u.datum >= state.start && u.datum < state.eind).forEach((u) => { const k = winkelNaam(u); groepen.set(k, r2((groepen.get(k) || 0) + telt(u))); });
     let rijen = [...groepen.entries()].sort((a, b) => b[1] - a[1]);
     if (rijen.length > 6) { const rest = r2(rijen.slice(5).reduce((a, r) => a + r[1], 0)); rijen = rijen.slice(0, 5).concat([['Overig (' + (groepen.size - 5) + ')', rest]]); }
     const totaal = r2(rijen.reduce((a, r) => a + r[1], 0));
@@ -2855,7 +3004,7 @@
     const alle = archList.map((a) => a.data).filter((s) => s.start && s.start !== state.start).concat([state]).sort((a, b) => (a.start < b.start ? -1 : 1)).slice(-6);
     const perData = alle.map((s) => {
       const tt = totalen(s);
-      const som = (pot) => r2(s.uitgaven.filter((u) => u.pot === pot && u.datum >= s.start && u.datum < s.eind).reduce((a, u) => a + u.bedrag, 0));
+      const som = (pot) => r2(s.uitgaven.filter((u) => u.pot === pot && u.datum >= s.start && u.datum < s.eind).reduce((a, u) => a + telt(u), 0));
       return { b: som('boodschappen'), e: som('eigen'), budget: r2(Math.max(0, tt.boodschappen) + Math.max(0, tt.eigen)), label: kortDag(s.start), lang: kort(s.start) + ' t/m ' + kort(s.eind) };
     });
     staafGrafiek($('ch-per'), perData, perData.length - 1);

@@ -1,5 +1,5 @@
 /* Mijn budget – zorgt dat de app ook zonder internet opent */
-const CACHE = 'mijnbudget-v34';
+const CACHE = 'mijnbudget-v35';
 const LIB = 'mijnbudget-lib-1';  // grote bibliotheken (PDF- en bonlezer), blijven bewaard bij een update
 const GEDEELD = 'duppie-gedeeld'; // bestand dat je vanuit een andere app met Duppie deelt (Android)
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/apple-touch-icon.png', './icons/icon-192.png', './icons/icon-512.png'];
