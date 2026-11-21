@@ -303,6 +303,12 @@
   .modal p { margin: 0 0 18px; color: var(--ink-2); }
   .modal .btns { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 
+  /* tabjes onbetaald / betaald */
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 14px; background: var(--surface-2); margin: 12px 0 4px; }
+  .seg button { border: 0; background: transparent; border-radius: 10px; min-height: 40px; padding: 8px 10px; font-size: 14px; font-weight: 600; color: var(--ink-2); display: flex; align-items: center; justify-content: center; gap: 7px; cursor: pointer; }
+  .seg button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgb(0 0 0 / .14); }
+  .seg button:focus-visible { outline: 2px solid var(--pine-2); outline-offset: 1px; }
+  .seg .n { font-size: 12px; font-variant-numeric: tabular-nums; min-width: 22px; padding: 2px 7px; border-radius: 99px; background: color-mix(in srgb, var(--ink) 10%, transparent); }
   /* ---------- fase 2: startgids, betaaldag, meldingen, slot ---------- */
   .modal.gids { max-width: 480px; max-height: calc(100dvh - 32px); overflow-y: auto; }
   .g-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
@@ -639,7 +645,12 @@
         <div class="card-h"><h2>Nog af te schrijven</h2><span class="card-sub">vink af wat betaald is</span></div>
         <div class="wb-big" id="afs-nog">—</div>
         <div class="card-sub" id="afs-sub" style="margin-bottom:6px">—</div>
-        <ul class="entries afs" id="afs-lijst"></ul>
+        <div class="seg" role="tablist" aria-label="Welke betalingen" id="afs-tabs">
+          <button type="button" role="tab" id="afs-t-open" aria-selected="true" aria-controls="afs-lijst">Onbetaald <span class="n" id="afs-n-open">0</span></button>
+          <button type="button" role="tab" id="afs-t-klaar" aria-selected="false" aria-controls="afs-lijst">Betaald <span class="n" id="afs-n-klaar">0</span></button>
+        </div>
+        <ul class="entries afs" id="afs-lijst" role="tabpanel"></ul>
+        <p class="hint" id="afs-leeg" hidden style="margin:10px 0 2px"></p>
         <p class="hint" id="afs-zonder" hidden style="margin-top:10px"></p>
       </section>
 
@@ -1351,6 +1362,8 @@
     li.append(rowEl(p, 'div'), rij);
     return li;
   }
+  let afsTab = 'open';
+  function kiesAfsTab(t) { afsTab = t; renderAfschrijvingen(); }
   function renderAfschrijvingen() {
     if (!state) return;
     const vandaagIso = vandaag();
@@ -1366,8 +1379,17 @@
     $('afs-sub').textContent = metDatum.length
       ? 'Al afgevinkt: ' + eur.format(al) + (telaat ? ' · ' + telaat + (telaat === 1 ? ' betaling is' : ' betalingen zijn') + ' over datum, check je rekening' : '')
       : 'Vul bij Budget in op welke dag je vaste lasten worden afgeschreven.';
+    // Tabjes: alleen de onbetaalde of alleen de betaalde laten zien, zodat de lijst kort blijft
+    const open = metDatum.filter((x) => !isBetaald(x.p)), klaar = metDatum.filter((x) => isBetaald(x.p));
+    $('afs-n-open').textContent = open.length; $('afs-n-klaar').textContent = klaar.length;
+    $('afs-tabs').hidden = !metDatum.length;
+    $('afs-t-open').setAttribute('aria-selected', String(afsTab === 'open'));
+    $('afs-t-klaar').setAttribute('aria-selected', String(afsTab === 'klaar'));
+    const zicht = afsTab === 'open' ? open : klaar;
+    $('afs-leeg').hidden = !metDatum.length || zicht.length > 0;
+    $('afs-leeg').textContent = afsTab === 'open' ? 'Alles is betaald voor deze periode.' : 'Je hebt nog niets afgevinkt.';
     const ul = $('afs-lijst'); ul.replaceChildren();
-    metDatum.forEach(({ p, datum }) => {
+    zicht.forEach(({ p, datum }) => {
       const betaald = isBetaald(p), over = !betaald && datum < vandaagIso;
       const li = document.createElement('li'); li.className = betaald ? 'done' : over ? 'late' : '';
       li.style.setProperty('--pot', p.soort === 'aflossing' ? 'var(--schuld)' : 'var(--vast)');
@@ -1929,6 +1951,13 @@
     });
   }
   $('bk-naar').addEventListener('click', () => showTab('budget', true));
+  $('afs-t-open').addEventListener('click', () => kiesAfsTab('open'));
+  $('afs-t-klaar').addEventListener('click', () => kiesAfsTab('klaar'));
+  // Pijltjestoetsen wisselen tussen de tabjes
+  $('afs-tabs').addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const t = afsTab === 'open' ? 'klaar' : 'open'; kiesAfsTab(t); $(t === 'open' ? 'afs-t-open' : 'afs-t-klaar').focus();
+  });
 
   // ---------- startgids ----------
   const VASTE_KEUZES = ['Huur', 'Hypotheek', 'Energie', 'Water', 'Zorgverzekering', 'Internet en tv', 'Telefoon', 'Verzekeringen', 'Gemeentebelasting', 'Autoverzekering', 'Abonnementen', 'Sportschool'];
