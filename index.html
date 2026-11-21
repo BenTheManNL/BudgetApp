@@ -2222,6 +2222,11 @@
   }
   function bonNaam(s) {
     let n = s.replace(/[|_~=<>«»"\\]+/g, ' ').replace(/\s{2,}/g, ' ').replace(/^[^\p{L}\d]+|[^\p{L}\d)%']+$/gu, '').trim().slice(0, 80);
+    // Losse tekens vooraan die de lezer uit vlekjes haalde ("2. a powerade", "Ì actie", "Ki POWERADE"), maar niet een aantal als "6 bullit"
+    for (let i = 0; i < 3; i++) {
+      const m = n.match(/^(\d{1,2}[.,:;]|\p{L}[.,:;]?|\p{Lu}\p{Ll}(?=\s+\p{Lu}{3,})|[^\p{L}\d\s]+)\s+(?=.*\p{L}{3,})/u);
+      if (!m) break; n = n.slice(m[0].length);
+    }
     if (n === n.toUpperCase()) { n = n.toLowerCase().replace(/\b(ah|xl|xxl|bbq|nl)\b/g, (w) => w.toUpperCase()); n = n.charAt(0).toUpperCase() + n.slice(1); }
     return n;
   }
@@ -2248,6 +2253,7 @@
     // Staan de prijzen in een kolom (met een flinke ruimte ervoor)? Dan zijn we strenger.
     const kolom = regels.filter((r) => /\S\s{2,}[-−–„]?\d{1,4}\s?[,.\/]?\s?\d{2}\W*$/.test(r)).length >= 3;
     const artikelen = []; let totaal = null, betaald = null, aantal = '', naamRegel = null, klaar = false;
+    const kortingZonderBedrag = []; // "ACTIE POWERADE" waarvan de lezer het bedrag miste
     const voegToe = (naam, bedrag, anders) => {
       naam = bonNaam(naam.replace(/\s[-−]?\d{1,4}\s?[,.\/]\s?\d{2}$/, '')); bedrag = r2(bedrag);
       if (!/\p{L}{2,}/u.test(naam) || !bedrag) { aantal = ''; return; }
@@ -2276,7 +2282,10 @@
         continue;
       }
       const p = bonPrijs(r, kolom);
-      if (!p) { naamRegel = /\p{L}{3,}/u.test(r) && !BON_STOP.test(r) ? r : null; continue; }
+      if (!p) {
+        if (BON_KORTING.test(r) && !klaar) kortingZonderBedrag.push({ naam: r, plek: artikelen.length });
+        naamRegel = /\p{L}{3,}/u.test(r) && !BON_STOP.test(r) ? r : null; continue;
+      }
       if (BON_STOP.test(p.voor)) { naamRegel = null; continue; }
       voegToe(/\p{L}{2,}/u.test(p.voor) ? p.voor : naamRegel || '', p.bedrag);
       naamRegel = null;
@@ -2302,6 +2311,11 @@
           som = r2(som + best.anders - best.bedrag); best.bedrag = best.anders;
         }
       }
+    }
+    // Nog steeds te veel, en er staat een kortingsregel zonder bedrag op de bon? Dan is het verschil die korting.
+    if (doel !== null && som - doel >= 0.01 && kortingZonderBedrag.length === 1) {
+      const k = kortingZonderBedrag[0], verschil = r2(som - doel);
+      artikelen.splice(k.plek, 0, { naam: bonNaam(k.naam), bedrag: -verschil }); som = doel;
     }
     artikelen.forEach((a) => { delete a.anders; });
     return { winkel: bonWinkel(winkelRegels), datum: bonDatum(tekst), totaal: totaal !== null ? totaal : betaald !== null ? betaald : som, totaalGelezen: totaal !== null || betaald !== null, artikelen };
