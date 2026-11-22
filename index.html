@@ -303,6 +303,23 @@
   .modal p { margin: 0 0 18px; color: var(--ink-2); }
   .modal .btns { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 
+  /* per soort product */
+  .soort { border-top: 1px solid var(--line); }
+  .soort:first-child { border-top: none; }
+  .soort > summary { list-style: none; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px 10px; align-items: center; padding: 11px 0; cursor: pointer; }
+  .soort > summary::-webkit-details-marker { display: none; }
+  .soort > summary:focus-visible { outline: 2px solid var(--pine-2); outline-offset: 2px; border-radius: 8px; }
+  .s-naam { font-weight: 600; }
+  .s-b { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .s-pijl { color: var(--ink-3); font-size: 12px; transition: transform .15s; }
+  .soort[open] .s-pijl { transform: rotate(180deg); }
+  .s-bar { grid-column: 1 / -1; height: 8px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
+  .s-bar i { display: block; height: 100%; border-radius: 99px; background: var(--c-bood); }
+  .s-pr { list-style: none; margin: 0 0 10px; padding: 0 0 0 2px; }
+  .s-pr li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; padding: 7px 0; font-size: 14px; border-top: 1px dashed var(--line); }
+  .s-pr li span:nth-child(2) { font-variant-numeric: tabular-nums; }
+  .s-pr .s-n { color: var(--ink-3); font-size: 12px; }
+  .s-pr select.field { grid-column: 1 / -1; justify-self: start; width: auto; min-height: 36px; height: 36px; padding: 2px 28px 2px 10px; font-size: 12px; border-radius: 99px; color: var(--ink-2); }
   /* voorgeschoten geld */
   #u-lijst li { grid-template-columns: 40px 1fr auto auto; }
   .e-acties { display: flex; gap: 2px; }
@@ -726,6 +743,11 @@
         <div class="card-h"><h2>Waar je geld naartoe gaat</h2><span class="card-sub">deze periode</span></div>
         <div class="chart" id="ch-winkel" role="img" aria-label="Uitgaven per winkel"></div>
         <details class="tbl"><summary>Bekijk als tabel</summary><div id="ch-winkel-tbl"></div></details>
+      </div>
+      <div class="card" id="soort-kaart">
+        <div class="card-h"><h2>Per soort product</h2><span class="card-sub">uit je gescande bonnen</span></div>
+        <div id="soort-lijst"></div>
+        <p class="hint" id="soort-uitleg" style="margin:12px 0 0"></p>
       </div>
       <div class="card">
         <div class="card-h"><h2>Periodes vergelijken</h2><span class="card-sub">laatste 6</span></div>
@@ -1232,6 +1254,7 @@
         ? Object.fromEntries(Object.keys(o.betaald).filter((k) => o.betaald[k] === true).map((k) => [k, true])) : {},
       ritme: normRitme(o.ritme, typeof o.start === 'string' ? o.start : ''),
       voorbeeld: o.voorbeeld === true ? true : undefined,
+      soortKeuze: o.soortKeuze && typeof o.soortKeuze === 'object' ? Object.fromEntries(Object.entries(o.soortKeuze).filter(([k, v]) => typeof v === 'string' && k.length <= 80).slice(0, 2000)) : {},
       voorschotten: (Array.isArray(o.voorschotten) ? o.voorschotten : []).filter((v) => v && typeof v === 'object' && Number(v.bedrag) > 0).slice(0, 500).map((v) => ({
         id: typeof v.id === 'string' ? v.id : uid(),
         wie: String(v.wie || '').slice(0, 40), waarvoor: String(v.waarvoor || '').slice(0, 80),
@@ -3039,9 +3062,94 @@
     const schoon = n.replace(/[0-9*#.,/\\-]+/g, ' ').replace(/\s+/g, ' ').trim().split(' ').slice(0, 3).join(' ');
     return schoon ? schoon.charAt(0).toUpperCase() + schoon.slice(1).toLowerCase() : n;
   }
+
+  // ---------- per soort product (uit de artikelen van je bonnen) ----------
+  // Trefwoorden per soort. '=' vooraan: alleen als los woord (anders zou 'spa' ook in 'spaghetti' passen).
+  const PRODUCTSOORTEN = [
+    ['Drinken', ['cola', 'fanta', 'sprite', '=7up', 'frisdrank', 'water', '=spa', 'sap', 'juice', 'limonade', 'ranja', 'icetea', 'ice tea', 'lipton', 'powerade', 'aquarius', 'energy', 'bullit', 'red bull', 'redbull', 'monster', 'rockstar', 'koffie', '=thee', 'bier', 'heineken', 'hertog', 'amstel', 'grolsch', 'wijn', 'smoothie', 'chocomel', 'fristi', 'siroop', 'tonic']],
+    ['Snacks en snoep', ['chips', 'crisps', 'koek', 'snoep', 'chocola', 'choco', '=drop', 'nootjes', 'noten', 'popcorn', '=ijs', 'wafel', 'reep', 'haribo', 'pringles', 'lays', 'doritos', 'toblerone', 'snickers', 'mars', 'twix', 'kitkat', 'cake', 'gebak', 'donut', 'muffin']],
+    ['Kant-en-klaar en diepvries', ['pizza', 'lasagne', 'maaltijd', 'diepvries', 'frikandel', 'kroket', 'patat', 'friet', 'loempia', '=nasi', '=bami', 'salade', 'soep']],
+    ['Vlees en vis', ['kip', 'gehakt', 'salami', '=ham', 'worst', 'spek', 'bacon', 'filet', 'biefstuk', 'rund', 'varken', 'shoarma', 'gyros', 'schnitzel', 'burger', '=vis', 'zalm', 'tonijn', 'garnaal', 'garnalen', 'kibbeling', 'cervelaat', 'kalkoen', 'chorizo', 'pastrami', 'slavink', 'lapjes', 'vlees']],
+    ['Zuivel en eieren', ['melk', 'halfvol', 'yoghurt', 'kwark', '=vla', 'kaas', 'gouda', 'boter', 'room', 'eieren', '=ei', 'skyr', 'margarine', 'zuivel']],
+    ['Brood en ontbijt', ['brood', 'bolletje', 'broodje', 'croissant', 'beschuit', 'cracker', 'ontbijt', 'muesli', 'cornflakes', 'cereal', 'havermout', 'pindakaas', 'hagelslag', '=jam', 'honing', 'wrap', 'pistolet', 'krentenbol']],
+    ['Groente en fruit', ['appel', 'peer', 'banaan', 'bananen', 'sinaas', 'mandarijn', 'citroen', 'druif', 'druiven', 'aardbei', 'meloen', 'kiwi', 'mango', 'ananas', 'tomaat', 'tomaten', 'komkommer', '=sla', '=ui', 'uien', 'knoflook', 'aardappel', 'paprika', 'wortel', 'broccoli', 'bloemkool', 'spinazie', 'courgette', 'champignon', 'avocado', '=prei', 'sperzie', 'fruit', 'groente', '=kool']],
+    // Verzorging vóór voorraad: anders valt 'tandpasta' onder 'pasta'
+    ['Verzorging en huishouden', ['shampoo', 'douche', 'zeep', 'tandpasta', 'tandenborstel', '=deo', 'deodorant', 'scheer', '=wc', 'toiletpapier', 'keukenrol', 'tissue', 'wasmiddel', 'wasverzachter', 'afwas', 'vaatwas', 'schoonmaak', 'reiniger', 'vuilniszak', 'batterij', 'luier', 'maandverband', 'tampon', 'pleister']],
+    ['Pasta, rijst en voorraad', ['pasta', 'spaghetti', 'macaroni', 'penne', 'rijst', 'noodle', '=mie', 'saus', 'ketchup', 'mayo', 'bouillon', '=olie', 'azijn', 'kruiden', 'peper', '=zout', 'suiker', '=meel', '=bloem', 'bonen', 'tortilla']],
+    ['Huisdier', ['hondenvoer', 'kattenvoer', 'kattenbak', 'brokken', '=hond', '=kat']],
+  ];
+  const SOORT_NAMEN = PRODUCTSOORTEN.map((s) => s[0]).concat(['Overig']);
+  // Statiegeld en korting horen bij het artikel erboven
+  const HOORT_BIJ_VORIGE = /statiegeld|emballage|^(actie|korting|bonus|aanbieding)\b/i;
+  function productSleutel(naam) { return String(naam || '').replace(/^\d+\s*[x×]\s*/i, '').trim().toLowerCase(); }
+  function soortVan(naam) {
+    const k = productSleutel(naam);
+    if (state && state.soortKeuze[k]) return state.soortKeuze[k];
+    const woorden = k.split(/[^\p{L}\d]+/u);
+    for (const [soort, trefwoorden] of PRODUCTSOORTEN) {
+      if (trefwoorden.some((t) => (t[0] === '=' ? woorden.includes(t.slice(1)) : k.includes(t)))) return soort;
+    }
+    return 'Overig';
+  }
+  function renderSoorten() {
+    const bonnen = state.uitgaven.filter((u) => u.datum >= state.start && u.datum < state.eind && u.items && u.items.length);
+    const per = new Map(); // soort -> { totaal, producten: Map(sleutel -> {naam, bedrag, aantal}) }
+    bonnen.forEach((u) => {
+      let vorige = null;
+      u.items.forEach((it) => {
+        let doel = vorige;
+        if (!(vorige && (HOORT_BIJ_VORIGE.test(it.naam) || it.bedrag < 0))) {
+          const sleutel = productSleutel(it.naam), soort = soortVan(it.naam);
+          if (!per.has(soort)) per.set(soort, { totaal: 0, producten: new Map() });
+          const pm = per.get(soort).producten;
+          if (!pm.has(sleutel)) pm.set(sleutel, { naam: it.naam.replace(/^\d+\s*[x×]\s*/i, ''), bedrag: 0, aantal: 0, soort });
+          doel = pm.get(sleutel);
+          const m = it.naam.match(/^(\d+)\s*[x×]/i); doel.aantal += m ? Number(m[1]) : 1;
+        }
+        doel.bedrag = r2(doel.bedrag + it.bedrag);
+        per.get(doel.soort).totaal = r2(per.get(doel.soort).totaal + it.bedrag);
+        vorige = doel;
+      });
+    });
+    const rijen = [...per.entries()].filter(([, v]) => v.totaal > 0).sort((a, b) => b[1].totaal - a[1].totaal);
+    const box = $('soort-lijst'); box.replaceChildren();
+    const som = r2(bonnen.reduce((a, u) => a + u.bedrag, 0));
+    if (!rijen.length) {
+      const p = document.createElement('p'); p.className = 'empty';
+      p.textContent = 'Scan een bon, dan zie je hier waar je geld per soort product naartoe gaat: drinken, snacks, vlees en meer.';
+      box.append(p); $('soort-uitleg').textContent = ''; return;
+    }
+    const max = rijen[0][1].totaal;
+    rijen.forEach(([soort, v]) => {
+      const d = document.createElement('details'); d.className = 'soort';
+      const s = document.createElement('summary');
+      const n = document.createElement('span'); n.className = 's-naam'; n.textContent = soort;
+      const b = document.createElement('span'); b.className = 's-b'; b.textContent = eur.format(v.totaal);
+      const pijl = document.createElement('span'); pijl.className = 's-pijl'; pijl.textContent = '▾'; pijl.setAttribute('aria-hidden', 'true');
+      const bar = document.createElement('span'); bar.className = 's-bar'; bar.setAttribute('aria-hidden', 'true');
+      const vul = document.createElement('i'); vul.style.width = Math.max(2, 100 * v.totaal / max) + '%'; bar.append(vul);
+      s.append(n, b, pijl, bar);
+      const ul = document.createElement('ul'); ul.className = 's-pr';
+      [...v.producten.values()].sort((a, c) => c.bedrag - a.bedrag).forEach((pr) => {
+        const li = document.createElement('li');
+        const a = document.createElement('span'); a.textContent = pr.naam;
+        if (pr.aantal > 1) { const x = document.createElement('span'); x.className = 's-n'; x.textContent = '  ' + pr.aantal + '×'; a.append(x); }
+        const c = document.createElement('span'); c.textContent = eur.format(pr.bedrag);
+        // Klopt de soort niet? Kies een andere; Duppie onthoudt het voor dit product
+        const sel = document.createElement('select'); sel.className = 'field'; sel.setAttribute('aria-label', 'Soort voor ' + pr.naam); sel.disabled = readOnly;
+        SOORT_NAMEN.forEach((sn) => sel.append(new Option(sn, sn, false, sn === soort)));
+        sel.addEventListener('change', () => { state.soortKeuze[productSleutel(pr.naam)] = sel.value; changed(); renderSoorten(); });
+        li.append(a, c, sel); ul.append(li);
+      });
+      d.append(s, ul); box.append(d);
+    });
+    $('soort-uitleg').textContent = 'Uit ' + bonnen.length + (bonnen.length === 1 ? ' gescande bon' : ' gescande bonnen') + ' (' + eur.format(som) + '). Statiegeld en korting tellen mee bij het product. Staat iets bij de verkeerde soort? Tik op de soort en kies een andere; Duppie onthoudt het.';
+  }
+
   function renderInzicht() {
     if (!state || $('inzicht').hidden) return;
     const t = totalen(state), ws = weken(state);
+    renderSoorten();
     // 1. per week
     const wb = weekBudgetten(state, t, ws);
     const actief = weekVan(ws, vandaag());
