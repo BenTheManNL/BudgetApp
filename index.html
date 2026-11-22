@@ -304,7 +304,24 @@
   .modal .btns { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 
   /* voorgeschoten geld */
-  #u-lijst li { grid-template-columns: 40px 1fr auto auto; }
+  #u-lijst { overflow: hidden; }
+  #u-lijst li:not(.empty) { grid-template-columns: 40px 1fr auto; position: relative; cursor: pointer; touch-action: pan-y; transition: transform .2s ease, background-color .15s; border-radius: 12px; }
+  #u-lijst li.veegt { transition: none; }
+  #u-lijst li::after { position: absolute; top: 50%; transform: translateY(-50%); font-size: 13px; font-weight: 700; opacity: 0; pointer-events: none; }
+  #u-lijst li.veeg-l { background: color-mix(in srgb, var(--bad) 16%, transparent); }
+  #u-lijst li.veeg-l::after { content: "Verwijderen"; right: -110px; color: var(--bad); opacity: 1; }
+  #u-lijst li.veeg-r { background: color-mix(in srgb, var(--pine-2) 16%, transparent); }
+  #u-lijst li.veeg-r::after { content: "Voorgeschoten"; left: -120px; color: var(--pine-2); opacity: 1; }
+  .e-open { all: unset; display: block; font: inherit; cursor: pointer; border-radius: 6px; }
+  .e-open:focus-visible { outline: 2px solid var(--pine-2); outline-offset: 2px; }
+  .veeg-tip { font-size: 12px; color: var(--ink-3); margin: 8px 0 0; }
+  .undo { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 92px); z-index: 45; width: min(440px, calc(100% - 32px)); display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 16px; border-radius: 16px; background: var(--ink); color: var(--bg); box-shadow: 0 8px 24px rgb(0 0 0 / .25); font-size: 14px; }
+  .undo span { flex: 1; min-width: 0; }
+  .undo button { border: 0; border-radius: 10px; padding: 9px 12px; font-weight: 700; background: color-mix(in srgb, var(--bg) 16%, transparent); color: var(--bg); cursor: pointer; }
+  .ue-extra { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .ue-extra .btn { flex: 1 1 auto; }
+  .zoek-lijst li { grid-template-columns: minmax(0, 1fr) auto; }
+  .zoek-w { color: var(--ink-3); font-size: 12px; }
   .e-acties { display: flex; gap: 2px; }
   .e-voor { color: var(--ink-2); font-size: 12px; font-weight: 600; }
   .vs-lijst { list-style: none; margin: 8px 0 0; padding: 0; }
@@ -710,12 +727,19 @@
       <section class="card">
         <div class="card-h"><h2>Uitgaven deze week</h2></div>
         <ul class="entries" id="u-lijst"></ul>
+        <p class="veeg-tip" id="veeg-tip" hidden>Tik op een uitgave om hem aan te passen. Veeg naar links om te verwijderen, of naar rechts voor voorgeschoten geld.</p>
         <div class="period-line" id="u-periode">—</div>
       </section>
     </section>
 
     <!-- ================= INZICHT ================= -->
     <section class="pane" data-pane="inzicht" id="inzicht" hidden>
+      <div class="card" id="zoek-kaart">
+        <div class="card-h"><h2>Zoeken</h2><span class="card-sub">in al je periodes</span></div>
+        <input class="field" type="search" id="zoek" placeholder="Bijvoorbeeld Jumbo of Bullit" autocomplete="off" aria-label="Zoek in je uitgaven">
+        <p class="card-sub" id="zoek-sum" style="margin:10px 0 0" aria-live="polite"></p>
+        <ul class="entries zoek-lijst" id="zoek-lijst"></ul>
+      </div>
       <div class="card">
         <div class="card-h"><h2>Uitgaven per week</h2><span class="card-sub">deze periode</span></div>
         <div class="legend chart-legend"><span><span class="dot" style="background:var(--c-bood)"></span>Boodschappen</span><span><span class="dot" style="background:var(--c-eigen)"></span>Eigen invulling</span><span><span class="tick"></span>Weekbudget</span></div>
@@ -973,6 +997,27 @@
     <button class="linkdel" id="g-skip">Overslaan, ik vul alles zelf in</button>
   </div>
 </div>
+
+<div class="modal-bg" id="ue" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="ue-t">
+    <h3 id="ue-t">Uitgave aanpassen</h3>
+    <label class="g-veld">Omschrijving<input class="field" id="ue-naam" maxlength="80"></label>
+    <label class="g-veld">Bedrag<input class="field" id="ue-bedrag" inputmode="decimal"></label>
+    <p class="hint" id="ue-vast" hidden style="margin:-6px 0 12px">Dit bedrag hoort bij voorgeschoten geld. Pas het aan bij de kaart Voorgeschoten.</p>
+    <label class="g-veld">Datum<input class="field" type="date" id="ue-datum"></label>
+    <div class="g-veld"><span>Potje</span>
+      <div class="potpick" role="radiogroup" aria-label="Potje">
+        <label style="--pot:var(--bood)"><input type="radio" name="ue-pot" value="boodschappen"><span>🛒 Boodschappen</span></label>
+        <label style="--pot:var(--eigen)"><input type="radio" name="ue-pot" value="eigen"><span>✨ Eigen invulling</span></label>
+      </div>
+    </div>
+    <p class="g-fout" id="ue-fout" role="alert" hidden></p>
+    <div class="btns"><button class="btn" id="ue-annuleer">Annuleren</button><button class="btn btn-primary" id="ue-ok">Opslaan</button></div>
+    <div class="ue-extra"><button class="btn" id="ue-voor">↩&#xFE0E; Voorgeschoten</button><button class="btn" id="ue-weg">Verwijderen</button></div>
+  </div>
+</div>
+
+<div class="undo" id="undo" hidden role="status"><span id="undo-t"></span><button type="button" id="undo-knop">Ongedaan maken</button></div>
 
 <div class="modal-bg" id="voor" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="voor-t">
@@ -1970,7 +2015,8 @@
       li.style.setProperty('--pot', u.pot === 'eigen' ? 'var(--eigen)' : 'var(--bood)');
       const ic = document.createElement('span'); ic.className = 'e-ic'; ic.innerHTML = u.pot === 'eigen' ? ICOON_EIGEN : ICOON_KAR;
       const mid = document.createElement('div');
-      const nm = document.createElement('div'); nm.className = 'e-nm'; nm.textContent = u.naam || (u.pot === 'eigen' ? 'Eigen invulling' : 'Boodschappen');
+      const nm = document.createElement('button'); nm.type = 'button'; nm.className = 'e-nm e-open'; nm.textContent = u.naam || (u.pot === 'eigen' ? 'Eigen invulling' : 'Boodschappen');
+      nm.setAttribute('aria-label', 'Aanpassen: ' + nm.textContent + ', ' + eur.format(Math.abs(u.bedrag)));
       const dd = document.createElement('div'); dd.className = 'e-d'; dd.textContent = kortDag(u.datum) + ' · ' + (u.pot === 'eigen' ? 'Eigen invulling' : 'Boodschappen');
       mid.append(nm, dd);
       if (u.voor > 0 || u.voorschot) {
@@ -1989,22 +2035,13 @@
         zet(); mid.append(knop); li._items = lijst;
       }
       const bd = document.createElement('span'); bd.className = 'e-b' + (u.bedrag < 0 ? ' plus' : ''); bd.textContent = (u.bedrag < 0 ? '+ ' : '− ') + eur.format(Math.abs(u.bedrag));
-      const x = document.createElement('button'); x.className = 'x'; x.textContent = '×'; x.setAttribute('aria-label', 'Verwijder uitgave'); x.disabled = readOnly;
-      x.addEventListener('click', () => {
-        // Een openstaand voorschot bij deze uitgave wordt mee teruggedraaid
-        state.voorschotten.filter((v) => v.status === 'open' && (v.uitgave === u.id || v.kosten === u.id)).forEach(voorWissen);
-        state.uitgaven = state.uitgaven.filter((v) => v !== u);
-        renderAll(); changed();
-      });
-      const acties = document.createElement('div'); acties.className = 'e-acties';
-      if (!(u.voor > 0) && !u.voorschot && u.bedrag > 0) {
-        const vk = document.createElement('button'); vk.className = 'x'; vk.textContent = '↩\uFE0E'; vk.title = 'Voorgeschoten voor iemand';
-        vk.setAttribute('aria-label', 'Voorgeschoten voor iemand: ' + (u.naam || 'uitgave')); vk.disabled = readOnly;
-        vk.addEventListener('click', () => voorOpen(u)); acties.append(vk);
-      }
-      acties.append(x);
-      li.append(ic, mid, bd, acties); if (li._items) li.append(li._items); ul.append(li);
+      li.append(ic, mid, bd); if (li._items) li.append(li._items); ul.append(li);
+      // Tikken = aanpassen (niet als je op de artikelen tikt), vegen = verwijderen of voorgeschoten
+      li.addEventListener('click', (e) => { if (li._geveegd || e.target.closest('.e-items-knop, .e-items')) return; ueOpen(u); });
+      veegbaar(li, u);
     });
+    let tipGezien = false; try { tipGezien = !!localStorage.getItem('duppie:veegtip'); } catch (e) {}
+    $('veeg-tip').hidden = tipGezien || !inWeek.length || readOnly;
     if (!inWeek.length) { const li = document.createElement('li'); li.className = 'empty'; li.style.display = 'block'; li.textContent = 'Nog geen uitgaven deze week. Voeg hierboven je eerste toe.'; ul.append(li); }
     const pb = som(state.uitgaven, 'boodschappen'), pe = som(state.uitgaven, 'eigen');
     $('u-periode').textContent = 'Hele periode: ' + eur.format(pb) + ' van ' + eur.format(Math.max(0, t.boodschappen)) + ' aan boodschappen · ' + eur.format(pe) + ' van ' + eur.format(Math.max(0, t.eigen)) + ' aan eigen invulling';
@@ -2028,6 +2065,124 @@
   });
 
 
+
+
+  // ---------- uitgave aanpassen, verwijderen met ongedaan maken, vegen ----------
+  function tipGezien() { try { localStorage.setItem('duppie:veegtip', '1'); } catch (e) {} $('veeg-tip').hidden = true; }
+  let ueU = null;
+  function ueOpen(u) {
+    if (!state || readOnly) return;
+    ueU = u; tipGezien();
+    const vast = !!u.voorschot; // terugbetaling of voorgeschoten-regel: bedrag hoort bij het voorschot
+    $('ue-naam').value = u.naam || '';
+    $('ue-bedrag').value = Math.abs(u.bedrag).toFixed(2).replace('.', ','); $('ue-bedrag').disabled = vast; $('ue-vast').hidden = !vast;
+    $('ue-datum').value = u.datum; $('ue-datum').min = state.start; $('ue-datum').max = toISO(parseISO(state.eind) - 86400000);
+    document.querySelectorAll('input[name="ue-pot"]').forEach((r) => { r.checked = r.value === u.pot; r.disabled = vast; });
+    $('ue-voor').hidden = vast || u.voor > 0 || u.bedrag <= 0;
+    $('ue-fout').hidden = true; $('ue').hidden = false;
+  }
+  function ueDicht() { $('ue').hidden = true; ueU = null; }
+  $('ue-annuleer').addEventListener('click', ueDicht);
+  $('ue').addEventListener('click', (e) => { if (e.target === $('ue')) ueDicht(); });
+  $('ue-ok').addEventListener('click', () => {
+    const u = ueU; if (!u || readOnly) return;
+    const fout = (t) => { $('ue-fout').textContent = t; $('ue-fout').hidden = false; };
+    const datum = $('ue-datum').value;
+    if (!datum || datum < state.start || datum >= state.eind) return fout('Kies een datum in deze periode (' + kort(state.start) + ' tot ' + kort(state.eind) + ').');
+    if (!u.voorschot) {
+      const bedrag = r2(parseBedrag($('ue-bedrag').value));
+      if (!(bedrag > 0)) return fout('Vul een bedrag in.');
+      if (u.voor > 0 && bedrag < u.voor) return fout('Hiervan heb je ' + eur.format(u.voor) + ' voorgeschoten, dus het bedrag kan niet lager zijn.');
+      // Bij een gescande bon met een ander bedrag kloppen de artikelen niet meer: die vallen dan weg
+      if (u.items && Math.abs(bedrag - u.bedrag) >= 0.01) delete u.items;
+      u.bedrag = bedrag;
+      u.pot = (document.querySelector('input[name="ue-pot"]:checked') || {}).value === 'eigen' ? 'eigen' : 'boodschappen';
+    }
+    u.naam = $('ue-naam').value.trim().slice(0, 80); u.datum = datum;
+    ueDicht(); viewWeek = weekVan(weken(state), datum); renderAll(); changed();
+  });
+  $('ue-weg').addEventListener('click', () => { const u = ueU; ueDicht(); if (u) verwijderUitgave(u); });
+  $('ue-voor').addEventListener('click', () => { const u = ueU; ueDicht(); if (u) voorOpen(u); });
+
+  // Verwijderen met een paar seconden "Ongedaan maken"
+  let undoTimer = null, undoData = null;
+  function verwijderUitgave(u) {
+    if (!state || readOnly) return;
+    undoData = { uitgaven: JSON.stringify(state.uitgaven), voorschotten: JSON.stringify(state.voorschotten), doelen: doelen ? JSON.stringify(doelen.doelen) : null };
+    // Een openstaand voorschot bij deze uitgave wordt mee teruggedraaid
+    state.voorschotten.filter((v) => v.status === 'open' && (v.uitgave === u.id || v.kosten === u.id)).forEach(voorWissen);
+    state.uitgaven = state.uitgaven.filter((v) => v !== u);
+    renderAll(); changed();
+    $('undo-t').textContent = (u.naam || 'Uitgave') + ' verwijderd';
+    $('undo').hidden = false; clearTimeout(undoTimer);
+    undoTimer = setTimeout(() => { $('undo').hidden = true; undoData = null; }, 6000);
+  }
+  $('undo-knop').addEventListener('click', () => {
+    if (!undoData || !state) return;
+    state.uitgaven = JSON.parse(undoData.uitgaven); state.voorschotten = JSON.parse(undoData.voorschotten);
+    if (undoData.doelen && doelen && undoData.doelen !== JSON.stringify(doelen.doelen)) { doelen.doelen = JSON.parse(undoData.doelen); doelenChanged(); renderDoelen(); }
+    undoData = null; clearTimeout(undoTimer); $('undo').hidden = true;
+    renderAll(); changed();
+  });
+
+  // Vegen met je vinger: naar links verwijderen, naar rechts voorgeschoten
+  function veegbaar(li, u) {
+    let x0 = 0, y0 = 0, dx = 0, bezig = false, horizontaal = null;
+    const magRechts = !u.voorschot && !(u.voor > 0) && u.bedrag > 0;
+    li.addEventListener('pointerdown', (e) => {
+      if (e.pointerType !== 'touch' || readOnly) return;
+      x0 = e.clientX; y0 = e.clientY; dx = 0; bezig = true; horizontaal = null; li._geveegd = false;
+    });
+    li.addEventListener('pointermove', (e) => {
+      if (!bezig) return;
+      const ddx = e.clientX - x0, ddy = e.clientY - y0;
+      if (horizontaal === null && (Math.abs(ddx) > 8 || Math.abs(ddy) > 8)) horizontaal = Math.abs(ddx) > Math.abs(ddy);
+      if (!horizontaal) return;
+      dx = magRechts ? ddx : Math.min(0, ddx);
+      li.classList.add('veegt'); li.style.transform = 'translateX(' + dx + 'px)';
+      li.classList.toggle('veeg-l', dx < -80); li.classList.toggle('veeg-r', dx > 80);
+    });
+    const klaar = () => {
+      if (!bezig) return; bezig = false;
+      li.classList.remove('veegt', 'veeg-l', 'veeg-r'); li.style.transform = '';
+      if (horizontaal && Math.abs(dx) > 8) { li._geveegd = true; setTimeout(() => { li._geveegd = false; }, 300); }
+      if (dx < -80) { tipGezien(); verwijderUitgave(u); }
+      else if (dx > 80 && magRechts) { tipGezien(); voorOpen(u); }
+    };
+    li.addEventListener('pointerup', klaar);
+    li.addEventListener('pointercancel', klaar);
+  }
+
+  // ---------- zoeken in al je uitgaven ----------
+  naRender.push(() => { if ($('zoek').value.trim().length >= 2) renderZoek(); });
+  let zoekTimer = null;
+  $('zoek').addEventListener('input', () => { clearTimeout(zoekTimer); zoekTimer = setTimeout(renderZoek, 150); });
+  function renderZoek() {
+    const q = $('zoek').value.trim().toLowerCase(), ul = $('zoek-lijst'); ul.replaceChildren();
+    if (q.length < 2) { $('zoek-sum').textContent = ''; return; }
+    // Huidige periode plus alle bewaarde periodes, zonder dubbele
+    const perioden = [state].concat(archList.map((a) => a.data).filter((s) => s && s.start && s.start !== state.start));
+    const hits = [];
+    perioden.forEach((s) => (s.uitgaven || []).forEach((u) => {
+      if ((u.naam || '').toLowerCase().includes(q)) { hits.push({ datum: u.datum, naam: u.naam || 'Uitgave', bedrag: u.bedrag, wat: '' }); return; }
+      (u.items || []).forEach((it) => { if ((it.naam || '').toLowerCase().includes(q)) hits.push({ datum: u.datum, naam: it.naam, bedrag: it.bedrag, wat: 'op je bon van ' + (u.naam || 'de winkel') }); });
+    }));
+    hits.sort((a, b) => (a.datum < b.datum ? 1 : a.datum > b.datum ? -1 : 0));
+    if (!hits.length) { $('zoek-sum').textContent = 'Niets gevonden voor "' + $('zoek').value.trim() + '".'; return; }
+    const som = r2(hits.reduce((t, x) => t + x.bedrag, 0)), oudste = hits[hits.length - 1].datum, jaar = vandaag().slice(0, 4);
+    const datumTekst = (d) => kortDag(d) + (d.slice(0, 4) !== jaar ? ' ' + d.slice(0, 4) : '');
+    $('zoek-sum').textContent = hits.length + (hits.length === 1 ? ' keer' : ' keer') + ', samen ' + eur.format(som) + (hits.length > 1 ? ', sinds ' + datumTekst(oudste) : '') + '.';
+    hits.slice(0, 50).forEach((x) => {
+      const li = document.createElement('li');
+      const a = document.createElement('div');
+      const n = document.createElement('div'); n.className = 'e-nm'; n.textContent = x.naam;
+      const w = document.createElement('div'); w.className = 'zoek-w'; w.textContent = datumTekst(x.datum) + (x.wat ? ' · ' + x.wat : '');
+      a.append(n, w);
+      const b = document.createElement('span'); b.className = 'e-b' + (x.bedrag < 0 ? ' plus' : ''); b.textContent = (x.bedrag < 0 ? '+ ' : '− ') + eur.format(Math.abs(x.bedrag));
+      li.append(a, b); ul.append(li);
+    });
+    if (hits.length > 50) { const li = document.createElement('li'); li.className = 'empty'; li.style.display = 'block'; li.textContent = 'En nog ' + (hits.length - 50) + ' meer. Zoek specifieker om ze te zien.'; ul.append(li); }
+  }
 
   // ---------- voorgeschoten geld ----------
   // Uitgeleend geld is weg tot het terugkomt, dus het gaat wél van je budget af: van een potje dat je kiest.
