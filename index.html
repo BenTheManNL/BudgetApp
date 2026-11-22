@@ -1029,7 +1029,8 @@
       <ul class="bon-items" id="bon-items"></ul>
       <div class="bon-tot"><span>Totaal op de bon</span><div class="amount-in"><span class="eur">€</span><input id="bon-totaal" inputmode="decimal" placeholder="0,00" aria-label="Totaal"></div></div>
       <p class="bon-check" id="bon-check"></p>
-      <details class="bon-tekst">
+      <!-- verborgen: de gelezen tekst blijft hier staan voor de lezer zelf, maar is niet meer te zien -->
+      <details class="bon-tekst" hidden>
         <summary>Gelezen tekst bekijken of zelf plakken</summary>
         <p class="hint">Gaat het lezen mis? Op een iPhone open je de foto in Foto's, houd je je vinger op de tekst en kies je "Kopieer alles". Plak het hier en tik op Opnieuw verwerken. <span style="opacity:.6">(lezer v4)</span></p>
         <textarea class="field" id="bon-ruw" rows="6"></textarea>
@@ -2698,7 +2699,7 @@
     document.querySelectorAll('input[name="bon-pot"]').forEach((r) => { r.checked = r.value === pot; });
     $('bon-totaal').value = res.totaal && res.totaalGelezen !== false ? String(res.totaal.toFixed(2)).replace('.', ',') : '';
     $('bon-ruw').value = res.tekst !== undefined ? res.tekst : res.artikelen.map((a) => a.naam + '   ' + a.bedrag.toFixed(2).replace('.', ',')).join('\n');
-    $('bon-info').textContent = res.fout ? 'Het lezen lukte niet (' + res.fout + '). Vul de bon hieronder zelf in, of plak de tekst.'
+    $('bon-info').textContent = res.fout ? 'Het lezen lukte niet (' + res.fout + '). Vul de bon hieronder zelf in.'
       : res.doorClaude ? 'Claude heeft je bon gelezen. Kijk even of alles klopt.'
       : res.geplakt ? 'Tekst verwerkt. Kijk even of alles klopt.'
       : !res.artikelen.length ? 'Er zijn geen artikelen herkend. Een scherpe, rechte foto met goed licht helpt. Je kunt ze ook zelf toevoegen.'
