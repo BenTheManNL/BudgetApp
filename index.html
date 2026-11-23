@@ -2605,6 +2605,7 @@
       const m = n.match(/^(\d{1,2}[.,:;]|\p{L}[.,:;]?|\p{Lu}\p{Ll}(?=\s+\p{Lu}{3,})|[^\p{L}\d\s]+)\s+(?=.*\p{L}{3,})/u);
       if (!m) break; n = n.slice(m[0].length);
     }
+    n = n.replace(/^\S{1,2}\s+(?=(actie|korting|bonus|statiegeld)\b)/iu, '');
     if (n === n.toUpperCase()) { n = n.toLowerCase().replace(/\b(ah|xl|xxl|bbq|nl)\b/g, (w) => w.toUpperCase()); n = n.charAt(0).toUpperCase() + n.slice(1); }
     return n;
   }
@@ -2831,13 +2832,68 @@
     return { winkel: String(r.winkel || '').slice(0, 80), datum: /^\d{4}-\d{2}-\d{2}$/.test(r.datum || '') ? r.datum : '', totaal: Math.abs(r2(Number(r.totaal) || 0)), artikelen, doorClaude: true };
   }
 
-  const BON_INSTELLINGEN = [{ d: 80, k: 0.12 }, { d: 53, k: 0.15 }, { d: 40, k: 0.10 }];
+  const BON_INSTELLINGEN = [{ d: 80, k: 0.12 }, { d: 53, k: 0.15 }, { d: 40, k: 0.10 }, { d: 65, k: 0.13, w: 2000 }, { d: 100, k: 0.11, w: 1300 }];
   // Hoe goed is een leesresultaat? Het best: het totaal staat op de bon én de artikelen tellen daar precies tot op.
   function bonScore(r) {
     const som = r2(r.artikelen.reduce((a, x) => a + x.bedrag, 0));
     if (!r.totaalGelezen) return r.artikelen.length;
     const verschil = Math.abs(som - r.totaal);
     return verschil < 0.01 ? 1000 + r.artikelen.length : 500 - Math.min(400, verschil * 10) + r.artikelen.length / 10;
+  }
+
+  // Meerdere leesrondes samenvoegen: neem de beste ronde als basis, en gebruik bedragen of regels uit de
+  // andere rondes als die het totaal precies laten kloppen (hooguit 3 verbeteringen).
+  function bonSleutel(naam) { return String(naam || '').toLowerCase().replace(/^\d+\s*[x×]\s*/, '').replace(/^(\S{1,2}\s+)+(?=\p{L}{3,})/u, '').replace(/[^\p{L}]/gu, '').slice(0, 8); }
+  function bonGelijk(a, b) { const x = bonSleutel(a), y = bonSleutel(b); return x.length >= 3 && y.length >= 3 && (x === y || x.startsWith(y.slice(0, 5)) || y.startsWith(x.slice(0, 5))); }
+  function bonSamenvoegen(rondes) {
+    const metTotaal = rondes.filter((r) => r.totaalGelezen);
+    if (!metTotaal.length) return null;
+    // Het totaal dat de meeste rondes lazen
+    const tellen = new Map(); metTotaal.forEach((r) => tellen.set(r.totaal, (tellen.get(r.totaal) || 0) + 1));
+    const doel = [...tellen].sort((a, b) => b[1] - a[1])[0][0];
+    const basis = rondes.filter((r) => r.totaalGelezen && r.totaal === doel).sort((a, b) => b.score - a.score)[0];
+    const B = basis.artikelen.map((a) => ({ ...a }));
+    const som = r2(B.reduce((t, a) => t + a.bedrag, 0));
+    if (Math.abs(som - doel) < 0.01) return null;
+    const wijzigingen = []; // { soort: 'bedrag', i, waarde } of { soort: 'erbij', na, artikel }
+    rondes.forEach((r) => {
+      if (r === basis) return;
+      // Leg de twee lijsten naast elkaar (langste gemeenschappelijke reeks), zodat elk artikel bij zijn tegenhanger komt
+      const O = r.artikelen, L = Array.from({ length: O.length + 1 }, () => new Array(B.length + 1).fill(0));
+      for (let x = O.length - 1; x >= 0; x--) for (let y = B.length - 1; y >= 0; y--)
+        L[x][y] = bonGelijk(O[x].naam, B[y].naam) ? L[x + 1][y + 1] + 1 : Math.max(L[x + 1][y], L[x][y + 1]);
+      let x = 0, y = 0;
+      while (x < O.length) {
+        if (y < B.length && bonGelijk(O[x].naam, B[y].naam) && L[x][y] === L[x + 1][y + 1] + 1) {
+          if (Math.abs(O[x].bedrag - B[y].bedrag) >= 0.01) wijzigingen.push({ soort: 'bedrag', i: y, waarde: O[x].bedrag });
+          x++; y++;
+        } else if (y < B.length && L[x][y + 1] >= L[x + 1][y]) y++;
+        else { if (/\p{L}{3,}/u.test(O[x].naam)) wijzigingen.push({ soort: 'erbij', na: y - 1, artikel: { ...O[x] } }); x++; }
+      }
+    });
+    // Dubbele weg, en per wijziging hoeveel het totaal verschuift
+    const uniek = []; const gezien = new Set();
+    wijzigingen.forEach((w) => {
+      const s = w.soort === 'bedrag' ? 'b' + w.i + ':' + w.waarde : 'e' + w.na + ':' + bonSleutel(w.artikel.naam) + ':' + w.artikel.bedrag;
+      if (!gezien.has(s)) { gezien.add(s); w.delta = w.soort === 'bedrag' ? r2(w.waarde - B[w.i].bedrag) : w.artikel.bedrag; w.plek = w.soort === 'bedrag' ? 'b' + w.i : 'e' + w.na + bonSleutel(w.artikel.naam); uniek.push(w); }
+    });
+    const nodig = r2(doel - som);
+    let beste = null;
+    const zoek = (start, gekozen, totaal) => {
+      if (Math.abs(totaal - nodig) < 0.005 && gekozen.length) { if (!beste || gekozen.length < beste.length) beste = gekozen.slice(); return; }
+      if (gekozen.length >= 3) return;
+      for (let t = start; t < uniek.length; t++) {
+        if (gekozen.some((g) => g.plek === uniek[t].plek)) continue; // per artikel één keuze
+        gekozen.push(uniek[t]); zoek(t + 1, gekozen, r2(totaal + uniek[t].delta)); gekozen.pop();
+      }
+    };
+    zoek(0, [], 0);
+    if (!beste) return null;
+    beste.filter((w) => w.soort === 'bedrag').forEach((w) => { B[w.i].bedrag = w.waarde; });
+    beste.filter((w) => w.soort === 'erbij').sort((a, b) => b.na - a.na).forEach((w) => { B.splice(w.na + 1, 0, w.artikel); });
+    const uit = { ...basis, artikelen: B, totaal: doel, totaalGelezen: true };
+    uit.score = bonScore(uit);
+    return uit.score >= 1000 ? uit : null;
   }
   let bonData = null;
   function bonStatus(t) { $('bon-status').textContent = t; }
@@ -2852,16 +2908,19 @@
       bonStatus('Claude leest je bon…');
       res = await bonMetClaude(file);
     } catch (e) { res = null; }
+    const rondes = [];
     if (!res) {
       try {
         // Lees de bon; tellen de artikelen niet op tot het totaal, probeer dan een andere zwart-witinstelling
         for (let i = 0; i < BON_INSTELLINGEN.length; i++) {
           bonStatus(i ? 'Nog een keer lezen voor de zekerheid (' + (i + 1) + ' van ' + BON_INSTELLINGEN.length + ')…' : 'Foto klaarmaken…');
-          const blob = await bonBeeld(file, 1600, 'image/png', true, BON_INSTELLINGEN[i]);
+          const blob = await bonBeeld(file, BON_INSTELLINGEN[i].w || 1600, 'image/png', true, BON_INSTELLINGEN[i]);
           const tekst = await ocrLees(blob, (f) => { if (!i) bonStatus(f === 'laden' ? 'Lezer laden… (de eerste keer duurt dit even)' : 'Tekst van je bon lezen…'); });
-          const r = leesBonTekst(tekst); r.tekst = tekst; r.score = bonScore(r);
+          const r = leesBonTekst(tekst); r.tekst = tekst; r.score = bonScore(r); rondes.push(r);
           if (!res || r.score > res.score) res = r;
           if (r.score >= 1000) break;
+          // Na een paar rondes: kijk of de rondes samen kloppen (de ene las een regel goed die de andere miste)
+          if (i >= 1) { const m = bonSamenvoegen(rondes); if (m) { res = m; break; } }
         }
       } catch (e) {
         res = { winkel: '', datum: '', totaal: 0, artikelen: [], tekst: '', fout: e.message };
