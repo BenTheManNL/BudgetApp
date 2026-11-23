@@ -2711,8 +2711,33 @@
     // Klopt het nog niet? Misschien las de lezer één cijfer verkeerd (een 5 als 9, een 8 als 3 …).
     // Alleen als precies één verbetering het totaal exact laat kloppen.
     if (doel !== null && Math.abs(som - doel) >= 0.01) {
-      const opties = cijferOpties(artikelen, som, doel);
+      let opties = cijferOpties(artikelen, som, doel);
+      // Twee mogelijkheden die allebei kloppen (bv. product 1,59→1,99 of actie −0,99→−0,59)?
+      // Dan kiezen we de kortingsregel: de prijs van het product staat op de bon meestal scherper.
+      if (opties.length > 1) { const k = opties.filter((o) => o.a.bedrag < 0); if (k.length === 1) opties = k; }
       if (opties.length === 1) { opties[0].a.bedrag = opties[0].nieuw; som = doel; }
+    }
+    // Nog steeds niet goed, en staat er elders statiegeld op de bon? Misschien miste de lezer ook een
+    // statiegeldregel onder een drankje. Probeer: statiegeld erbij, eventueel samen met één verbeterd cijfer.
+    if (doel !== null && Math.abs(som - doel) >= 0.01 && artikelen.some((a) => /statiegeld/i.test(a.naam))) {
+      const DRANK = /powerade|cola|fanta|sprite|water|\bspa\b|sap\b|juice|energy|bullit|red ?bull|monster|bier|pils|ice ?tea|lipton|aquarius|limonade|drink|7up|pepsi|frisdrank/i;
+      const plekken = artikelen.map((a, i) => i).filter((i) => DRANK.test(artikelen[i].naam) && artikelen[i].bedrag > 0 && !BON_KORTING.test(artikelen[i].naam) && !/statiegeld/i.test(artikelen[i].naam)
+        && !(artikelen[i + 1] && /statiegeld/i.test(artikelen[i + 1].naam)));
+      const vondsten = [];
+      plekken.forEach((i) => [0.15, 0.25].forEach((sg) => {
+        const rest = r2(som + sg);
+        if (Math.abs(rest - doel) < 0.005) vondsten.push({ i, sg, fix: null });
+        else cijferOpties(artikelen, rest, doel).forEach((o) => vondsten.push({ i, sg, fix: o }));
+      }));
+      // Bij twijfel: een verbetering op een kortingsregel gaat voor (zie hierboven)
+      // Minste veranderingen eerst: alleen statiegeld erbij gaat voor statiegeld plus een verbeterd cijfer
+      let keus = vondsten.some((v) => !v.fix) ? vondsten.filter((v) => !v.fix) : vondsten;
+      if (keus.length > 1) { const k = keus.filter((v) => v.fix && v.fix.a.bedrag < 0); if (k.length) keus = k; }
+      if (keus.length === 1) {
+        const v = keus[0];
+        if (v.fix) v.fix.a.bedrag = v.fix.nieuw;
+        artikelen.splice(v.i + 1, 0, { naam: 'Statiegeld', bedrag: v.sg }); som = doel;
+      }
     }
     // Nog steeds te veel, en er staat een kortingsregel zonder bedrag op de bon? Dan is het verschil die korting.
     if (doel !== null && som - doel >= 0.01 && kortingZonderBedrag.length === 1) {
@@ -2974,7 +2999,7 @@
       : 'Artikelen samen ' + eur.format(som) + ', dat is ' + eur.format(Math.abs(verschil)) + (verschil > 0 ? ' minder' : ' meer') + ' dan het totaal. Controleer de bedragen.';
     // Misschien één cijfer verkeerd gelezen? Laat zien welke verbetering het totaal precies laat kloppen.
     if (Math.abs(verschil) >= 0.01 && tot > 0) {
-      const opties = cijferOpties(bonData.artikelen, som, tot).slice(0, 3);
+      const opties = cijferOpties(bonData.artikelen, som, tot).sort((x, y) => (x.a.bedrag < 0 ? 0 : 1) - (y.a.bedrag < 0 ? 0 : 1)).slice(0, 3);
       if (opties.length) {
         const p = document.createElement('span'); p.className = 'bon-voorstel'; p.textContent = ' Misschien las de lezer een cijfer verkeerd:';
         el.append(p);
