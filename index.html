@@ -488,6 +488,8 @@
   .bon-tot .amount-in { margin: 0; max-width: 190px; }
   .bon-check { font-size: 13px; color: var(--ink-3); margin: 6px 0 10px !important; }
   .bon-check.mis { color: var(--bad); font-weight: 600; }
+  .bon-voorstel { display: block; margin-top: 6px; color: var(--ink-2); font-weight: 400; }
+  .bon-fix { margin: 6px 6px 0 0; }
   .bon-tekst summary { cursor: pointer; color: var(--ink-2); font-size: 14px; padding: 6px 0; }
   .bon-tekst textarea { font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; margin-bottom: 8px; resize: vertical; }
   .e-items-knop { border: none; background: none; padding: 2px 0 0; color: var(--ink-2); font-size: 12px; font-weight: 600; cursor: pointer; }
@@ -2616,12 +2618,29 @@
   }
   function bonWinkel(regels) {
     for (const [re, naam] of KETENS) if (regels.slice(0, 10).some((r) => re.test(r))) return naam;
-    const eerste = regels.find((r) => /\p{L}{3,}/u.test(r) && !bonPrijs(r, false));
+    for (const [re, naam] of KETENS) if (regels.some((r) => re.test(r))) return naam;
+    // Anders de eerste regel met tekst, maar alleen boven het eerste bedrag (daaronder staan artikelen)
+    const tot = regels.findIndex((r) => bonPrijs(r, false));
+    const eerste = regels.slice(0, tot >= 0 ? tot : regels.length).find((r) => /\p{L}{3,}/u.test(r) && !bonPrijs(r, false));
     return eerste ? bonNaam(eerste) : '';
+  }
+  // Welke artikelen kloppen het totaal precies als je één verward cijfer verbetert (5↔9, 3↔8 …)?
+  const VERWARD = { 0: '86', 1: '7', 3: '8', 5: '69', 6: '58', 7: '1', 8: '306', 9: '5' };
+  function cijferOpties(artikelen, som, doel) {
+    const opties = [];
+    artikelen.forEach((a) => {
+      if (!a.bedrag) return;
+      const s = Math.abs(a.bedrag).toFixed(2);
+      [...s].forEach((c, i) => (VERWARD[c] || '').split('').forEach((n) => {
+        const nieuw = r2(Math.sign(a.bedrag) * Number(s.slice(0, i) + n + s.slice(i + 1)));
+        if (Math.abs(r2(som - a.bedrag + nieuw) - doel) < 0.005) opties.push({ a, nieuw });
+      }));
+    });
+    return opties;
   }
   function leesBonTekst(tekst) {
     // Rommel aan het begin van een regel weg ("j    4 X 0,75", "__JUM LATTE"), maar de ruimtes tussen naam en prijs laten staan
-    let regels = String(tekst || '').split(/\r?\n/).map((r) => r.replace(/\t/g, '    ').replace(/^[^\p{L}\d-]*(?:\p{L}\s{2,}|\p{L}?_+\s*)?/u, '').trimEnd()).filter((r) => r.trim());
+    let regels = String(tekst || '').split(/\r?\n/).map((r) => r.replace(/\t/g, '    ').replace(/^[^\p{L}\d-]*(?:\p{L}\s{2,}|\p{L}?_+\s*)?/u, '').replace(/\s+[|\\¦‚!_]+\s*$/u, '').trimEnd()).filter((r) => r.trim());
     // Alles boven de kop "Omschrijving … Bedrag" is adres en telefoonnummer
     const kop = regels.findIndex((r) => /omschrijving|artikel.{0,20}(prijs|bedrag)|bedrag in/i.test(r));
     const winkelRegels = regels;
@@ -2642,7 +2661,7 @@
     };
     for (const r of regels) {
       if (/sub ?totaal/i.test(r)) { klaar = true; continue; }
-      if (/(^|\s)[t|l1!i]ota+l?\b|te betalen|\btotal\b/i.test(r)) { const p = bonPrijs(r, false); if (p && totaal === null) totaal = Math.abs(p.bedrag); klaar = true; continue; }
+      if (/(^|\s)[t|l1!i]ota+l?(?:e|en|bedrag)?\b|te betalen|\btotal\b/i.test(r)) { const p = bonPrijs(r, false); if (p && totaal === null) totaal = Math.abs(p.bedrag); klaar = true; continue; }
       if (BON_BETAALD.test(r)) { const p = bonPrijs(r, false); if (p && betaald === null) betaald = Math.abs(p.bedrag); klaar = true; continue; }
       // Na "Totaal" of "Betaald:" staat het bedrag soms op een eigen regel; het eerste bedrag daar is wat je betaald hebt
       if (klaar) { const p = bonPrijs(r, false); if (p && betaald === null && p.bedrag > 0) betaald = p.bedrag; continue; }
@@ -2687,6 +2706,12 @@
           som = r2(som + best.anders - best.bedrag); best.bedrag = best.anders;
         }
       }
+    }
+    // Klopt het nog niet? Misschien las de lezer één cijfer verkeerd (een 5 als 9, een 8 als 3 …).
+    // Alleen als precies één verbetering het totaal exact laat kloppen.
+    if (doel !== null && Math.abs(som - doel) >= 0.01) {
+      const opties = cijferOpties(artikelen, som, doel);
+      if (opties.length === 1) { opties[0].a.bedrag = opties[0].nieuw; som = doel; }
     }
     // Nog steeds te veel, en er staat een kortingsregel zonder bedrag op de bon? Dan is het verschil die korting.
     if (doel !== null && som - doel >= 0.01 && kortingZonderBedrag.length === 1) {
@@ -2888,6 +2913,21 @@
     if (bonData.totaalGelezen === false && !bonData.totaalAangepast) { el.classList.add('mis'); el.textContent = 'Het totaal is niet op de bon gevonden. Vul het totaal van je bon hierboven zelf in.'; return; }
     el.textContent = Math.abs(verschil) < 0.01 ? '✓ De artikelen tellen precies op tot het totaal.'
       : 'Artikelen samen ' + eur.format(som) + ', dat is ' + eur.format(Math.abs(verschil)) + (verschil > 0 ? ' minder' : ' meer') + ' dan het totaal. Controleer de bedragen.';
+    // Misschien één cijfer verkeerd gelezen? Laat zien welke verbetering het totaal precies laat kloppen.
+    if (Math.abs(verschil) >= 0.01 && tot > 0) {
+      const opties = cijferOpties(bonData.artikelen, som, tot).slice(0, 3);
+      if (opties.length) {
+        const p = document.createElement('span'); p.className = 'bon-voorstel'; p.textContent = ' Misschien las de lezer een cijfer verkeerd:';
+        el.append(p);
+        opties.forEach(({ a, nieuw }) => {
+          const b = document.createElement('button'); b.type = 'button'; b.className = 'btn btn-sm bon-fix';
+          b.textContent = (a.naam || 'Artikel') + ': ' + (nieuw < 0 ? '−' : '') + eur.format(Math.abs(nieuw));
+          b.setAttribute('aria-label', 'Verander ' + (a.naam || 'artikel') + ' van ' + eur.format(a.bedrag) + ' naar ' + eur.format(nieuw));
+          b.addEventListener('click', () => { a.bedrag = nieuw; bonLijst(); });
+          el.append(b);
+        });
+      }
+    }
   }
   $('u-open').addEventListener('click', () => {
     const open = $('u-handmatig').hidden;
