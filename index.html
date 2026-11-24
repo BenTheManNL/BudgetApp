@@ -1061,6 +1061,10 @@
     <div id="bon-bezig" class="bon-bezig">
       <div class="bon-balk"><div></div></div>
       <p id="bon-status">Bon lezen…</p>
+      <div id="bon-vaag" hidden>
+        <p><b>Deze foto is wat vaag.</b> Dan leest Duppie de bedragen vaak verkeerd. Leg de bon plat, zorg voor genoeg licht en houd je telefoon stil.</p>
+        <div class="btns"><button class="btn" id="bon-vaag-toch">Toch lezen</button><button class="btn btn-primary" id="bon-vaag-nieuw">Nieuwe foto maken</button></div>
+      </div>
     </div>
     <div id="bon-form" class="bon-form" hidden>
       <p id="bon-info" class="hint"></p>
@@ -1076,6 +1080,8 @@
       <ul class="bon-items" id="bon-items"></ul>
       <div class="bon-tot"><span>Totaal op de bon</span><div class="amount-in"><span class="eur">€</span><input id="bon-totaal" inputmode="decimal" placeholder="0,00" aria-label="Totaal"></div></div>
       <p class="bon-check" id="bon-check"></p>
+      <button type="button" class="btn btn-sm" id="bon-tweede">+ Tweede foto (lange bon)</button>
+      <input type="file" id="bon-file2" accept="image/*" hidden>
       <!-- verborgen: de gelezen tekst blijft hier staan voor de lezer zelf, maar is niet meer te zien -->
       <details class="bon-tekst" hidden>
         <summary>Gelezen tekst bekijken of zelf plakken</summary>
@@ -2580,6 +2586,8 @@
   // Maakt van de gelezen tekst van een kassabon: winkel, datum, totaal en de losse artikelen
   const BON_STOP = /sub ?totaal|totaal|te betalen|\btotal\b|pinnen|\bpin\b|betaald|contant|wisselgeld|terug|\bbtw\b|\bvat\b|kassa|maestro|v ?pay|visa|mastercard|bankpas|betaalpas|contactloos|aantal|artikelen|spaarzegel|koopzegel|\bbon ?nr|transactie|terminal|merchant|autorisatie|kaart|saldo|omschrijving|bedrag/i;
   const BON_KORTING = /korting|bonus|actie|voordeel|aanbieding|gratis|\bkort\b/i;
+  // Regels die geen artikel en geen korting zijn: AH's "Uw voordeel" (optelsom van de kortingen), klantenkaarten, spaarpunten
+  const BON_NEGEER = /uw voordeel|waarvan|bonus ?box|bonuskaart|airmiles|air miles|spaarpunt|klantenkaart|kassabon|lidl plus(?!.*korting)|btw ?%|netto/i;
   const BON_BETAALD = /pinnen|\bpin\b|betaald|contant|bankpas|betaalpas|visa|maestro|mastercard|v ?pay|contactloos/i;
   const BON_GELD = /([-−–„]?)\s?(\d{1,4})\s?[,.\/]\s?(\d{2})(?!\d)/g;
   // Alle bedragen op een regel, met waar ze staan
@@ -2648,7 +2656,7 @@
     if (kop >= 0) regels = regels.slice(kop + 1);
     // Staan de prijzen in een kolom (met een flinke ruimte ervoor)? Dan zijn we strenger.
     const kolom = regels.filter((r) => /\S\s{2,}[-−–„]?\d{1,4}\s?[,.\/]?\s?\d{2}\W*$/.test(r)).length >= 3;
-    const artikelen = []; let totaal = null, betaald = null, aantal = '', naamRegel = null, klaar = false;
+    const artikelen = []; let totaal = null, betaald = null, aantal = '', naamRegel = null, klaar = false, naSub = false;
     const kortingZonderBedrag = []; // "ACTIE POWERADE" waarvan de lezer het bedrag miste
     const voegToe = (naam, bedrag, anders) => {
       naam = bonNaam(naam.replace(/\s[-−]?\d{1,4}\s?[,.\/]\s?\d{2}$/, '')); bedrag = r2(bedrag);
@@ -2661,11 +2669,19 @@
       artikelen.push(a); aantal = '';
     };
     for (const r of regels) {
-      if (/sub ?totaal/i.test(r)) { klaar = true; continue; }
+      if (BON_NEGEER.test(r)) { naamRegel = null; continue; }
+      // Na "Subtotaal" komen bij de AH de bonuskortingen nog; daarna "Totaal"
+      if (/sub ?totaal/i.test(r)) { naSub = true; continue; }
       if (/(^|\s)[t|l1!i]ota+l?(?:e|en|bedrag)?\b|te betalen|\btotal\b/i.test(r)) { const p = bonPrijs(r, false); if (p && totaal === null) totaal = Math.abs(p.bedrag); klaar = true; continue; }
       if (BON_BETAALD.test(r)) { const p = bonPrijs(r, false); if (p && betaald === null) betaald = Math.abs(p.bedrag); klaar = true; continue; }
       // Na "Totaal" of "Betaald:" staat het bedrag soms op een eigen regel; het eerste bedrag daar is wat je betaald hebt
       if (klaar) { const p = bonPrijs(r, false); if (p && betaald === null && p.bedrag > 0) betaald = p.bedrag; continue; }
+      if (naSub) {
+        // Tussen subtotaal en totaal tellen alleen kortingen (met bedrag) mee
+        const p = bonPrijs(r, false);
+        if (p && BON_KORTING.test(r)) voegToe(p.voor, -Math.abs(p.bedrag));
+        continue;
+      }
       // "2 X 0,99    1,98": het aantal (en vaak de prijs) bij het artikel op de regel erboven, of erna
       const q = r.match(/^(\d{1,3})\s?[x×*]{1,2}\s?(?:€\s?)?\d/i);
       if (q && !/\p{L}{3,}/u.test(r.replace(/^\d+\s?[x×*]+/i, ''))) {
@@ -2674,7 +2690,12 @@
           const bedrag = b.length >= 2 ? b[b.length - 1].bedrag : b.length ? b[0].bedrag * n : 0;
           // Aantal × stukprijs als tweede mogelijkheid, voor als de lezer een cijfer van het totaal mis las
           aantal = n > 1 ? n + '× ' : ''; voegToe(naamRegel, bedrag, b.length >= 2 ? b[0].bedrag * n : undefined); naamRegel = null;
-        } else aantal = n > 1 && b.length <= 1 ? n + '× ' : '';  // met een eigen totaal hoort het bij de regel erboven
+        } else {
+          // Lidl en Aldi zetten "2 x 0,89" ónder het artikel. Klopt aantal × prijs met het artikel erboven? Dan hoort het daarbij.
+          const vorige = artikelen[artikelen.length - 1];
+          if (b.length === 1 && vorige && n > 1 && !/^\d+×/.test(vorige.naam) && Math.abs(vorige.bedrag - r2(b[0].bedrag * n)) < 0.01) { vorige.naam = n + '× ' + vorige.naam; aantal = ''; }
+          else aantal = n > 1 && b.length <= 1 ? n + '× ' : '';  // met een eigen totaal hoort het bij de regel erboven
+        }
         continue;
       }
       const p = bonPrijs(r, kolom);
@@ -2751,6 +2772,7 @@
 
   // Maakt de foto klaar om te lezen: rechtop, alleen de bon zelf (de achtergrond wordt wit),
   // en per stukje zwart-wit gemaakt zodat schaduw en ongelijk licht niet uitmaken.
+  const bonMeting = { scherpte: 0, hoek: 0 }; // van de laatste foto; voor de scherptecontrole
   async function bonBeeld(file, maxW, soort, voorLezer, instelling) {
     let bmp;
     try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (e) { bmp = await createImageBitmap(file); }
@@ -2798,13 +2820,51 @@
     // 2. Uitsnijden en op een vaste breedte zetten (ongeveer 1600 pixels: letters groot genoeg om te lezen)
     const X0 = Math.floor(x0 / s), Y0 = Math.floor(y0 / s), CW = Math.max(1, Math.ceil((x1 + 1) / s) - X0), CH = Math.max(1, Math.ceil((y1 + 1) / s) - Y0);
     let f = maxW / CW; if (CH * f > 5000) f = 5000 / CH;
-    const w = Math.max(1, Math.round(CW * f)), h = Math.max(1, Math.round(CH * f));
+    let w = Math.max(1, Math.round(CW * f)), h = Math.max(1, Math.round(CH * f));
     const [cv, cx] = maak(w, h); cx.drawImage(bmp, X0, Y0, CW, CH, 0, 0, w, h); if (bmp.close) bmp.close();
-    const img = cx.getImageData(0, 0, w, h), px = img.data, g = grijs(px);
+    let img = cx.getImageData(0, 0, w, h), px = img.data, g = grijs(px);
     // Achtergrond naast de bon wit maken
     for (let y = 0; y < h; y++) {
       const ky = Math.min(sh - 1, Math.floor((Y0 + y / f) * s));
       for (let x = 0; x < w; x++) { const kxx = Math.min(sw - 1, Math.floor((X0 + x / f) * s)); if (!vorm[ky * sw + kxx]) g[y * w + x] = 255; }
+    }
+    // 2b. Scherpte meten (alleen op de bon zelf): hoe sterk veranderen pixels ten opzichte van hun buren?
+    //     Een vage foto heeft zachte overgangen en dus een lage waarde.
+    {
+      let n = 0, som = 0, som2 = 0; const st = Math.max(1, Math.round(w / 800));
+      for (let y = st; y < h - st; y += st) for (let x = st; x < w - st; x += st) {
+        const i = y * w + x; if (g[i] === 255) continue;
+        const lap = 4 * g[i] - g[i - st] - g[i + st] - g[i - st * w] - g[i + st * w];
+        n++; som += lap; som2 += lap * lap;
+      }
+      bonMeting.scherpte = n ? Math.round(som2 / n - (som / n) ** 2) : 0;
+    }
+    // 2c. Scheve bon rechtzetten: zoek de hoek waarbij de tekstregels het mooist horizontaal liggen
+    {
+      const st = Math.max(1, Math.round(w / 400)), pts = [];
+      let gem = 0, n = 0; for (let i = 0; i < g.length; i += st * 7) { gem += g[i]; n++; } gem /= n || 1;
+      for (let y = 0; y < h; y += st) for (let x = 0; x < w; x += st) if (g[y * w + x] < gem * 0.7) pts.push(x, y);
+      let besteHoek = 0, besteScore = -1;
+      const score = (hoek) => {
+        const a = hoek * Math.PI / 180, si = Math.sin(a), co = Math.cos(a), bak = new Map();
+        for (let i = 0; i < pts.length; i += 2) { const r = Math.round((pts[i + 1] * co - pts[i] * si) / (st * 2)); bak.set(r, (bak.get(r) || 0) + 1); }
+        let s2 = 0; bak.forEach((v) => { s2 += v * v; }); return s2;
+      };
+      if (pts.length > 200) {
+        for (let hk = -10; hk <= 10; hk += 1) { const sc = score(hk); if (sc > besteScore) { besteScore = sc; besteHoek = hk; } }
+        for (let hk = besteHoek - 0.75; hk <= besteHoek + 0.75; hk += 0.25) { const sc = score(hk); if (sc > besteScore) { besteScore = sc; besteHoek = hk; } }
+      }
+      bonMeting.hoek = besteHoek;
+      if (instelling && instelling.recht && Math.abs(besteHoek) >= 1.5) {
+        // Draai het grijze plaatje terug, met wit in de hoeken die erbij komen
+        const a = -besteHoek * Math.PI / 180, nw = Math.round(Math.abs(w * Math.cos(a)) + Math.abs(h * Math.sin(a))), nh = Math.round(Math.abs(w * Math.sin(a)) + Math.abs(h * Math.cos(a)));
+        const [bc, bx] = maak(w, h), bi = bx.createImageData(w, h);
+        for (let i = 0; i < g.length; i++) { bi.data[i * 4] = bi.data[i * 4 + 1] = bi.data[i * 4 + 2] = g[i]; bi.data[i * 4 + 3] = 255; }
+        bx.putImageData(bi, 0, 0);
+        cv.width = nw; cv.height = nh; cx.fillStyle = '#fff'; cx.fillRect(0, 0, nw, nh);
+        cx.translate(nw / 2, nh / 2); cx.rotate(a); cx.drawImage(bc, -w / 2, -h / 2); cx.setTransform(1, 0, 0, 1, 0, 0);
+        const nd = cx.getImageData(0, 0, nw, nh).data; g = grijs(nd); w = nw; h = nh; img = cx.getImageData(0, 0, w, h); px = img.data;
+      }
     }
     // 3. Zwart-wit per stukje: een pixel is zwart als hij duidelijk donkerder is dan zijn omgeving
     const r = Math.max(8, Math.round(w / ((instelling && instelling.d) || 80))), k = (instelling && instelling.k) || 0.12, ii = new Float64Array((w + 1) * (h + 1));
@@ -2857,7 +2917,8 @@
     return { winkel: String(r.winkel || '').slice(0, 80), datum: /^\d{4}-\d{2}-\d{2}$/.test(r.datum || '') ? r.datum : '', totaal: Math.abs(r2(Number(r.totaal) || 0)), artikelen, doorClaude: true };
   }
 
-  const BON_INSTELLINGEN = [{ d: 80, k: 0.12 }, { d: 53, k: 0.15 }, { d: 40, k: 0.10 }, { d: 65, k: 0.13, w: 2000 }, { d: 100, k: 0.11, w: 1300 }];
+  // recht: scheve bon eerst rechtzetten. Om en om, want soms leest de lezer het origineel juist beter.
+  const BON_INSTELLINGEN = [{ d: 80, k: 0.12, recht: true }, { d: 53, k: 0.15 }, { d: 40, k: 0.10, recht: true }, { d: 65, k: 0.13, w: 2000 }, { d: 100, k: 0.11, w: 1300, recht: true }];
   // Hoe goed is een leesresultaat? Het best: het totaal staat op de bon én de artikelen tellen daar precies tot op.
   function bonScore(r) {
     const som = r2(r.artikelen.reduce((a, x) => a + x.bedrag, 0));
@@ -2926,8 +2987,20 @@
     $('bon').hidden = false; $('bon-bezig').hidden = false; $('bon-form').hidden = true; $('bon-ok').disabled = true;
     bonStatus('Bon lezen…');
   }
-  async function bonVerwerk(file) {
-    bonOpen();
+  const BON_MIN_SCHERPTE = 220; // daaronder is de foto te vaag om goed te lezen (gemeten op echte bonfoto's)
+  // Vage foto? Vraag eerst of je een nieuwe wilt maken, voordat we gaan lezen
+  function bonToch() {
+    return new Promise((ok) => {
+      bonStatus('');
+      $('bon-vaag').hidden = false;
+      const klaar = (v) => { $('bon-vaag').hidden = true; $('bon-vaag-nieuw').onclick = $('bon-vaag-toch').onclick = null; ok(v); };
+      $('bon-vaag-toch').onclick = () => klaar(true);
+      $('bon-vaag-nieuw').onclick = () => { klaar(false); setTimeout(() => { $('bon-file').value = ''; $('bon-file').click(); }, 50); };
+    });
+  }
+  function bonDicht() { $('bon').hidden = true; $('bon-vaag').hidden = true; }
+  async function bonVerwerk(file, extra) {
+    if (!extra) bonOpen(); else { $('bon-bezig').hidden = false; $('bon-form').hidden = true; bonStatus('Tweede foto lezen…'); }
     let res = null;
     try {
       bonStatus('Claude leest je bon…');
@@ -2940,6 +3013,7 @@
         for (let i = 0; i < BON_INSTELLINGEN.length; i++) {
           bonStatus(i ? 'Nog een keer lezen voor de zekerheid (' + (i + 1) + ' van ' + BON_INSTELLINGEN.length + ')…' : 'Foto klaarmaken…');
           const blob = await bonBeeld(file, BON_INSTELLINGEN[i].w || 1600, 'image/png', true, BON_INSTELLINGEN[i]);
+          if (!i && !extra && bonMeting.scherpte < BON_MIN_SCHERPTE && !(await bonToch())) { bonDicht(); return; }
           const tekst = await ocrLees(blob, (f) => { if (!i) bonStatus(f === 'laden' ? 'Lezer laden… (de eerste keer duurt dit even)' : 'Tekst van je bon lezen…'); });
           const r = leesBonTekst(tekst); r.tekst = tekst; r.score = bonScore(r); rondes.push(r);
           if (!res || r.score > res.score) res = r;
@@ -2951,7 +3025,32 @@
         res = { winkel: '', datum: '', totaal: 0, artikelen: [], tekst: '', fout: e.message };
       }
     }
+    if (extra && bonData) {
+      bonData.winkel = $('bon-winkel').value.trim(); bonData.datum = $('bon-datum').value;
+      const tt = parseBedrag($('bon-totaal').value); if (tt > 0) { bonData.totaal = tt; bonData.totaalGelezen = true; }
+      res = bonPlakken(bonData, res);
+    }
     bonToon(res);
+  }
+  // Een lange bon in twee foto's: plak de artikelen aan elkaar en laat de regels weg die op allebei de foto's staan
+  function bonPlakken(a, b) {
+    const A = a.artikelen.slice(), Bv = b.artikelen.slice();
+    // Welke artikelen van foto 2 staan ook op foto 1? Leg de namen naast elkaar (langste gemeenschappelijke reeks).
+    // Alles op foto 2 tot en met de laatste overeenkomst is dubbel; foto 1 las die al.
+    const L = Array.from({ length: A.length + 1 }, () => new Array(Bv.length + 1).fill(0));
+    for (let x = A.length - 1; x >= 0; x--) for (let y = Bv.length - 1; y >= 0; y--)
+      L[x][y] = bonGelijk(A[x].naam, Bv[y].naam) ? L[x + 1][y + 1] + 1 : Math.max(L[x + 1][y], L[x][y + 1]);
+    let overlap = 0, x = 0, y = 0;
+    while (x < A.length && y < Bv.length) {
+      if (bonGelijk(A[x].naam, Bv[y].naam) && L[x][y] === L[x + 1][y + 1] + 1) { overlap = y + 1; x++; y++; }
+      else if (L[x + 1][y] >= L[x][y + 1]) x++; else y++;
+    }
+    const uit = { ...a, artikelen: A.concat(Bv.slice(overlap)), tekst: (a.tekst || '') + '\n' + (b.tekst || '') };
+    if (b.totaalGelezen) { uit.totaal = b.totaal; uit.totaalGelezen = true; }
+    else if (!a.totaalGelezen && b.totaal) uit.totaal = b.totaal;
+    if (!uit.winkel && b.winkel) uit.winkel = b.winkel;
+    if (!uit.datum && b.datum) uit.datum = b.datum;
+    return uit;
   }
   function bonToon(res) {
     bonData = res;
@@ -3020,6 +3119,8 @@
   });
   $('bon-knop').addEventListener('click', () => { if (!readOnly) { $('bon-file').value = ''; $('bon-file').click(); } });
   $('bon-file').addEventListener('change', () => { const f = $('bon-file').files[0]; if (f) bonVerwerk(f); });
+  $('bon-tweede').addEventListener('click', () => { $('bon-file2').value = ''; $('bon-file2').click(); });
+  $('bon-file2').addEventListener('change', () => { const f = $('bon-file2').files[0]; if (f) bonVerwerk(f, true); });
   $('bon-plus').addEventListener('click', () => { bonData.artikelen.push({ naam: '', bedrag: 0 }); bonLijst(); const v = $('bon-items').querySelectorAll('input'); if (v.length > 1) v[v.length - 2].focus(); });
   $('bon-totaal').addEventListener('input', () => { if (bonData) bonData.totaalAangepast = true; bonCheck(); });
   $('bon-herlees').addEventListener('click', () => { const t = $('bon-ruw').value; const r = leesBonTekst(t); r.tekst = t; r.geplakt = true; bonToon(r); });
