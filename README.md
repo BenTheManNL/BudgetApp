@@ -38,7 +38,7 @@ Daarom zit er een knop in om een **back-up** te maken (tabblad *Periodes*). Bewa
 
 **iPhone**
 1. Open de link in **Safari**.
-2. Tik op Delen (vierkantje met pijl) → **Zet op beginscherm** → **Voeg toe**.
+2. Klik naast de url op de 3 streepjes en Tik op Delen (vierkantje met pijl) → **Zet op beginscherm** → **Voeg toe**.
 3. Open de app voortaan via het icoon op je beginscherm.
 
 **Android**
