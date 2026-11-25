@@ -808,7 +808,7 @@
         <p class="hint" style="margin-top:12px">Schuif of typ een percentage. Eigen invulling vangt de verschillen op: meer sparen gaat eerst van Eigen invulling af. Schuif je Eigen invulling omlaag, dan gaat het verschil naar Sparen. Tik op % om een potje op een vast bedrag per periode te zetten.</p>
         <div class="warn" id="p-warn" hidden>Je verdeelt meer dan je vrij te besteden hebt. Verlaag Boodschappen of Sparen.</div>
         <div class="settings">
-          <label class="switch"><input type="checkbox" id="set-meenemen"><span class="sw-track"><span class="sw-dot"></span></span><span>Wat je in een week overhoudt of te veel uitgeeft, meenemen naar de volgende week</span></label>
+          <label class="switch"><input type="checkbox" id="set-meenemen"><span class="sw-track"><span class="sw-dot"></span></span><span>Wat je in een week overhoudt of te veel uitgeeft, verdelen over de weken die nog komen</span></label>
           <label class="sel"><span>Wat aan het einde van de periode over is</span>
             <select class="field" id="set-rest">
               <option value="volgende">Meenemen naar de volgende periode</option>
@@ -1907,17 +1907,23 @@
     return w >= 0 ? w : ws.length - 1;
   }
 
-  // Budget per week per potje. Met "meenemen" komt wat je in eerdere weken overhield (of te veel uitgaf) erbij.
+  // Budget per week per potje. Met "meenemen" wordt wat je in eerdere weken overhield (of te veel uitgaf) verdeeld over de rest.
   function weekBudgetten(s, t, ws) {
     const B = Math.max(0, t.boodschappen), E = Math.max(0, t.eigen);
     const som = (wk, pot) => r2(s.uitgaven.filter((u) => u.pot === pot && u.datum >= wk.start && u.datum <= wk.end).reduce((a, u) => a + telt(u), 0));
-    let carryB = 0, carryE = 0;
-    return ws.map((wk) => {
-      const deel = weekDeel(s, t, wk);
+    // Wat je in een week overhoudt of te veel uitgeeft, gaat in een "pot" die verdeeld wordt over de weken
+    // die nog komen, naar verhouding van hun lengte. Een korte laatste week krijgt dus een kleiner stuk.
+    const delen = ws.map((wk) => weekDeel(s, t, wk));
+    let potB = 0, potE = 0;
+    return ws.map((wk, i) => {
+      const deel = delen[i], rest = delen.slice(i).reduce((a, d) => a + d, 0) || 1;
+      const carryB = r2(potB * deel / rest), carryE = r2(potE * deel / rest);
+      potB = r2(potB - carryB); potE = r2(potE - carryE);
       const baseB = r2(B * deel), baseE = r2(E * deel);
       const spentB = som(wk, 'boodschappen'), spentE = som(wk, 'eigen');
       const rij = { b: r2(baseB + carryB), e: r2(baseE + carryE), spentB, spentE, carryB, carryE };
-      if (s.meenemen) { carryB = r2(rij.b - spentB); carryE = r2(rij.e - spentE); }
+      // Alleen weken die voorbij zijn: van de huidige week weet je nog niet wat je overhoudt
+      if (s.meenemen && wk.end < vandaag()) { potB = r2(potB + rij.b - spentB); potE = r2(potE + rij.e - spentE); }
       return rij;
     });
   }
@@ -1948,7 +1954,7 @@
     el.textContent = (left < 0 ? '− ' : '') + eur.format(Math.abs(left)); el.classList.toggle('neg', left < 0);
     $('m-' + pre + '-of').textContent = kort ? (left >= 0 ? 'van ' + eur.format(budget) : 'te veel uitgegeven')
       : (left >= 0 ? 'over van ' + eur.format(budget) : 'te veel uitgegeven')
-        + (carry && Math.abs(carry) >= 0.01 ? ' (' + (carry > 0 ? '+' : '−') + eur.format(Math.abs(carry)).replace('€\u00a0', '€') + ' meegenomen)' : '');
+        + (carry && Math.abs(carry) >= 0.01 ? ' (' + (carry > 0 ? '+' : '−') + eur.format(Math.abs(carry)).replace('€\u00a0', '€') + ' van eerdere weken)' : '');
     zetRing('m-' + pre + '-ring', left < 0 ? 1 : budget > 0 ? left / budget : 0, left < 0);
   }
   function zetRing(id, frac, over) {
