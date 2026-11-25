@@ -533,6 +533,8 @@
   .hero .iconbtn { background: transparent; border-color: var(--line); color: var(--ink); }
   .hero .btn-ghost { color: var(--ink); opacity: 1; font-weight: 650; min-width: 76px; }
   .hero #wk-nu:disabled { opacity: 1; cursor: default; color: var(--ink-2); }
+  #dezeweek { touch-action: pan-y; transition: transform .25s ease; }
+  #dezeweek.schuift { transition: none; }
   .hero #wk-nu:not(:disabled) { border-color: var(--line); background: var(--surface-2); color: var(--pine); }
   .ring-big { position: relative; width: 236px; height: 236px; margin: 6px auto 0; }
   .ring-big svg, .mini-ring svg { width: 100%; height: 100%; display: block; overflow: visible; }
@@ -2058,6 +2060,32 @@
   $('wk-prev').addEventListener('click', () => { if (viewWeek > 0) { viewWeek--; $('u-datum').value = ''; renderWeek(); } });
   $('wk-next').addEventListener('click', () => { viewWeek++; $('u-datum').value = ''; renderWeek(); });
   $('wk-nu').addEventListener('click', () => { viewWeek = null; $('u-datum').value = ''; renderWeek(); });
+  // Met je vinger naar links of rechts vegen over de weekkaart = volgende of vorige week (net als de pijltjes)
+  (function () {
+    const kaart = $('dezeweek'); let x0 = 0, y0 = 0, dx = 0, bezig = false, richting = null;
+    kaart.addEventListener('pointerdown', (e) => {
+      if (e.pointerType !== 'touch' || e.target.closest('button, input, a')) return;
+      x0 = e.clientX; y0 = e.clientY; dx = 0; bezig = true; richting = null;
+    });
+    kaart.addEventListener('pointermove', (e) => {
+      if (!bezig) return;
+      const ddx = e.clientX - x0, ddy = e.clientY - y0;
+      if (richting === null && (Math.abs(ddx) > 10 || Math.abs(ddy) > 10)) richting = Math.abs(ddx) > Math.abs(ddy) ? 'opzij' : 'omhoog';
+      if (richting !== 'opzij') return;
+      // Aan het begin of eind van de periode schuift hij maar een klein stukje (er is daar geen week meer)
+      const kan = ddx > 0 ? !$('wk-prev').disabled : !$('wk-next').disabled;
+      dx = kan ? ddx : ddx / 4;
+      kaart.classList.add('schuift'); kaart.style.transform = 'translateX(' + dx * 0.5 + 'px)';
+    });
+    const los = () => {
+      if (!bezig) return; bezig = false;
+      kaart.classList.remove('schuift'); kaart.style.transform = '';
+      if (richting !== 'opzij') return;
+      if (dx < -60 && !$('wk-next').disabled) $('wk-next').click();
+      else if (dx > 60 && !$('wk-prev').disabled) $('wk-prev').click();
+    };
+    kaart.addEventListener('pointerup', los); kaart.addEventListener('pointercancel', los);
+  })();
   $('u-form').addEventListener('submit', (e) => {
     e.preventDefault();
     if (!state || readOnly) return;
