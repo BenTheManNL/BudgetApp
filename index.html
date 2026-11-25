@@ -2168,13 +2168,23 @@
     const bedrag = parseBedrag($('u-bedrag').value);
     if (!(bedrag > 0)) { $('u-bedrag').focus(); return; }
     const datum = $('u-datum').value || vandaag();
-    const nieuw = { id: uid(), datum, pot: $('u-pot').value === 'eigen' ? 'eigen' : 'boodschappen', naam: $('u-naam').value.trim().slice(0, 80), bedrag };
-    state.uitgaven.push(nieuw);
-    $('u-bedrag').value = ''; $('u-naam').value = '';
-    viewWeek = weekVan(weken(state), datum);
-    renderWeek(); changed();
-    if ($('u-voor').checked) { $('u-voor').checked = false; voorOpen(nieuw); }
+    const toevoegen = () => {
+      const nieuw = { id: uid(), datum, pot: $('u-pot').value === 'eigen' ? 'eigen' : 'boodschappen', naam: $('u-naam').value.trim().slice(0, 80), bedrag };
+      state.uitgaven.push(nieuw);
+      $('u-bedrag').value = ''; $('u-naam').value = '';
+      viewWeek = weekVan(weken(state), datum);
+      renderWeek(); changed();
+      if ($('u-voor').checked) { $('u-voor').checked = false; voorOpen(nieuw); }
+    };
+    // Een uitgave in de toekomst is meestal een vergissing (bijvoorbeeld omdat je naar een latere week keek): eerst vragen
+    if (datum > vandaag()) toekomstVraag(datum, toevoegen); else toevoegen();
   });
+  function toekomstVraag(datum, doen) {
+    const ws = weken(state), w = ws[weekVan(ws, datum)];
+    openModal({ title: 'Uitgave in de toekomst?',
+      text: 'Je zet deze uitgave op ' + kortDag(datum) + (w ? ', in week ' + (w.i + 1) : '') + '. Die dag is nog niet geweest. Klopt dat? Kies Annuleren om de datum aan te passen.',
+      ok: 'Ja, klopt', onOk: doen });
+  }
 
 
 
@@ -2201,17 +2211,23 @@
     const fout = (t) => { $('ue-fout').textContent = t; $('ue-fout').hidden = false; };
     const datum = $('ue-datum').value;
     if (!datum || datum < state.start || datum >= state.eind) return fout('Kies een datum in deze periode (' + kort(state.start) + ' tot ' + kort(state.eind) + ').');
+    const bedrag = r2(parseBedrag($('ue-bedrag').value));
+    const pot = (document.querySelector('input[name="ue-pot"]:checked') || {}).value === 'eigen' ? 'eigen' : 'boodschappen';
     if (!u.voorschot) {
-      const bedrag = r2(parseBedrag($('ue-bedrag').value));
       if (!(bedrag > 0)) return fout('Vul een bedrag in.');
       if (u.voor > 0 && bedrag < u.voor) return fout('Hiervan heb je ' + eur.format(u.voor) + ' voorgeschoten, dus het bedrag kan niet lager zijn.');
-      // Bij een gescande bon met een ander bedrag kloppen de artikelen niet meer: die vallen dan weg
-      if (u.items && Math.abs(bedrag - u.bedrag) >= 0.01) delete u.items;
-      u.bedrag = bedrag;
-      u.pot = (document.querySelector('input[name="ue-pot"]:checked') || {}).value === 'eigen' ? 'eigen' : 'boodschappen';
     }
-    u.naam = $('ue-naam').value.trim().slice(0, 80); u.datum = datum;
-    ueDicht(); viewWeek = weekVan(weken(state), datum); renderAll(); changed();
+    // Pas opslaan als alles klopt (en je een datum in de toekomst hebt bevestigd)
+    const opslaan = () => {
+      if (!u.voorschot) {
+        // Bij een gescande bon met een ander bedrag kloppen de artikelen niet meer: die vallen dan weg
+        if (u.items && Math.abs(bedrag - u.bedrag) >= 0.01) delete u.items;
+        u.bedrag = bedrag; u.pot = pot;
+      }
+      u.naam = $('ue-naam').value.trim().slice(0, 80); u.datum = datum; ueDicht(); viewWeek = weekVan(weken(state), datum); renderAll(); changed();
+    };
+    if (datum > vandaag() && datum !== u.datum) { toekomstVraag(datum, opslaan); return; }
+    opslaan();
   });
   $('ue-weg').addEventListener('click', () => { const u = ueU; ueDicht(); if (u) verwijderUitgave(u); });
   $('ue-voor').addEventListener('click', () => { const u = ueU; ueDicht(); if (u) voorOpen(u); });
