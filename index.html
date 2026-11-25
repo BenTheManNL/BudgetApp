@@ -534,6 +534,9 @@
   .hero .btn-ghost { color: var(--ink); opacity: 1; font-weight: 650; min-width: 76px; }
   .hero #wk-nu:disabled { opacity: 1; cursor: default; color: var(--ink-2); }
   #dezeweek { touch-action: pan-y; will-change: transform; }
+  .wk-buur { position: absolute; margin: 0; pointer-events: none; will-change: transform; z-index: 1; }
+  .wk-schuift { overflow-x: clip; }
+  .geen-overgang, .geen-overgang * { transition: none !important; }
   .hero #wk-nu:not(:disabled) { border-color: var(--line); background: var(--surface-2); color: var(--pine); }
   .ring-big { position: relative; width: 236px; height: 236px; margin: 6px auto 0; }
   .ring-big svg, .mini-ring svg { width: 100%; height: 100%; display: block; overflow: visible; }
@@ -2070,55 +2073,92 @@
   $('wk-prev').addEventListener('click', () => { if (viewWeek > 0) { viewWeek--; $('u-datum').value = ''; renderWeek(); } });
   $('wk-next').addEventListener('click', () => { viewWeek++; $('u-datum').value = ''; renderWeek(); });
   $('wk-nu').addEventListener('click', () => { viewWeek = null; $('u-datum').value = ''; renderWeek(); });
-  // Weken wisselen met een animatie: vegen over de weekkaart, of de pijltjes
+  // Weken wisselen als een carrousel: tijdens het vegen schuift de kaart van de volgende (of vorige) week
+  // er al naast mee, zodat je hem echt in beeld sleept. De pijltjes doen hetzelfde, maar dan vanzelf.
   (function () {
-    const kaart = $('dezeweek');
+    const kaart = $('dezeweek'), pane = $('overzicht');
     const rustig = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const zacht = 'cubic-bezier(.2,.8,.2,1)'; // snel vertrekken, zacht landen
-    // Nieuwe week schuift binnen vanaf de kant waar je naartoe gaat
-    const inSchuiven = (kant) => {
-      if (rustig()) return;
-      kaart.animate([{ transform: 'translateX(' + kant * 48 + 'px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 260, easing: zacht });
-    };
-    $('wk-next').addEventListener('click', () => inSchuiven(1));
-    $('wk-prev').addEventListener('click', () => inSchuiven(-1));
+    const GAT = 14; // ruimte tussen de twee kaarten
+    let buur = null, buurKant = 0, bezigMetWissel = false;
+
+    // Maak een kopie van de kaart zoals die er voor week (viewWeek + kant) uitziet.
+    // Even die week tekenen, kopiëren en meteen terug: dat gebeurt binnen één beeld, dus je ziet het niet.
+    function maakBuur(kant) {
+      weg();
+      const bewaard = viewWeek, datum = $('u-datum').value;
+      viewWeek = viewWeek + kant; renderWeek();
+      const kopie = kaart.cloneNode(true);
+      viewWeek = bewaard; renderWeek(); $('u-datum').value = datum;
+      // De ids blijven staan, anders kloppen de stijlen niet. De echte kaart staat eerder in de pagina,
+      // dus $('…') vindt altijd die, niet de kopie. De kopie is er maar even en is niet aan te raken.
+      kopie.setAttribute('aria-hidden', 'true'); kopie.inert = true; kopie.classList.add('wk-buur');
+      kopie.style.top = kaart.offsetTop + 'px'; kopie.style.left = kaart.offsetLeft + 'px'; kopie.style.width = kaart.offsetWidth + 'px';
+      kaart.parentNode.insertBefore(kopie, kaart.nextSibling);
+      buur = kopie; buurKant = kant; pane.classList.add('wk-schuift');
+    }
+    function weg() { if (buur) buur.remove(); buur = null; buurKant = 0; pane.classList.remove('wk-schuift'); }
+    function zet(dx) {
+      kaart.style.transform = 'translateX(' + dx + 'px)';
+      if (buur) buur.style.transform = 'translateX(' + (dx + buurKant * (kaart.offsetWidth + GAT)) + 'px)';
+    }
+    // De echte wissel: daarna toont de kaart zelf de nieuwe week, zonder dat de ringen nog eens animeren
+    function doeWissel(kant) {
+      kaart.classList.add('geen-overgang');
+      if (kant > 0) { viewWeek++; } else if (viewWeek > 0) { viewWeek--; }
+      $('u-datum').value = ''; renderWeek();
+      kaart.style.transform = ''; weg();
+      requestAnimationFrame(() => requestAnimationFrame(() => kaart.classList.remove('geen-overgang')));
+    }
+    // Schuif van de huidige stand (dx) naar het einde: wisselen of terugveren
+    function afmaken(kant, dx, wissel, snelheid) {
+      const B = kaart.offsetWidth + GAT, doel = wissel ? -kant * B : 0;
+      const duur = rustig() ? 0 : Math.max(180, Math.min(380, Math.abs(doel - dx) / Math.max(0.9, Math.abs(snelheid || 0)) ));
+      const easing = wissel ? 'cubic-bezier(.2,.8,.2,1)' : 'cubic-bezier(.3,1.3,.5,1)';
+      const a1 = kaart.animate([{ transform: 'translateX(' + dx + 'px)' }, { transform: 'translateX(' + doel + 'px)' }], { duration: duur, easing, fill: 'forwards' });
+      if (buur) buur.animate([{ transform: 'translateX(' + (dx + kant * B) + 'px)' }, { transform: 'translateX(' + (doel + kant * B) + 'px)' }], { duration: duur, easing, fill: 'forwards' });
+      bezigMetWissel = true;
+      a1.finished.then(() => {
+        kaart.getAnimations().forEach((x) => x.cancel());
+        if (wissel) doeWissel(kant); else { kaart.style.transform = ''; weg(); }
+        bezigMetWissel = false;
+      }, () => { bezigMetWissel = false; });
+    }
+
+    // Pijltjes: dezelfde beweging, maar dan vanzelf (de pijltjes zelf tekenen de week niet meer)
+    function pijl(kant) {
+      if (bezigMetWissel || !state) return;
+      const ws = weken(state); if (kant > 0 ? viewWeek >= ws.length - 1 : viewWeek <= 0) return;
+      if (rustig()) { doeWissel(kant); return; }
+      maakBuur(kant); afmaken(kant, 0, true, 0);
+    }
+    $('wk-next').addEventListener('click', (e) => { e.stopImmediatePropagation(); pijl(1); }, true);
+    $('wk-prev').addEventListener('click', (e) => { e.stopImmediatePropagation(); pijl(-1); }, true);
 
     let x0 = 0, y0 = 0, dx = 0, bezig = false, richting = null, laatsteX = 0, laatsteT = 0, snelheid = 0;
     kaart.addEventListener('pointerdown', (e) => {
-      if (e.pointerType !== 'touch' || e.target.closest('button, input, a')) return;
+      if (e.pointerType !== 'touch' || bezigMetWissel || e.target.closest('button, input, a')) return;
       x0 = laatsteX = e.clientX; y0 = e.clientY; laatsteT = e.timeStamp; dx = 0; snelheid = 0; bezig = true; richting = null;
-      kaart.getAnimations().forEach((a) => a.cancel());
     });
     kaart.addEventListener('pointermove', (e) => {
       if (!bezig) return;
       const ddx = e.clientX - x0, ddy = e.clientY - y0;
       if (richting === null && (Math.abs(ddx) > 10 || Math.abs(ddy) > 10)) richting = Math.abs(ddx) > Math.abs(ddy) ? 'opzij' : 'omhoog';
       if (richting !== 'opzij') return;
-      // Snelheid onthouden: een snelle "flick" telt ook als het maar een kort stukje was
       const dt = e.timeStamp - laatsteT; if (dt > 0) snelheid = (e.clientX - laatsteX) / dt;
       laatsteX = e.clientX; laatsteT = e.timeStamp;
-      // De kaart volgt je vinger precies; aan het begin of eind van de periode zit er weerstand op (elastiek)
-      const kan = ddx > 0 ? !$('wk-prev').disabled : !$('wk-next').disabled;
-      dx = kan ? ddx : ddx / (3 + Math.abs(ddx) / 60);
-      kaart.style.transform = 'translateX(' + dx + 'px)';
-      kaart.style.opacity = String(1 - Math.min(0.4, Math.abs(dx) / kaart.offsetWidth * 0.6));
+      const kant = ddx < 0 ? 1 : -1, kan = kant > 0 ? !$('wk-next').disabled : !$('wk-prev').disabled;
+      // De buurkaart hoort bij de kant waar je naartoe veegt; draai je om, dan wisselt hij mee
+      if (kan && buurKant !== kant) maakBuur(kant);
+      if (!kan && buur) weg();
+      dx = kan ? ddx : ddx / (3 + Math.abs(ddx) / 60); // aan het begin of eind: elastiek
+      zet(dx);
     });
     const los = () => {
       if (!bezig) return; bezig = false;
       if (richting !== 'opzij') return;
-      const knop = dx < 0 ? $('wk-next') : $('wk-prev'), breed = kaart.offsetWidth;
-      const ver = Math.abs(dx) > breed * 0.22 || (Math.abs(dx) > 30 && Math.abs(snelheid) > 0.45 && Math.sign(snelheid) === Math.sign(dx));
-      const nu = { transform: kaart.style.transform, opacity: kaart.style.opacity || 1 };
-      kaart.style.transform = ''; kaart.style.opacity = '';
-      if (ver && !knop.disabled) {
-        if (rustig()) { knop.click(); return; }
-        // Oude week schuift weg in de richting van je veeg, daarna komt de nieuwe binnen (via het pijltje)
-        kaart.animate([nu, { transform: 'translateX(' + Math.sign(dx) * breed * 0.7 + 'px)', opacity: 0 }], { duration: 170, easing: 'cubic-bezier(.4,0,1,1)' })
-          .finished.then(() => knop.click(), () => {});
-      } else {
-        // Niet ver genoeg: zacht terugveren
-        kaart.animate([nu, { transform: 'none', opacity: 1 }], { duration: rustig() ? 0 : 320, easing: 'cubic-bezier(.3,1.4,.5,1)' });
-      }
+      const kant = dx < 0 ? 1 : -1, breed = kaart.offsetWidth;
+      const ver = Math.abs(dx) > breed * 0.25 || (Math.abs(dx) > 30 && Math.abs(snelheid) > 0.45 && Math.sign(snelheid) === Math.sign(dx));
+      afmaken(kant, dx, ver && !!buur && buurKant === kant, snelheid);
     };
     kaart.addEventListener('pointerup', los); kaart.addEventListener('pointercancel', los);
   })();
