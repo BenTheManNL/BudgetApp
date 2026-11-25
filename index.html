@@ -3121,7 +3121,9 @@
     const S = state.start, E = state.eind;
     const okDatum = res.datum && res.datum >= S && res.datum < E && res.datum <= vandaag();
     $('bon-winkel').value = res.winkel || '';
-    $('bon-datum').min = S; $('bon-datum').value = okDatum ? res.datum : ($('u-datum').value || vandaag());
+    // Geen datum op de bon gelezen? Dan vandaag, of de dag die je koos, maar nooit in de toekomst: een bon is altijd van nu of eerder
+    const gekozen = $('u-datum').value && $('u-datum').value <= vandaag() ? $('u-datum').value : vandaag();
+    $('bon-datum').min = S; $('bon-datum').max = vandaag(); $('bon-datum').value = okDatum ? res.datum : gekozen;
     const pot = SUPERMARKT.test(res.winkel || '') || !res.winkel ? 'boodschappen' : 'eigen';
     document.querySelectorAll('input[name="bon-pot"]').forEach((r) => { r.checked = r.value === pot; });
     $('bon-totaal').value = res.totaal && res.totaalGelezen !== false ? String(res.totaal.toFixed(2)).replace('.', ',') : '';
