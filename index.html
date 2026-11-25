@@ -1922,8 +1922,13 @@
       const baseB = r2(B * deel), baseE = r2(E * deel);
       const spentB = som(wk, 'boodschappen'), spentE = som(wk, 'eigen');
       const rij = { b: r2(baseB + carryB), e: r2(baseE + carryE), spentB, spentE, carryB, carryE };
-      // Alleen weken die voorbij zijn: van de huidige week weet je nog niet wat je overhoudt
-      if (s.meenemen && wk.end < vandaag()) { potB = r2(potB + rij.b - spentB); potE = r2(potE + rij.e - spentE); }
+      // Een week die voorbij is telt helemaal mee. Van de huidige week weet je nog niet wat je overhoudt,
+      // maar wat je er al te veel uitgaf staat vast: dat wordt meteen over de volgende weken verdeeld.
+      if (s.meenemen) {
+        const klaar = wk.end < vandaag(), restB = r2(rij.b - spentB), restE = r2(rij.e - spentE);
+        if (klaar || restB < 0) potB = r2(potB + restB);
+        if (klaar || restE < 0) potE = r2(potE + restE);
+      }
       return rij;
     });
   }
