@@ -412,6 +412,13 @@
   .wa-mod .btns { justify-content: center; }
   .confetti i { position: absolute; top: 45%; left: 50%; width: 7px; height: 11px; border-radius: 2px; background: var(--c); opacity: 0; animation: conf 1.5s cubic-bezier(.2,.7,.3,1) var(--d) forwards; }
   @keyframes conf { 0% { opacity: 1; transform: translate(0, 0) rotate(0); } 100% { opacity: 0; transform: translate(var(--x), var(--y)) rotate(var(--r)); } }
+  /* Account */
+  .acc-links { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px 14px; margin-top: 14px; }
+  .acc-links .linkdel { margin: 0; }
+  .acc-kies { display: grid; gap: 10px; }
+  .acc-optie { text-align: left; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); border-radius: 14px; padding: 12px 14px; display: grid; gap: 2px; font: inherit; cursor: pointer; }
+  .acc-optie:hover { border-color: var(--pine); }
+  .acc-optie span { font-size: 13px; color: var(--ink-2); }
   /* Kan ik dit betalen? */
   .kan-knop { width: 100%; margin-top: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; }
   .kan-uit { border-radius: 14px; padding: 12px 14px; margin: 2px 0 14px; font-size: 14px; line-height: 1.45; background: var(--surface-2); }
@@ -671,7 +678,8 @@
       <button class="btn btn-primary" id="begin">Begin met je budget</button>
       <button class="btn" id="voorbeeld">Bekijk eerst een voorbeeld</button>
     </div>
-    <button class="linkdel" id="bk-terug-leeg" style="margin:14px auto 0;display:block">Ik heb een back-up</button>
+    <button class="linkdel" id="acc-login-leeg" style="margin:14px auto 0;display:block">Ik heb al een account</button>
+    <button class="linkdel" id="bk-terug-leeg" style="margin:8px auto 0;display:block">Ik heb een back-up</button>
     <input type="file" id="bk-file" accept=".json,application/json" hidden>
   </div>
 
@@ -948,9 +956,21 @@
         </div>
         <p class="arch-empty">Nog geen andere periodes. Als je een nieuwe periode start, komt de huidige hier te staan.</p>
       </div>
+      <div class="card" id="account">
+        <div class="card-h"><h2>Account</h2></div>
+        <div id="acc-uit">
+          <p class="hint" style="margin-bottom:12px">Met een account staat je budget veilig online en zie je het op al je apparaten. Zonder account blijft alles alleen op deze telefoon.</p>
+          <div class="period-nav"><button class="btn btn-primary" id="acc-login">Inloggen</button><button class="btn" id="acc-maak">Account maken</button></div>
+        </div>
+        <div id="acc-in" hidden>
+          <p style="margin:0">Ingelogd als <b id="acc-email"></b></p>
+          <p class="hint" id="acc-sync" style="margin:4px 0 12px" role="status"></p>
+          <div class="period-nav"><button class="btn" id="acc-nu">Nu synchroniseren</button><button class="btn" id="acc-uitlog">Uitloggen</button></div>
+        </div>
+      </div>
       <div class="card" id="backup">
         <div class="card-h"><h2>Gegevens veilig</h2></div>
-        <p class="hint" style="margin-bottom:12px">Je budget staat alleen op deze telefoon. Maak af en toe een back-up en bewaar die bijvoorbeeld in iCloud Drive, zodat je niets kwijtraakt als je van telefoon wisselt.</p>
+        <p class="hint" id="bk-uitleg" style="margin-bottom:12px">Je budget staat alleen op deze telefoon. Maak af en toe een back-up en bewaar die bijvoorbeeld in iCloud Drive, zodat je niets kwijtraakt als je van telefoon wisselt.</p>
         <div class="period-nav">
           <button class="btn btn-primary" id="bk-maak">Back-up maken</button>
           <button class="btn" id="bk-terug">Back-up terugzetten</button>
@@ -1166,6 +1186,30 @@
   </div>
 </div>
 
+<div class="modal-bg" id="acc-m" hidden>
+  <form class="modal" role="dialog" aria-modal="true" aria-labelledby="acc-t" id="acc-form" novalidate>
+    <h3 id="acc-t">Inloggen</h3>
+    <p class="hint" id="acc-uitleg" style="margin:0 0 12px"></p>
+    <label class="g-veld" id="acc-email-veld">E-mailadres<input class="field" type="email" id="acc-e" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false"></label>
+    <label class="g-veld" id="acc-ww-veld">Wachtwoord<input class="field" type="password" id="acc-w" autocomplete="current-password" minlength="6"></label>
+    <p class="g-fout" id="acc-fout" role="alert" hidden></p>
+    <div class="btns"><button type="button" class="btn" id="acc-annuleer">Annuleren</button><button type="submit" class="btn btn-primary" id="acc-ok">Inloggen</button></div>
+    <div class="acc-links"><button type="button" class="linkdel" id="acc-wissel">Nog geen account? Maak er een</button><button type="button" class="linkdel" id="acc-vergeten">Wachtwoord vergeten?</button></div>
+  </form>
+</div>
+
+<div class="modal-bg" id="acc-keuze" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="acc-keuze-t">
+    <h3 id="acc-keuze-t">Welk budget wil je houden?</h3>
+    <p class="hint" style="margin:0 0 12px">Er staat al een budget in je account, en ook op deze telefoon. Kies welke je wilt houden. De andere wordt overschreven.</p>
+    <div class="acc-kies">
+      <button type="button" class="acc-optie" id="acc-kies-account"><b>Uit mijn account</b><span id="acc-kies-account-info"></span></button>
+      <button type="button" class="acc-optie" id="acc-kies-toestel"><b>Van deze telefoon</b><span id="acc-kies-toestel-info"></span></button>
+    </div>
+    <p class="hint" style="margin:12px 0 0">Twijfel je? Maak dan eerst een back-up bij "Gegevens veilig".</p>
+  </div>
+</div>
+
 <div class="modal-bg" id="modal" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="m-title">
     <h3 id="m-title">Nieuwe periode starten?</h3>
@@ -1209,9 +1253,9 @@
     return {
       id: p.split('/').pop(), path: p,
       get: async () => docSnap(p),
-      set: async (d) => { store[p] = clone(d); persist(); notify(p); },
-      update: async (d) => { if (store[p] === undefined) { const e = new Error('Bestaat niet'); e.code = 'invalid_argument'; throw e; } store[p] = Object.assign({}, store[p], clone(d)); persist(); notify(p); },
-      delete: async () => { delete store[p]; persist(); notify(p); },
+      set: async (d) => { store[p] = clone(d); persist(); veranderd(p); notify(p); },
+      update: async (d) => { if (store[p] === undefined) { const e = new Error('Bestaat niet'); e.code = 'invalid_argument'; throw e; } store[p] = Object.assign({}, store[p], clone(d)); persist(); veranderd(p); notify(p); },
+      delete: async () => { delete store[p]; persist(); verwijderd(p); notify(p); },
       onSnapshot: (next) => { setTimeout(() => next(docSnap(p)), 0); return add(docSubs, p, next); },
       collection: (c) => collection(p + '/' + c),
     };
@@ -1231,8 +1275,191 @@
   window.claude = { use: async (name) => (name === 'db' ? db : null) };
   window.__budgetStore = {
     export: () => clone(store),
-    replace: (data) => { store = clone(data) || {}; persist(); },
+    replace: (data) => {
+      const oud = Object.keys(store); store = clone(data) || {}; persist();
+      oud.forEach((p) => { if (store[p] === undefined) verwijderd(p); }); Object.keys(store).forEach(veranderd);
+    },
   };
+
+  // ---------- account: synchroniseren met Supabase ----------
+  // Alles blijft eerst op dit toestel staan (zo werkt Duppie ook zonder internet). Ben je ingelogd, dan gaat elke
+  // wijziging ook naar je account, en haalt Duppie wijzigingen van je andere apparaten op. Per onderdeel wint de nieuwste.
+  const SB_URL = 'https://gvhlmugujkqealwlxnzg.supabase.co';
+  const SB_KEY = 'sb_publishable_dnB4lKj5ih_mvQAvacGsSg_sOQZGAN7'; // publieke sleutel: mag in de app, je gegevens worden beschermd door de regels in de database
+  const SES_KEY = 'duppie:sessie', SYNC_KEY = 'duppie:sync';
+  const lees = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } };
+  const schrijf = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+  const leegMeta = (user) => ({ t: {}, vuil: {}, weg: {}, wolk: {}, user: user || null, laatste: null });
+  let sessie = lees(SES_KEY, null);
+  // t: wanneer elk onderdeel hier veranderde · vuil: moet nog naar je account · weg: moet nog uit je account
+  // wolk: staat in je account · user: van welk account deze gegevens zijn · laatste: laatste geslaagde synchronisatie
+  let syncMeta = Object.assign(leegMeta(), lees(SYNC_KEY, {}));
+  const bewaarMeta = () => schrijf(SYNC_KEY, syncMeta);
+  const luisteraars = [];
+  let syncStatus = sessie ? 'ok' : 'uit', syncFout = '';
+  function zetStatus(s, fout) { syncStatus = s; syncFout = fout || ''; luisteraars.forEach((f) => { try { f(); } catch (e) {} }); }
+  function veranderd(p) {
+    syncMeta.t[p] = Date.now(); delete syncMeta.weg[p];
+    if (syncMeta.user) syncMeta.vuil[p] = 1;
+    bewaarMeta(); planSync();
+  }
+  function verwijderd(p) {
+    delete syncMeta.t[p]; delete syncMeta.vuil[p];
+    if (syncMeta.user && syncMeta.wolk[p]) syncMeta.weg[p] = Date.now();
+    bewaarMeta(); planSync();
+  }
+  let syncTimer = null;
+  function planSync() { if (!sessie) return; clearTimeout(syncTimer); syncTimer = setTimeout(syncNu, 1500); }
+
+  function fout(bericht, code, status) { const e = new Error(bericht); e.code = code; e.status = status; return e; }
+  async function api(pad, { method = 'GET', headers = {}, body, auth = true } = {}) {
+    if (auth) await vers();
+    const h = Object.assign({ apikey: SB_KEY, 'Content-Type': 'application/json' }, headers);
+    if (auth) h.Authorization = 'Bearer ' + sessie.access_token;
+    let r;
+    try { r = await fetch(SB_URL + pad, { method, headers: h, body: body === undefined ? undefined : JSON.stringify(body) }); }
+    catch (e) { throw fout('Geen verbinding', 'offline'); }
+    const txt = await r.text(); let js = null;
+    try { js = txt ? JSON.parse(txt) : null; } catch (e) {}
+    if (!r.ok) throw fout((js && (js.msg || js.message || js.error_description)) || ('HTTP ' + r.status), js && (js.error_code || js.code || js.error), r.status);
+    return js;
+  }
+  function zetSessie(s) {
+    sessie = s && s.access_token && s.user ? { access_token: s.access_token, refresh_token: s.refresh_token, expires_at: s.expires_at || Math.floor(Date.now() / 1000) + (s.expires_in || 3600), user: { id: s.user.id, email: s.user.email } } : null;
+    schrijf(SES_KEY, sessie);
+  }
+  // Toegang verloopt na een uur: dan vraagt Duppie stilletjes een nieuwe aan
+  async function vers() {
+    if (!sessie) throw fout('Niet ingelogd', 'no_session');
+    if (Date.now() / 1000 < sessie.expires_at - 60) return;
+    try { zetSessie(await api('/auth/v1/token?grant_type=refresh_token', { method: 'POST', auth: false, body: { refresh_token: sessie.refresh_token } })); }
+    catch (e) {
+      if (e.code !== 'offline') { zetSessie(null); zetStatus('uit', 'Je bent uitgelogd. Log opnieuw in om te synchroniseren.'); }
+      throw e;
+    }
+  }
+  const haalAlles = () => api('/rest/v1/duppie_data?select=sleutel,data,bijgewerkt');
+
+  // Stuur wat hier veranderd is naar je account
+  async function push() {
+    Object.keys(syncMeta.vuil).forEach((p) => { if (store[p] === undefined) delete syncMeta.vuil[p]; });
+    const vuil = Object.keys(syncMeta.vuil);
+    if (vuil.length) {
+      const verstuurd = {};
+      const body = vuil.map((p) => { verstuurd[p] = syncMeta.t[p] || Date.now(); return { user_id: sessie.user.id, sleutel: p, data: store[p], bijgewerkt: new Date(verstuurd[p]).toISOString() }; });
+      await api('/rest/v1/duppie_data?on_conflict=user_id,sleutel', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body });
+      // Wat tijdens het versturen opnieuw veranderde, blijft op de lijst staan
+      vuil.forEach((p) => { syncMeta.wolk[p] = 1; if ((syncMeta.t[p] || 0) === verstuurd[p]) delete syncMeta.vuil[p]; });
+    }
+    for (const p of Object.keys(syncMeta.weg)) {
+      await api('/rest/v1/duppie_data?sleutel=eq.' + encodeURIComponent(p), { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
+      delete syncMeta.weg[p]; delete syncMeta.wolk[p];
+    }
+    bewaarMeta();
+  }
+  // Haal wijzigingen van je andere apparaten op
+  function verwerk(rijen) {
+    const veranderde = [], inWolk = new Set();
+    rijen.forEach((r) => {
+      const p = r.sleutel, rt = Date.parse(r.bijgewerkt) || 0;
+      inWolk.add(p); syncMeta.wolk[p] = 1;
+      if (syncMeta.weg[p]) return;                                 // hier verwijderd, gaat zo ook uit je account
+      if ((syncMeta.t[p] || 0) >= rt && store[p] !== undefined) return; // hier al even nieuw of nieuwer
+      store[p] = r.data; syncMeta.t[p] = rt; delete syncMeta.vuil[p]; veranderde.push(p);
+    });
+    // Op een ander apparaat verwijderd: hier ook weg
+    Object.keys(syncMeta.wolk).forEach((p) => {
+      if (inWolk.has(p) || syncMeta.vuil[p] || syncMeta.weg[p]) return;
+      delete syncMeta.wolk[p];
+      if (store[p] !== undefined) { delete store[p]; delete syncMeta.t[p]; veranderde.push(p); }
+    });
+    if (veranderde.length) { persist(); veranderde.forEach(notify); }
+  }
+  let bezig = null, nogEens = false;
+  async function syncNu() {
+    if (!sessie) return;
+    if (bezig) { nogEens = true; return bezig; }
+    clearTimeout(syncTimer);
+    bezig = (async () => {
+      zetStatus('bezig');
+      try {
+        await push();
+        verwerk(await haalAlles());
+        await push(); // wat tijdens het ophalen veranderde
+        syncMeta.laatste = Date.now(); bewaarMeta(); zetStatus('ok');
+      } catch (e) {
+        if (e.code === 'offline') zetStatus('offline');
+        else if (sessie) zetStatus('fout', e.status === 404 ? 'De tabel in Supabase bestaat nog niet.' : 'Synchroniseren lukte niet: ' + e.message);
+      }
+    })();
+    try { await bezig; } finally { bezig = null; if (nogEens) { nogEens = false; planSync(); } }
+  }
+
+  // Na het inloggen: welke gegevens horen bij elkaar?
+  async function naInloggen() {
+    const id = sessie.user.id;
+    if (syncMeta.user === id) { await syncNu(); return { ok: true }; }
+    const rijen = await haalAlles();
+    if (!rijen.length) {
+      // Je account is nog leeg: alles van dit toestel gaat erin
+      const t = syncMeta.t; syncMeta = leegMeta(id); syncMeta.t = t;
+      Object.keys(store).forEach((p) => { syncMeta.vuil[p] = 1; if (!syncMeta.t[p]) syncMeta.t[p] = Date.now(); });
+      bewaarMeta(); await syncNu(); return { ok: true, geupload: true };
+    }
+    if (!store['budget/huidig']) { neemAccount(rijen); return { ok: true, gedownload: true }; }
+    return { keuze: true, rijen }; // beide hebben een budget: de gebruiker kiest
+  }
+  function neemAccount(rijen) {
+    const oud = Object.keys(store);
+    store = {}; syncMeta = leegMeta(sessie.user.id);
+    rijen.forEach((r) => { store[r.sleutel] = r.data; syncMeta.t[r.sleutel] = Date.parse(r.bijgewerkt) || Date.now(); syncMeta.wolk[r.sleutel] = 1; });
+    syncMeta.laatste = Date.now(); persist(); bewaarMeta(); zetStatus('ok');
+    new Set(oud.concat(Object.keys(store))).forEach(notify);
+  }
+  async function kies(welke, rijen) {
+    if (welke === 'account') { neemAccount(rijen); return; }
+    // Deze telefoon wint: je account wordt overschreven
+    syncMeta = leegMeta(sessie.user.id);
+    rijen.forEach((r) => { syncMeta.wolk[r.sleutel] = 1; if (store[r.sleutel] === undefined) syncMeta.weg[r.sleutel] = Date.now(); });
+    Object.keys(store).forEach((p) => { syncMeta.vuil[p] = 1; syncMeta.t[p] = Date.now(); });
+    bewaarMeta(); await syncNu();
+  }
+  const terugUrl = () => location.href.split('#')[0].split('?')[0];
+  window.__duppieSync = {
+    ingelogd: () => !!sessie, email: () => (sessie ? sessie.user.email : ''), status: () => syncStatus, fout: () => syncFout, laatste: () => syncMeta.laatste,
+    opStatus: (f) => luisteraars.push(f),
+    async login(email, ww) { zetSessie(await api('/auth/v1/token?grant_type=password', { method: 'POST', auth: false, body: { email, password: ww } })); return naInloggen(); },
+    async registreer(email, ww) {
+      const r = await api('/auth/v1/signup?redirect_to=' + encodeURIComponent(terugUrl()), { method: 'POST', auth: false, body: { email, password: ww } });
+      if (r && r.access_token) { zetSessie(r); return naInloggen(); }
+      return { bevestigen: true };
+    },
+    vergeten: (email) => api('/auth/v1/recover?redirect_to=' + encodeURIComponent(terugUrl()), { method: 'POST', auth: false, body: { email } }),
+    nieuwWachtwoord: (ww) => api('/auth/v1/user', { method: 'PUT', body: { password: ww } }),
+    async uitloggen() {
+      try { await syncNu(); } catch (e) {}
+      try { await api('/auth/v1/logout', { method: 'POST' }); } catch (e) {}
+      zetSessie(null); zetStatus('uit');
+    },
+    syncNu, kies,
+    // Kom je via de link in een mail (bevestigen of wachtwoord vergeten)? Dan ben je meteen ingelogd.
+    async start() {
+      const hash = new URLSearchParams(location.hash.slice(1));
+      if (hash.get('error_description')) { history.replaceState(null, '', terugUrl()); return { mailFout: hash.get('error_description') }; }
+      if (!hash.get('access_token')) { if (sessie) syncNu(); return null; }
+      const type = hash.get('type');
+      history.replaceState(null, '', terugUrl());
+      sessie = { access_token: hash.get('access_token'), refresh_token: hash.get('refresh_token'), expires_at: Number(hash.get('expires_at')) || Math.floor(Date.now() / 1000) + 3600, user: { id: '', email: '' } };
+      try { const u = await api('/auth/v1/user'); zetSessie(Object.assign({}, sessie, { user: u })); }
+      catch (e) { zetSessie(null); return { mailFout: 'De link uit de mail werkt niet meer. Vraag een nieuwe aan.' }; }
+      const res = await naInloggen();
+      return Object.assign(res, { herstel: type === 'recovery', bevestigd: type === 'signup' });
+    },
+  };
+  // Elke minuut, als je de app weer opent en als je internet terugkomt: even bijwerken
+  setInterval(() => { if (sessie && document.visibilityState === 'visible') syncNu(); }, 60000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && sessie) syncNu(); });
+  window.addEventListener('online', () => { if (sessie) syncNu(); });
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
 })();
 </script>
@@ -1838,6 +2065,108 @@
     };
   }
   naRender.push(checkWeekafsluiting);
+
+  // ---------- account ----------
+  const S = window.__duppieSync;
+  let accModus = 'login';
+  const ACC_TEKST = {
+    login: { t: 'Inloggen', u: 'Log in om je budget op al je apparaten te hebben.', ok: 'Inloggen', wissel: 'Nog geen account? Maak er een' },
+    maak: { t: 'Account maken', u: 'Je huidige budget gaat mee naar je account. Kies een wachtwoord van minstens 6 tekens.', ok: 'Account maken', wissel: 'Heb je al een account? Log in' },
+    vergeten: { t: 'Wachtwoord vergeten', u: 'Vul je e-mailadres in. Je krijgt een mail met een link om een nieuw wachtwoord te kiezen.', ok: 'Stuur de mail', wissel: 'Terug naar inloggen' },
+    nieuw: { t: 'Nieuw wachtwoord', u: 'Kies een nieuw wachtwoord van minstens 6 tekens.', ok: 'Opslaan', wissel: '' },
+  };
+  function accOpen(modus) {
+    accModus = modus; const x = ACC_TEKST[modus];
+    $('acc-t').textContent = x.t; $('acc-uitleg').textContent = x.u; $('acc-ok').textContent = x.ok;
+    $('acc-wissel').textContent = x.wissel; $('acc-wissel').hidden = !x.wissel; $('acc-vergeten').hidden = modus !== 'login';
+    $('acc-email-veld').hidden = modus === 'nieuw'; $('acc-ww-veld').hidden = modus === 'vergeten';
+    $('acc-w').value = ''; $('acc-w').autocomplete = modus === 'login' ? 'current-password' : 'new-password';
+    $('acc-fout').hidden = true; $('acc-ok').disabled = false; $('acc-m').hidden = false;
+    setTimeout(() => (modus === 'nieuw' || $('acc-e').value ? $('acc-w') : $('acc-e')).focus(), 30);
+  }
+  const accDicht = () => { $('acc-m').hidden = true; };
+  function accFoutTekst(e) {
+    const c = (e && e.code) || '', m = (e && e.message) || '';
+    if (c === 'offline') return 'Geen internet. Probeer het opnieuw als je verbinding hebt.';
+    if (c === 'invalid_credentials' || /invalid login/i.test(m)) return 'Je e-mailadres of wachtwoord klopt niet.';
+    if (c === 'email_not_confirmed' || /not confirmed/i.test(m)) return 'Bevestig eerst je e-mailadres. Klik op de link in de mail die je kreeg.';
+    if (c === 'user_already_exists' || /already registered/i.test(m)) return 'Er is al een account met dit e-mailadres. Log in.';
+    if (c === 'weak_password' || /password should be/i.test(m)) return 'Kies een sterker wachtwoord van minstens 6 tekens.';
+    if (c === 'over_email_send_rate_limit' || /rate limit/i.test(m)) return 'Er zijn net te veel mails verstuurd. Probeer het over een uur opnieuw.';
+    if (c === 'validation_failed' || /invalid format|email address/i.test(m)) return 'Dit e-mailadres klopt niet.';
+    if (c === 'same_password') return 'Kies een ander wachtwoord dan je oude.';
+    return 'Dat lukte niet: ' + (m || 'onbekende fout') + '.';
+  }
+  // Na inloggen: klaar, of kiezen welk budget je houdt
+  function accNa(res) {
+    if (!res) return;
+    if (res.keuze) {
+      const info = (d, n) => d && d.start ? kort(d.start).replace(/ \d{4}$/, '') + ' – ' + kort(d.eind) + ' · ' + n + (n === 1 ? ' uitgave' : ' uitgaven') : 'Geen periode';
+      const acc = (res.rijen.find((r) => r.sleutel === DOC) || {}).data, nu = window.__budgetStore.export()[DOC];
+      $('acc-kies-account-info').textContent = info(acc, acc && acc.uitgaven ? acc.uitgaven.length : 0);
+      $('acc-kies-toestel-info').textContent = info(nu, nu && nu.uitgaven ? nu.uitgaven.length : 0);
+      const kies = async (welke) => { $('acc-keuze').hidden = true; await S.kies(welke, res.rijen); renderAccount(); showNotice(welke === 'account' ? 'Je budget uit je account staat nu op deze telefoon.' : 'Je account is bijgewerkt met het budget van deze telefoon.'); };
+      $('acc-kies-account').onclick = () => kies('account'); $('acc-kies-toestel').onclick = () => kies('toestel');
+      $('acc-keuze').hidden = false;
+    } else if (res.geupload) showNotice('Je budget staat nu ook in je account ✓');
+    else if (res.gedownload) showNotice('Welkom terug! Je budget uit je account staat nu op deze telefoon.');
+    renderAccount();
+  }
+  $('acc-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = $('acc-e').value.trim(), ww = $('acc-w').value;
+    const fout = (t) => { $('acc-fout').textContent = t; $('acc-fout').hidden = false; };
+    if (accModus !== 'nieuw' && !/^\S+@\S+\.\S+$/.test(email)) return fout('Vul je e-mailadres in.');
+    if (accModus !== 'vergeten' && ww.length < 6) return fout('Je wachtwoord moet minstens 6 tekens hebben.');
+    $('acc-ok').disabled = true; $('acc-fout').hidden = true;
+    try {
+      if (accModus === 'login') { const res = await S.login(email, ww); accDicht(); accNa(res); }
+      else if (accModus === 'maak') {
+        const res = await S.registreer(email, ww);
+        if (res.bevestigen) { accDicht(); openModal({ title: 'Check je mail', text: 'We hebben een mail gestuurd naar ' + email + '. Klik op de link om je account te bevestigen. Kom daarna terug en log hier in.', ok: 'Inloggen', onOk: () => setTimeout(() => accOpen('login'), 0) }); }
+        else { accDicht(); accNa(res); }
+      } else if (accModus === 'vergeten') { await S.vergeten(email); accDicht(); showNotice('Als er een account is met ' + email + ', staat er nu een mail klaar om je wachtwoord te veranderen.'); }
+      else { await S.nieuwWachtwoord(ww); accDicht(); showNotice('Je nieuwe wachtwoord is opgeslagen ✓'); }
+    } catch (err) { fout(accFoutTekst(err)); }
+    finally { $('acc-ok').disabled = false; }
+  });
+  $('acc-wissel').addEventListener('click', () => accOpen(accModus === 'login' ? 'maak' : 'login'));
+  $('acc-vergeten').addEventListener('click', () => accOpen('vergeten'));
+  $('acc-annuleer').addEventListener('click', accDicht);
+  $('acc-m').addEventListener('click', (e) => { if (e.target === $('acc-m')) accDicht(); });
+  $('acc-login').addEventListener('click', () => accOpen('login'));
+  $('acc-login-leeg').addEventListener('click', () => accOpen('login'));
+  $('acc-maak').addEventListener('click', () => accOpen('maak'));
+  $('acc-nu').addEventListener('click', () => S.syncNu());
+  $('acc-uitlog').addEventListener('click', () => openModal({
+    title: 'Uitloggen?', text: 'Je budget blijft op deze telefoon staan, maar wijzigingen gaan niet meer naar je account tot je weer inlogt.', ok: 'Uitloggen',
+    onOk: async () => { await S.uitloggen(); renderAccount(); },
+  }));
+  function renderAccount() {
+    const inn = S.ingelogd();
+    $('acc-uit').hidden = inn; $('acc-in').hidden = !inn;
+    $('acc-email').textContent = S.email();
+    const st = S.status(), l = S.laatste();
+    const tijd = l ? new Date(l).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }) : '';
+    $('acc-sync').textContent = st === 'bezig' ? 'Bezig met synchroniseren…'
+      : st === 'offline' ? 'Geen internet: je wijzigingen gaan mee zodra je weer online bent.'
+      : st === 'fout' ? S.fout()
+      : l ? 'Alles staat in je account ✓ (bijgewerkt om ' + tijd + ')' : 'Alles staat in je account ✓';
+    $('acc-sync').style.color = st === 'fout' ? 'var(--bad)' : '';
+    $('bk-uitleg').textContent = inn ? 'Je budget staat ook in je account. Een back-up is een extra kopie voor de zekerheid.'
+      : 'Je budget staat alleen op deze telefoon. Maak af en toe een back-up en bewaar die bijvoorbeeld in iCloud Drive, zodat je niets kwijtraakt als je van telefoon wisselt.';
+    if (!inn && S.fout() && st === 'uit') showNotice(S.fout());
+  }
+  S.opStatus(renderAccount);
+  renderAccount();
+  // Via een link uit een mail binnengekomen?
+  S.start().then((res) => {
+    if (!res) return;
+    if (res.mailFout) { showNotice(res.mailFout); return; }
+    if (res.bevestigd) showNotice('Je e-mailadres is bevestigd en je bent ingelogd ✓');
+    accNa(res);
+    if (res.herstel) accOpen('nieuw');
+  }).catch((e) => showNotice(accFoutTekst(e)));
 
   // ---------- kan ik dit betalen? ----------
   // Rekent uit wat een aankoop van vandaag doet met deze week en de weken die nog komen. Er wordt niets opgeslagen.
@@ -4137,7 +4466,7 @@
   function renderBackupTip() {
     let l = null, weg = null;
     try { l = localStorage.getItem('mijnbudget:laatsteBackup'); weg = localStorage.getItem('mijnbudget:backupTipWeg'); } catch (e) {}
-    const heeftData = state && !state.voorbeeld && (state.posten.length > 0 || state.uitgaven.length > 0);
+    const heeftData = state && !state.voorbeeld && (state.posten.length > 0 || state.uitgaven.length > 0) && !window.__duppieSync.ingelogd();
     $('bk-tip').hidden = !(heeftData && dagenGeleden(l) >= 14 && dagenGeleden(weg) >= 7);
     $('bk-tip-t').textContent = l ? 'Je laatste back-up is van ' + kort(l) + '. Maak een nieuwe, zodat je niets kwijtraakt als er iets met je telefoon gebeurt.'
       : 'Je budget staat alleen op deze telefoon. Met een back-up raak je niets kwijt als je telefoon kapotgaat of je een nieuwe krijgt.';
