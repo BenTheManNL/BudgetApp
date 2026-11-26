@@ -33,9 +33,9 @@ Je ziet in één oogopslag wat je deze week nog kunt uitgeven.
 
 Zonder account blijven al je gegevens **alleen op je eigen telefoon**. Er gaat dan niets naar een server en er wordt niets gevolgd.
 
-Wil je je budget op meerdere apparaten gebruiken of veilig online bewaren? Dan kun je een **account** maken (bij Periodes). Je gegevens worden dan opgeslagen bij [Supabase](https://supabase.com) in Frankfurt. Alleen jij kunt erbij: de database laat iedereen alleen zijn eigen gegevens zien. Een account is nooit verplicht.
+Wil je je budget op meerdere apparaten gebruiken of veilig online bewaren? Dan kun je een **account** maken (tabblad *Account*). Je gegevens worden dan opgeslagen bij [Supabase](https://supabase.com) in Frankfurt. Alleen jij kunt erbij: de database laat iedereen alleen zijn eigen gegevens zien. Een account is nooit verplicht.
 
-Gebruik je geen account, maak dan af en toe een **back-up** (tabblad *Periodes*). Bewaar die bijvoorbeeld in iCloud Drive of Google Drive.
+Gebruik je geen account, maak dan af en toe een **back-up** (tabblad *Account*). Bewaar die bijvoorbeeld in iCloud Drive of Google Drive.
 
 ## Installeren op je telefoon
 

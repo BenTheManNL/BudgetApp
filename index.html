@@ -81,7 +81,7 @@
 
   /* ---------- tabs ---------- */
   .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--surface); border-top: 1px solid var(--line);
-    padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(5, 1fr); }
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(6, 1fr); }
   .tab { background: none; border: none; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 0; border-radius: 12px; color: var(--ink-3); font-size: 12px; font-weight: 600; }
   .tab svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   .tab[aria-selected="true"] { color: var(--pine-2); }
@@ -511,6 +511,9 @@
   .data-tbl th { color: var(--ink-3); font-weight: 500; border-top: none; }
   .data-tbl .n { text-align: right; }
   @media (max-width: 380px) { .tab { font-size: 11px; } }
+  /* Zes tabs: op smalle schermen mag een tab krimpen en wordt de tekst iets kleiner */
+  .tab { min-width: 0; }
+  @media (max-width: 360px) { .tabbar { padding-left: 4px; padding-right: 4px; } .tab { font-size: 10px; letter-spacing: -.01em; } }
   .kop-knoppen { display: flex; gap: 6px; flex-wrap: wrap; }
   .bon-bezig { padding: 8px 0 18px; }
   .bon-balk { height: 6px; border-radius: 99px; background: var(--surface-2); overflow: hidden; }
@@ -654,6 +657,7 @@
   <button class="tab" role="tab" data-tab="sparen" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M19 6c-1.4 0-2.6 1.1-2.9 1.6C12.6 6.3 5 7.4 5 12.5c0 1.8.6 3 2 4.2V20h3.5v-2h3v2H17v-3.4c.9-.6 1.6-1.4 2-2.6h2v-3.5h-2c-.2-.9-.7-1.6-1.2-2.1z"/><path d="M2.5 9.5c0 1.4 1.1 2.5 2.5 2.5"/><circle cx="15.5" cy="11" r="0.9" fill="currentColor"/></svg>Sparen</button>
   <button class="tab" role="tab" data-tab="budget" aria-selected="false"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Budget</button>
   <button class="tab" role="tab" data-tab="periodes" aria-selected="false"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Periodes</button>
+  <button class="tab" role="tab" data-tab="account" aria-selected="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>Account</button>
 </nav>
 
 <div class="wrap">
@@ -956,6 +960,10 @@
         </div>
         <p class="arch-empty">Nog geen andere periodes. Als je een nieuwe periode start, komt de huidige hier te staan.</p>
       </div>
+    </section>
+
+    <!-- ================= ACCOUNT ================= -->
+    <section class="pane" data-pane="account" id="account-pane" hidden>
       <div class="card" id="account">
         <div class="card-h"><h2>Account</h2></div>
         <div id="acc-uit">
@@ -4405,7 +4413,7 @@
   $('set-rest').addEventListener('change', (e) => { state.restNaar = e.target.value; changed(); });
 
   // ---------- tabs ----------
-  const TABS = ['overzicht', 'inzicht', 'sparen', 'budget', 'periodes'];
+  const TABS = ['overzicht', 'inzicht', 'sparen', 'budget', 'periodes', 'account'];
   function showTab(name, push) {
     if (!TABS.includes(name)) name = 'overzicht';
     document.querySelectorAll('[data-pane]').forEach((p) => { p.hidden = p.dataset.pane !== name; });
