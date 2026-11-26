@@ -427,6 +427,7 @@
   .act .pro-pil { position: absolute; top: -7px; right: 6px; margin: 0; box-shadow: 0 0 0 2px var(--surface); }
   /* Heel smalle schermen: iconen weg, zodat de tekst op de drie knoppen past */
   @media (max-width: 340px) { .act svg { display: none; } }
+  .card-h h2 .pro-pil { vertical-align: 3px; margin-left: 4px; }
   .pro-pil.groot { font-size: 13px; padding: 4px 9px; vertical-align: 3px; margin-left: 4px; }
   .pro-lijst { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 8px; }
   .pro-lijst li { border: 1px solid var(--line); border-radius: 14px; padding: 11px 13px; display: grid; gap: 2px; }
@@ -803,7 +804,7 @@
     <!-- ================= INZICHT ================= -->
     <section class="pane" data-pane="inzicht" id="inzicht" hidden>
       <div class="card" id="zoek-kaart">
-        <div class="card-h"><h2>Zoeken</h2><span class="card-sub">in al je periodes</span></div>
+        <div class="card-h"><h2>Zoeken <span class="pro-pil" hidden>Pro</span></h2><span class="card-sub">in al je periodes</span></div>
         <input class="field" type="search" id="zoek" placeholder="Bijvoorbeeld Jumbo of Bullit" autocomplete="off" aria-label="Zoek in je uitgaven">
         <p class="card-sub" id="zoek-sum" style="margin:10px 0 0" aria-live="polite"></p>
         <ul class="entries zoek-lijst" id="zoek-lijst"></ul>
@@ -1227,6 +1228,7 @@
     <p class="hint" style="margin:0 0 12px">Met Duppie Pro krijg je extra hulp bij je budget:</p>
     <ul class="pro-lijst">
       <li><b>📷 Bon scannen</b><span>Maak een foto van je bonnetje en Duppie vult de uitgave in, met alle artikelen.</span></li>
+      <li><b>🔎 Zoeken</b><span>Vind elke uitgave terug in al je periodes, bijvoorbeeld alles bij de Jumbo.</span></li>
       <li><b>🤔 Kan ik dit betalen?</b><span>Zie vooraf wat een aankoop doet met deze week en de weken die nog komen.</span></li>
     </ul>
     <p class="pro-staat" id="pro-staat"></p>
@@ -2231,6 +2233,9 @@
   function renderPro() {
     const aan = S.pro();
     document.querySelectorAll('.pro-pil:not(.groot)').forEach((p) => { p.hidden = aan; });
+    // Zoeken: zonder Pro kun je niet typen (en wordt een oude zoekopdracht gewist)
+    const z = $('zoek'); z.readOnly = !aan;
+    if (!aan && z.value) { z.value = ''; renderZoek(); }
     const el = $('acc-pro'); if (!el) return;
     const tot = S.proTot();
     el.textContent = aan ? '⭐ Duppie Pro staat aan' + (tot ? ' tot ' + kort(tot) : '') + '.' : S.proVerlopen() ? 'Je Duppie Pro is verlopen.' : 'Je hebt nog geen Duppie Pro.';
@@ -2256,6 +2261,7 @@
     return false;
   }
   $('pro-dicht').addEventListener('click', () => { $('pro').hidden = true; });
+  $('zoek').addEventListener('focus', (e) => { if (!S.pro()) { e.target.blur(); vraagPro(); } });
   $('pro').addEventListener('click', (e) => { if (e.target === $('pro')) $('pro').hidden = true; });
 
   // ---------- kan ik dit betalen? ----------
