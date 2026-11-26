@@ -388,6 +388,41 @@
   /* woordmerk "Duppie" (Fredoka, omgezet naar vormen): de letters kleuren mee met licht/donker, het muntje blijft goud */
   .woordmerk { display: block; height: var(--wm-h, 30px); width: auto; overflow: visible; }
   /* mascotte voor het woord Duppie */
+  /* Duppie's humeur: wiebelen bij een ander humeur, springen bij feest, een tekstballon als je erop tikt */
+  .brand { position: relative; }
+  #mascotte { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .mascotte.m-wiebel { animation: m-wiebel .6s ease; transform-origin: 50% 90%; }
+  @keyframes m-wiebel { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-8deg); } 50% { transform: rotate(6deg); } 75% { transform: rotate(-3deg); } }
+  .mascotte[data-humeur="feest"] { animation: m-spring .5s ease 3; transform-origin: 50% 100%; }
+  @keyframes m-spring { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-14%); } }
+  .masc-bel { position: absolute; left: 0; top: calc(100% + 10px); z-index: 15; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 14px; padding: 10px 13px; font-size: 14px; line-height: 1.4; width: max-content; max-width: min(280px, 80vw); box-shadow: var(--shadow); }
+  .masc-bel::before { content: ""; position: absolute; top: -6px; left: 22px; width: 10px; height: 10px; background: inherit; border-left: 1px solid var(--line); border-top: 1px solid var(--line); transform: rotate(45deg); }
+  /* Weekafsluiting */
+  .wa-mod { text-align: center; }
+  .wa-masc { position: relative; display: flex; justify-content: center; margin: 2px 0 8px; }
+  .wa-masc svg { height: 112px; width: auto; overflow: visible; }
+  .wa-big { font-family: var(--display); font-size: 32px; font-weight: 700; letter-spacing: -.02em; margin: 2px 0 4px; font-variant-numeric: tabular-nums; }
+  .wa-big.goed { color: var(--ok); } .wa-big.neg { color: var(--bad); }
+  .wa-mod p { margin: 0 0 10px; color: var(--ink-2); }
+  .wa-potten { list-style: none; padding: 0; margin: 12px 0; text-align: left; border: 1px solid var(--line); border-radius: 14px; }
+  .wa-potten li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 12px; font-size: 13.5px; }
+  .wa-potten li + li { border-top: 1px solid var(--line); }
+  .wa-potten b { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+  .wa-potten span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .wa-mod .btns { justify-content: center; }
+  .confetti i { position: absolute; top: 45%; left: 50%; width: 7px; height: 11px; border-radius: 2px; background: var(--c); opacity: 0; animation: conf 1.5s cubic-bezier(.2,.7,.3,1) var(--d) forwards; }
+  @keyframes conf { 0% { opacity: 1; transform: translate(0, 0) rotate(0); } 100% { opacity: 0; transform: translate(var(--x), var(--y)) rotate(var(--r)); } }
+  /* Kan ik dit betalen? */
+  .kan-knop { width: 100%; margin-top: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; }
+  .kan-uit { border-radius: 14px; padding: 12px 14px; margin: 2px 0 14px; font-size: 14px; line-height: 1.45; background: var(--surface-2); }
+  .kan-uit[data-s="ok"] { background: color-mix(in srgb, var(--ok) 14%, transparent); }
+  .kan-uit[data-s="let"] { background: color-mix(in srgb, var(--eigen) 16%, transparent); }
+  .kan-uit[data-s="nee"] { background: color-mix(in srgb, var(--bad) 15%, transparent); }
+  .kan-uit b { font-variant-numeric: tabular-nums; }
+  .kan-uit p { margin: 0; }
+  .kan-weken { list-style: none; padding: 0; margin: 10px 0 0; }
+  .kan-weken li { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; border-top: 1px solid color-mix(in srgb, var(--ink) 10%, transparent); font-variant-numeric: tabular-nums; }
+  @media (prefers-reduced-motion: reduce) { .mascotte.m-wiebel, .mascotte[data-humeur="feest"] { animation: none; } .confetti { display: none; } }
   .mascotte { display: block; flex: none; height: calc(var(--wm-h, 32px) * 1.45); width: auto; overflow: visible; }
   .brand { --wm-h: 30px; gap: 10px; }
   /* de oude regel '.brand-name svg' (83×24 px) won hiervan; twee classes winnen weer */
@@ -585,12 +620,12 @@
 <header class="appbar">
   <div class="appbar-in">
     <div class="brand">
-      <svg class="mascotte" viewBox="84 26 296 334" aria-hidden="true">
+      <svg class="mascotte" id="mascotte" viewBox="84 26 296 334" role="img" aria-label="Duppie">
 <g stroke="#F5C242" stroke-width="14" stroke-linecap="round"><path d="M318 36 L304 70"/><path d="M372 72 L342 92"/></g>
 <path d="M122 70 H212 C302 70 342 138 342 205 C342 278 298 338 212 338 H122 Q92 338 92 308 V100 Q92 70 122 70 Z" fill="#FBF5E6" stroke="#0B3B22" stroke-width="6"/>
 <ellipse cx="146" cy="180" rx="16" ry="10" fill="#F4B39A" opacity="0.55"/>
 <ellipse cx="290" cy="180" rx="16" ry="10" fill="#F4B39A" opacity="0.55"/>
-<g fill="none" stroke="#0B3B22" stroke-width="10" stroke-linecap="round"><path d="M150 152 Q166 132 182 152"/><path d="M252 152 Q268 132 284 152"/><path d="M200 174 Q217 194 234 174"/></g>
+<g class="m-gezicht" fill="none" stroke="#0B3B22" stroke-width="10" stroke-linecap="round"><path d="M150 152 Q166 132 182 152"/><path d="M252 152 Q268 132 284 152"/><path d="M200 174 Q217 194 234 174"/></g>
 <g transform="rotate(-12 205 230)"><rect x="150" y="198" width="110" height="64" rx="8" fill="#5AD08A" stroke="#0B3B22" stroke-width="5"/><circle cx="205" cy="230" r="17" fill="#2FA65C"/><path transform="translate(198.17 238.0) scale(0.024,-0.024)" fill="#E9FFF1" d="M352 -7Q311 -7 275.0 3.5Q239 14 208.5 35.0Q178 56 155.0 86.0Q132 116 115.5 155.5Q99 195 90 243Q86 281 84.5 320.0Q83 359 84.0 397.0Q85 435 87 469Q97 533 119.0 578.0Q141 623 170.0 651.5Q199 680 231.0 696.0Q263 712 294.5 718.5Q326 725 352 725H468Q490 725 510.0 721.0Q530 717 542.5 698.0Q555 679 555 634Q555 589 541.5 570.0Q528 551 507.5 547.5Q487 544 464 544H352Q345 544 336.5 543.0Q328 542 318.0 538.5Q308 535 299.0 527.0Q290 519 282.5 504.0Q275 489 271 465Q265 431 263.0 394.0Q261 357 263.0 321.0Q265 285 270 252Q276 230 283.5 215.0Q291 200 299.0 191.5Q307 183 316.0 179.0Q325 175 334.0 174.0Q343 173 352 173H465Q488 173 508.5 169.0Q529 165 542.0 146.0Q555 127 555 82Q555 39 542.5 20.0Q530 1 510.5 -3.0Q491 -7 470 -7ZM63 224Q49 224 35.5 226.5Q22 229 13.5 241.5Q5 254 5 284Q5 313 14.5 324.5Q24 336 37.5 338.0Q51 340 62 340H445Q457 340 470.5 337.5Q484 335 493.5 323.0Q503 311 503 282Q503 254 494.5 241.5Q486 229 472.5 226.5Q459 224 445 224ZM63 377Q49 377 35.5 379.5Q22 382 13.5 394.5Q5 407 5 436Q5 465 14.5 477.0Q24 489 37.5 491.5Q51 494 62 494H445Q457 494 470.5 491.5Q484 489 493.5 476.5Q503 464 503 434Q503 406 494.5 394.0Q486 382 472.5 379.5Q459 377 445 377Z"/></g>
 <g transform="rotate(10 255 225)"><rect x="200" y="192" width="110" height="64" rx="8" fill="#6EDB98" stroke="#0B3B22" stroke-width="5"/><circle cx="255" cy="224" r="17" fill="#2FA65C"/><path transform="translate(248.17 232.0) scale(0.024,-0.024)" fill="#E9FFF1" d="M352 -7Q311 -7 275.0 3.5Q239 14 208.5 35.0Q178 56 155.0 86.0Q132 116 115.5 155.5Q99 195 90 243Q86 281 84.5 320.0Q83 359 84.0 397.0Q85 435 87 469Q97 533 119.0 578.0Q141 623 170.0 651.5Q199 680 231.0 696.0Q263 712 294.5 718.5Q326 725 352 725H468Q490 725 510.0 721.0Q530 717 542.5 698.0Q555 679 555 634Q555 589 541.5 570.0Q528 551 507.5 547.5Q487 544 464 544H352Q345 544 336.5 543.0Q328 542 318.0 538.5Q308 535 299.0 527.0Q290 519 282.5 504.0Q275 489 271 465Q265 431 263.0 394.0Q261 357 263.0 321.0Q265 285 270 252Q276 230 283.5 215.0Q291 200 299.0 191.5Q307 183 316.0 179.0Q325 175 334.0 174.0Q343 173 352 173H465Q488 173 508.5 169.0Q529 165 542.0 146.0Q555 127 555 82Q555 39 542.5 20.0Q530 1 510.5 -3.0Q491 -7 470 -7ZM63 224Q49 224 35.5 226.5Q22 229 13.5 241.5Q5 254 5 284Q5 313 14.5 324.5Q24 336 37.5 338.0Q51 340 62 340H445Q457 340 470.5 337.5Q484 335 493.5 323.0Q503 311 503 282Q503 254 494.5 241.5Q486 229 472.5 226.5Q459 224 445 224ZM63 377Q49 377 35.5 379.5Q22 382 13.5 394.5Q5 407 5 436Q5 465 14.5 477.0Q24 489 37.5 491.5Q51 494 62 494H445Q457 494 470.5 491.5Q484 489 493.5 476.5Q503 464 503 434Q503 406 494.5 394.0Q486 382 472.5 379.5Q459 377 445 377Z"/></g>
 <g transform="rotate(-4 230 290)"><rect x="126" y="246" width="206" height="96" rx="22" fill="#2FA65C" stroke="#0B3B22" stroke-width="6"/><path d="M140 270 H318" stroke="#0B3B22" stroke-width="5" stroke-linecap="round" opacity="0.3"/><rect x="292" y="272" width="58" height="44" rx="16" fill="#1F7F45" stroke="#0B3B22" stroke-width="6"/><circle cx="320" cy="294" r="9" fill="#F5C242"/></g>
@@ -682,6 +717,7 @@
         </div>
         <div class="hero-total"><span>Samen nog <b id="hero-left">—</b> deze week</span><span id="hero-sub">—</span></div>
         <div class="tempo" id="tempo" hidden></div>
+        <button type="button" class="btn kan-knop" id="kan-open"><span aria-hidden="true">🤔</span>Kan ik dit betalen?</button>
       </div>
 
       <form class="card" id="u-form" autocomplete="off">
@@ -1020,6 +1056,35 @@
     <p class="g-fout" id="ue-fout" role="alert" hidden></p>
     <div class="btns"><button class="btn" id="ue-annuleer">Annuleren</button><button class="btn btn-primary" id="ue-ok">Opslaan</button></div>
     <div class="ue-extra"><button class="btn" id="ue-voor">↩&#xFE0E; Voorgeschoten</button><button class="btn" id="ue-weg">Verwijderen</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="kan" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="kan-t">
+    <h3 id="kan-t">Kan ik dit betalen?</h3>
+    <p class="hint" style="margin:0 0 12px">Vul in wat je wilt kopen. Duppie rekent uit wat het doet met je budget. Er wordt nog niets opgeslagen.</p>
+    <label class="g-veld">Bedrag<input class="field" id="kan-bedrag" inputmode="decimal" placeholder="0,00"></label>
+    <div class="g-veld"><span>Van welk potje?</span>
+      <div class="potpick" role="radiogroup" aria-label="Potje">
+        <label style="--pot:var(--bood)"><input type="radio" name="kan-pot" value="boodschappen" checked><span>🛒 Boodschappen</span></label>
+        <label style="--pot:var(--eigen)"><input type="radio" name="kan-pot" value="eigen"><span>✨ Eigen invulling</span></label>
+      </div>
+    </div>
+    <div class="kan-uit" id="kan-uit" aria-live="polite"><p>Vul een bedrag in.</p></div>
+    <div class="btns"><button class="btn" id="kan-dicht">Sluiten</button><button class="btn btn-primary" id="kan-koop" disabled>Ik koop het: toevoegen</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="wa" hidden>
+  <div class="modal wa-mod" role="dialog" aria-modal="true" aria-labelledby="wa-t">
+    <div class="wa-masc" id="wa-masc"></div>
+    <h3 id="wa-t">Week zit erop!</h3>
+    <div class="wa-big" id="wa-big"></div>
+    <p id="wa-sub"></p>
+    <ul class="wa-potten" id="wa-potten"></ul>
+    <p id="wa-waar"></p>
+    <p id="wa-dagen"></p>
+    <div class="btns"><button class="btn btn-primary" id="wa-ok">Top!</button></div>
   </div>
 </div>
 
@@ -1646,6 +1711,195 @@
     $('vb-banner').hidden = !state.voorbeeld;
     naRender.forEach((f) => { try { f(); } catch (e) {} });
   }
+
+  // ---------- Duppie's humeur ----------
+  // Het gezicht van de mascotte in de balk laat zien hoe je deze week ervoor staat
+  const GEZICHT = {
+    blij: '<path d="M150 152 Q166 132 182 152"/><path d="M252 152 Q268 132 284 152"/><path d="M200 174 Q217 194 234 174"/>',
+    rustig: '<circle cx="166" cy="148" r="9" fill="#0B3B22" stroke="none"/><circle cx="268" cy="148" r="9" fill="#0B3B22" stroke="none"/><path d="M204 180 Q217 188 230 180"/>',
+    bezorgd: '<circle cx="166" cy="152" r="9" fill="#0B3B22" stroke="none"/><circle cx="268" cy="152" r="9" fill="#0B3B22" stroke="none"/><path d="M148 130 L182 120" stroke-width="8"/><path d="M286 130 L252 120" stroke-width="8"/><path d="M198 188 Q208 178 217 186 Q226 194 236 184"/>',
+    feest: '<path d="M148 154 Q166 128 184 154"/><path d="M250 154 Q268 128 286 154"/><path d="M196 170 Q217 208 238 170 Z" fill="#0B3B22"/>',
+  };
+  const GEZICHT_EXTRA = {
+    bezorgd: '<path d="M318 100 Q329 118 329 127 A11 11 0 0 1 307 127 Q307 118 318 100 Z" fill="#8FC9F2" stroke="#0B3B22" stroke-width="4"/>',
+    feest: '<g fill="#F5C242" stroke="#0B3B22" stroke-width="3"><path d="M104 96 l6 13 13 6 -13 6 -6 13 -6 -13 -13 -6 13 -6z"/><path d="M362 170 l5 11 11 5 -11 5 -5 11 -5 -11 -11 -5 11 -5z"/></g>',
+  };
+  function zetHumeur(svg, humeur) {
+    const g = svg && svg.querySelector('.m-gezicht');
+    if (!g || svg.dataset.humeur === humeur) return;
+    g.innerHTML = GEZICHT[humeur];
+    let x = svg.querySelector('.m-extra');
+    if (!x) { x = document.createElementNS('http://www.w3.org/2000/svg', 'g'); x.setAttribute('class', 'm-extra'); svg.append(x); }
+    x.innerHTML = GEZICHT_EXTRA[humeur] || '';
+    const eersteKeer = !svg.dataset.humeur; svg.dataset.humeur = humeur;
+    // Wiebelen als het humeur verandert (niet bij het openen van de app)
+    if (!eersteKeer && humeur !== 'feest') { svg.classList.remove('m-wiebel'); void svg.getBoundingClientRect(); svg.classList.add('m-wiebel'); }
+  }
+  // Hoe staat de huidige week ervoor? (Boodschappen en Eigen invulling samen)
+  function humeurNu() {
+    const ws = state ? weken(state) : [], d = vandaag();
+    if (!ws.length || d < ws[0].start || d > ws[ws.length - 1].end) return { humeur: 'blij', tekst: 'Hoi, ik ben Duppie!' };
+    const t = totalen(state), a = weekVan(ws, d), wb = weekBudgetten(state, t, ws)[a];
+    const budget = r2(wb.b + wb.e), over = r2(budget - wb.spentB - wb.spentE);
+    if (budget <= 0) return { humeur: 'blij', tekst: 'Hoi, ik ben Duppie!' };
+    // Bezorgd zodra één potje over zijn budget gaat (geld van Eigen invulling betaalt je boodschappen niet vanzelf)
+    const overB = r2(wb.b - wb.spentB), overE = r2(wb.e - wb.spentE);
+    if (overB < 0 || overE < 0) {
+      const te = overB < 0 ? -overB : -overE, potNaam = overB < 0 ? 'boodschappen' : 'eigen invulling';
+      return { humeur: 'bezorgd', tekst: 'Even opletten: je zit deze week ' + eur.format(te) + ' boven je budget voor ' + potNaam + '.' + (state.meenemen && a < ws.length - 1 ? ' Dat wordt verdeeld over de weken die nog komen.' : '') };
+    }
+    if (over < budget * 0.15) return { humeur: 'rustig', tekst: 'Je hebt deze week nog ' + eur.format(over) + ' over.' };
+    return { humeur: 'blij', tekst: 'Lekker bezig! Je hebt deze week nog ' + eur.format(over) + ' over.' };
+  }
+  let feestTot = 0, humeurTekst = '';
+  function renderMascotte() {
+    const svg = $('mascotte'); if (!svg) return;
+    const h = Date.now() < feestTot ? { humeur: 'feest', tekst: 'Feest! 🎉' } : humeurNu();
+    zetHumeur(svg, h.humeur); humeurTekst = h.tekst;
+    svg.setAttribute('aria-label', 'Duppie. ' + h.tekst);
+  }
+  function mascotteFeest(ms = 4000) { feestTot = Date.now() + ms; renderMascotte(); setTimeout(renderMascotte, ms + 50); }
+  naRender.push(renderMascotte);
+  // Tik op Duppie: een tekstballon met hoe je ervoor staat
+  let belTimer = null;
+  $('mascotte').addEventListener('click', () => {
+    let bel = document.querySelector('.masc-bel');
+    if (bel) { bel.remove(); clearTimeout(belTimer); return; }
+    renderMascotte();
+    bel = document.createElement('div'); bel.className = 'masc-bel'; bel.setAttribute('role', 'status'); bel.textContent = humeurTekst;
+    $('mascotte').parentElement.append(bel);
+    belTimer = setTimeout(() => bel.remove(), 4000);
+  });
+
+  // ---------- weekafsluiting ----------
+  // Is er een week voorbij die je nog niet hebt afgesloten? Dan een korte samenvatting.
+  const WA_KEY = 'duppie:weekklaar';
+  function checkWeekafsluiting() {
+    if (!state || readOnly || state.voorbeeld || document.querySelector('.modal-bg:not([hidden])')) return;
+    const ws = weken(state), d = vandaag();
+    let i = -1; ws.forEach((w, j) => { if (w.end < d) i = j; });
+    if (i < 0) return;
+    const sleutel = state.start + ':' + i;
+    let gezien = null; try { gezien = localStorage.getItem(WA_KEY); } catch (e) { return; }
+    if (gezien === sleutel) return;
+    // Een periode die al lang voorbij is: niet meer laten zien
+    if (d > toISO(parseISO(ws[i].end) + 7 * DAG)) { try { localStorage.setItem(WA_KEY, sleutel); } catch (e) {} return; }
+    toonWeekafsluiting(ws, i, sleutel);
+  }
+  function toonWeekafsluiting(ws, i, sleutel) {
+    const w = ws[i], t = totalen(state), wb = weekBudgetten(state, t, ws)[i];
+    const budget = r2(wb.b + wb.e), uit = r2(wb.spentB + wb.spentE), rest = r2(budget - uit);
+    const restB = r2(wb.b - wb.spentB), restE = r2(wb.e - wb.spentE);
+    // Goed = geen enkel potje over budget. Gemengd = samen nog over, maar één potje ging erover.
+    const goed = restB >= 0 && restE >= 0, gemengd = !goed && rest >= 0;
+    // Een kopie van de mascotte, groot, met een feestelijk of bezorgd gezicht
+    const m = $('mascotte').cloneNode(true); m.removeAttribute('id'); m.setAttribute('aria-hidden', 'true'); m.classList.remove('m-wiebel');
+    delete m.dataset.humeur; zetHumeur(m, goed ? 'feest' : gemengd ? 'rustig' : 'bezorgd');
+    const vak = $('wa-masc'); vak.replaceChildren(m);
+    if (goed) {
+      const c = document.createElement('div'); c.className = 'confetti'; c.setAttribute('aria-hidden', 'true');
+      const kleuren = ['var(--mint)', 'var(--eigen)', 'var(--spaar)', '#F5C242', 'var(--schuld)'];
+      for (let k = 0; k < 18; k++) {
+        const s = document.createElement('i'), hoek = Math.random() * Math.PI * 2, afstand = 70 + Math.random() * 70;
+        s.style.cssText = '--c:' + kleuren[k % kleuren.length] + ';--x:' + Math.round(Math.cos(hoek) * afstand) + 'px;--y:' + Math.round(Math.sin(hoek) * afstand - 20) + 'px;--r:' + Math.round(Math.random() * 540) + 'deg;--d:' + (Math.random() * .25).toFixed(2) + 's';
+        c.append(s);
+      }
+      vak.append(c);
+    }
+    $('wa-t').textContent = 'Week ' + (w.i + 1) + ' zit erop!';
+    const big = $('wa-big'); big.textContent = rest >= 0 ? eur.format(rest) + ' over' : eur.format(-rest) + ' te veel';
+    big.className = 'wa-big ' + (goed ? 'goed' : rest < 0 ? 'neg' : '');
+    $('wa-sub').textContent = kortDag(w.start) + ' t/m ' + kortDag(w.end) + ': je had ' + eur.format(budget) + ' en gaf ' + eur.format(uit) + ' uit.';
+    const ul = $('wa-potten'); ul.replaceChildren();
+    const rij = (label, s, b) => { const li = document.createElement('li'); const a = document.createElement('span'); a.textContent = label; const v = document.createElement('b'); v.textContent = eur.format(s) + ' van ' + eur.format(b); if (s > b + 0.004) v.style.color = 'var(--bad)'; li.append(a, v); ul.append(li); };
+    rij('🛒 Boodschappen', wb.spentB, wb.b);
+    if (wb.e > 0 || wb.spentE > 0) rij('✨ Eigen invulling', wb.spentE, wb.e);
+    const n = ws.length - i - 1;
+    const wk = n === 1 ? 'de laatste week' : 'de ' + n + ' weken die nog komen';
+    $('wa-waar').textContent = gemengd && n > 0 && state.meenemen
+      ? 'Bij boodschappen ' + (restB < 0 ? 'ging je ' + eur.format(-restB) + ' over je budget' : 'hield je ' + eur.format(restB) + ' over') + ', bij eigen invulling ' + (restE < 0 ? 'ging je ' + eur.format(-restE) + ' erover' : 'hield je ' + eur.format(restE) + ' over') + '. Beide worden verdeeld over ' + wk + '.'
+      : Math.abs(rest) < 0.01 ? 'Precies op budget. Knap!'
+      : n === 0 ? 'Dit was de laatste week van deze periode.'
+      : !state.meenemen ? 'Meenemen staat uit, dus de weken die nog komen blijven gelijk.'
+      : goed ? 'Dat geld gaat naar de ' + (n === 1 ? 'laatste week' : n + ' weken die nog komen') + ': ongeveer ' + eur.format(rest / n) + ' extra per week.'
+      : 'Dat wordt verdeeld over de ' + (n === 1 ? 'laatste week' : n + ' weken die nog komen') + ': ongeveer ' + eur.format(-rest / n) + ' minder per week.';
+    // Positief afsluiten: op hoeveel dagen gaf je niets uit?
+    const metUitgave = new Set(state.uitgaven.filter((u) => u.datum >= w.start && u.datum <= w.end && telt(u) > 0).map((u) => u.datum));
+    const vrij = w.dagen - metUitgave.size;
+    $('wa-dagen').textContent = vrij === w.dagen ? 'Je gaf deze week helemaal niets uit.' : vrij > 0 ? 'Op ' + vrij + ' van de ' + w.dagen + ' dagen gaf je niets uit.' : '';
+    $('wa-dagen').hidden = !$('wa-dagen').textContent;
+    $('wa-ok').textContent = goed ? 'Top!' : 'Op naar de volgende week';
+    $('wa-ok').dataset.goed = goed ? '1' : '';
+    $('wa').hidden = false;
+    $('wa-ok').onclick = () => {
+      $('wa').hidden = true; vak.replaceChildren();
+      try { localStorage.setItem(WA_KEY, sleutel); } catch (e) {}
+      if (goed) mascotteFeest();
+    };
+  }
+  naRender.push(checkWeekafsluiting);
+
+  // ---------- kan ik dit betalen? ----------
+  // Rekent uit wat een aankoop van vandaag doet met deze week en de weken die nog komen. Er wordt niets opgeslagen.
+  function kanRekenen() {
+    const uitEl = $('kan-uit'), koop = $('kan-koop');
+    const bedrag = r2(parseBedrag($('kan-bedrag').value));
+    const pot = (document.querySelector('input[name="kan-pot"]:checked') || {}).value === 'eigen' ? 'eigen' : 'boodschappen';
+    koop.disabled = true;
+    const zet = (s, html) => { uitEl.dataset.s = s; uitEl.innerHTML = html; };
+    if (!(bedrag > 0)) { zet('', '<p>Vul een bedrag in.</p>'); return; }
+    const ws = weken(state), d = vandaag();
+    if (!ws.length || d < ws[0].start || d > ws[ws.length - 1].end) { zet('', '<p>Je zit nu niet in een periode, dus Duppie kan dit niet uitrekenen.</p>'); return; }
+    koop.disabled = readOnly;
+    const t = totalen(state), a = weekVan(ws, d);
+    const voor = weekBudgetten(state, t, ws);
+    const sim = Object.assign({}, state, { uitgaven: state.uitgaven.concat([{ id: '_kan', datum: d, pot, naam: '', bedrag }]) });
+    const na = weekBudgetten(sim, t, ws);
+    const k = pot === 'eigen' ? 'e' : 'b', sp = pot === 'eigen' ? 'spentE' : 'spentB';
+    const potNaam = pot === 'eigen' ? 'eigen invulling' : 'boodschappen';
+    const overNa = r2(na[a][k] - na[a][sp]);
+    const periodeNa = r2(periodeRest(state, t) - bedrag);
+    const e = (x) => '<b>' + eur.format(x) + '</b>', f = (x) => (x < 0 ? '−' : '') + eur.format(Math.abs(x));
+    if (overNa >= 0) {
+      zet('ok', '<p>✅ <b>Dat past.</b> Je houdt deze week dan nog ' + e(overNa) + ' over voor ' + potNaam + '.</p>');
+      return;
+    }
+    let html = periodeNa < 0
+      ? '<p>❌ <b>Dat past niet in deze periode.</b> Je hebt voor boodschappen en eigen invulling samen nog ' + e(Math.max(0, periodeNa + bedrag)) + ', dus je komt ' + e(-periodeNa) + ' tekort.</p>'
+      : '<p>⚠️ <b>Dat past niet in deze week.</b> Je zit dan ' + e(-overNa) + ' boven je budget voor ' + potNaam + '.</p>';
+    const later = [];
+    for (let j = a + 1; j < ws.length; j++) { const verschil = r2(na[j][k] - voor[j][k]); if (Math.abs(verschil) >= 0.01) later.push({ j, van: voor[j][k], naar: na[j][k] }); }
+    if (periodeNa < 0) { zet('nee', html); return; }
+    if (later.length) {
+      const gem = r2(later.reduce((s, x) => s + x.van - x.naar, 0) / later.length);
+      html += '<p style="margin-top:8px">Dat gaat van de ' + (later.length === 1 ? 'laatste week' : later.length + ' weken die nog komen') + ' af: ongeveer ' + e(gem) + ' per week minder voor ' + potNaam + '.</p><ul class="kan-weken">'
+        + later.map((x) => '<li><span>Week ' + (x.j + 1) + '</span><span>' + f(x.van) + ' → <b>' + f(x.naar) + '</b></span></li>').join('') + '</ul>';
+    } else if (a === ws.length - 1) html += '<p style="margin-top:8px">Dit is de laatste week van je periode.</p>';
+    else if (!state.meenemen) html += '<p style="margin-top:8px">Meenemen staat uit, dus de weken die nog komen veranderen niet.</p>';
+    zet(periodeNa < 0 ? 'nee' : 'let', html);
+  }
+  function kanOpen() {
+    if (!state) return;
+    $('kan-bedrag').value = ''; document.querySelector('input[name="kan-pot"][value="boodschappen"]').checked = true;
+    kanRekenen(); $('kan').hidden = false; setTimeout(() => $('kan-bedrag').focus(), 30);
+  }
+  function kanDicht() { $('kan').hidden = true; }
+  $('kan-open').addEventListener('click', kanOpen);
+  $('kan-dicht').addEventListener('click', kanDicht);
+  $('kan').addEventListener('click', (e) => { if (e.target === $('kan')) kanDicht(); });
+  $('kan-bedrag').addEventListener('input', kanRekenen);
+  document.querySelectorAll('input[name="kan-pot"]').forEach((r) => r.addEventListener('change', kanRekenen));
+  // "Ik koop het": het formulier voor een uitgave openen, al ingevuld met dit bedrag en potje voor vandaag
+  $('kan-koop').addEventListener('click', () => {
+    const bedrag = $('kan-bedrag').value, pot = (document.querySelector('input[name="kan-pot"]:checked') || {}).value || 'boodschappen';
+    kanDicht();
+    const ws = weken(state); viewWeek = weekVan(ws, vandaag()); renderWeek();
+    if ($('u-handmatig').hidden) $('u-open').click();
+    $('u-bedrag').value = bedrag; $('u-datum').value = vandaag();
+    document.querySelectorAll('input[name="u-pot"]').forEach((r) => { r.checked = r.value === pot; });
+    $('u-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => $('u-naam').focus(), 350);
+  });
 
   // ---------- saving ----------
   function setStatus(text, err) { const s = $('status'); s.textContent = text; s.classList.toggle('err', !!err); }
@@ -3604,6 +3858,7 @@
   window.addEventListener('resize', () => { clearTimeout(inzichtTimer); inzichtTimer = setTimeout(renderInzicht, 150); });
 
   // ---------- spaardoelen ----------
+  const doelKlaar = new Map(); // welke spaardoelen al bereikt waren
   let doelen = null, doelenTimer = null, doelenSaving = false, doelenPending = false, doelenLast = null;
   function normDoelen(raw) {
     const arr = raw && Array.isArray(raw.doelen) ? raw.doelen : [];
@@ -3683,6 +3938,9 @@
       else if (g.doel <= 0) info.textContent = 'Vul een doelbedrag in';
       else if (t && t.sparen > 0) { const n = Math.ceil(nog / t.sparen - 0.0001); info.textContent = 'Nog ' + eur.format(nog) + ' · ongeveer ' + n + (n === 1 ? ' periode' : ' periodes') + ' bij ' + eur.format(t.sparen) + ' per periode'; }
       else info.textContent = 'Nog ' + eur.format(nog) + ' · zet een percentage bij Sparen om te zien hoe lang het duurt';
+      // Net bereikt (niet bij het openen van de app)? Dan viert Duppie het mee
+      if (doelKlaar.has(g.id) && klaar && !doelKlaar.get(g.id)) mascotteFeest();
+      doelKlaar.set(g.id, klaar);
       const sb = state && state.spaarGeboekt;
       const canBook = t && t.sparen > 0 && !readOnly && db;
       booked.hidden = !(sb && sb.doelId === g.id);
