@@ -419,6 +419,20 @@
   .acc-optie { text-align: left; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); border-radius: 14px; padding: 12px 14px; display: grid; gap: 2px; font: inherit; cursor: pointer; }
   .acc-optie:hover { border-color: var(--pine); }
   .acc-optie span { font-size: 13px; color: var(--ink-2); }
+  /* Duppie Pro */
+  .pro-pil { flex: none; display: inline-block; font-size: 10px; font-weight: 700; line-height: 1; padding: 3px 6px; border-radius: 99px; background: #F5C242; color: #3A2A00; margin-left: 2px; }
+  .pro-pil[hidden] { display: none; }
+  /* Op de knop zelf: als klein labeltje op de rand, zodat de knoptekst niet krapper wordt */
+  .act { position: relative; }
+  .act .pro-pil { position: absolute; top: -7px; right: 6px; margin: 0; box-shadow: 0 0 0 2px var(--surface); }
+  /* Heel smalle schermen: iconen weg, zodat de tekst op de drie knoppen past */
+  @media (max-width: 340px) { .act svg { display: none; } }
+  .pro-pil.groot { font-size: 13px; padding: 4px 9px; vertical-align: 3px; margin-left: 4px; }
+  .pro-lijst { list-style: none; padding: 0; margin: 0 0 12px; display: grid; gap: 8px; }
+  .pro-lijst li { border: 1px solid var(--line); border-radius: 14px; padding: 11px 13px; display: grid; gap: 2px; }
+  .pro-lijst span { font-size: 13.5px; color: var(--ink-2); }
+  .pro-staat { margin: 0 0 4px; font-size: 14px; }
+  .acc-pro { margin: 0 0 12px; font-size: 14px; color: var(--ink-2); }
   /* Kan ik dit betalen? */
   .kan-knop { width: 100%; margin-top: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; }
   .kan-uit { border-radius: 14px; padding: 12px 14px; margin: 2px 0 14px; font-size: 14px; line-height: 1.45; background: var(--surface-2); }
@@ -729,14 +743,14 @@
         </div>
         <div class="hero-total"><span>Samen nog <b id="hero-left">—</b> deze week</span><span id="hero-sub">—</span></div>
         <div class="tempo" id="tempo" hidden></div>
-        <button type="button" class="btn kan-knop" id="kan-open"><span aria-hidden="true">🤔</span>Kan ik dit betalen?</button>
+        <button type="button" class="btn kan-knop" id="kan-open"><span aria-hidden="true">🤔</span>Kan ik dit betalen?<span class="pro-pil" hidden>Pro</span></button>
       </div>
 
       <form class="card" id="u-form" autocomplete="off">
         <div class="card-h" style="margin-bottom:4px"><h2>Uitgave toevoegen</h2><span class="card-sub">Scan, importeer of typ</span></div>
         <p class="hint" style="margin:0 0 14px">Kies hoe je hem toevoegt. Je kunt alles nog nakijken.</p>
         <div class="add-acties">
-          <button type="button" class="act act-prim" id="bon-knop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M8 9h8M8 12h8M8 15h5"/></svg>Bon scannen</button>
+          <button type="button" class="act act-prim" id="bon-knop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M8 9h8M8 12h8M8 15h5"/></svg>Bon scannen<span class="pro-pil" hidden>Pro</span></button>
           <button type="button" class="act" id="csv-knop"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10l9-6 9 6M5 10v8M9 10v8M15 10v8M19 10v8M3 20h18"/></svg>Afschrift</button>
           <button type="button" class="act" id="u-open" aria-expanded="false" aria-controls="u-handmatig"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Uitgave</button>
         </div>
@@ -972,7 +986,8 @@
         </div>
         <div id="acc-in" hidden>
           <p style="margin:0">Ingelogd als <b id="acc-email"></b></p>
-          <p class="hint" id="acc-sync" style="margin:4px 0 12px" role="status"></p>
+          <p class="hint" id="acc-sync" style="margin:4px 0 4px" role="status"></p>
+          <p class="acc-pro" id="acc-pro"></p>
           <div class="period-nav"><button class="btn" id="acc-nu">Nu synchroniseren</button><button class="btn" id="acc-uitlog">Uitloggen</button></div>
         </div>
       </div>
@@ -1206,6 +1221,19 @@
   </form>
 </div>
 
+<div class="modal-bg" id="pro" hidden>
+  <div class="modal pro-mod" role="dialog" aria-modal="true" aria-labelledby="pro-t">
+    <h3 id="pro-t">Duppie <span class="pro-pil groot">Pro</span></h3>
+    <p class="hint" style="margin:0 0 12px">Met Duppie Pro krijg je extra hulp bij je budget:</p>
+    <ul class="pro-lijst">
+      <li><b>📷 Bon scannen</b><span>Maak een foto van je bonnetje en Duppie vult de uitgave in, met alle artikelen.</span></li>
+      <li><b>🤔 Kan ik dit betalen?</b><span>Zie vooraf wat een aankoop doet met deze week en de weken die nog komen.</span></li>
+    </ul>
+    <p class="pro-staat" id="pro-staat"></p>
+    <div class="btns"><button class="btn" id="pro-dicht">Sluiten</button><button class="btn btn-primary" id="pro-actie"></button></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="acc-keuze" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="acc-keuze-t">
     <h3 id="acc-keuze-t">Welk budget wil je houden?</h3>
@@ -1347,6 +1375,25 @@
     }
   }
   const haalAlles = () => api('/rest/v1/duppie_data?select=sleutel,data,bijgewerkt');
+  // Duppie Pro: staat in de tabel profielen. Alleen de eigenaar kan het daar aanzetten.
+  const PRO_KEY = 'duppie:pro';
+  let pro = lees(PRO_KEY, null); // { user, aan, tot }
+  function proGeldig() {
+    if (!sessie || !pro || pro.user !== sessie.user.id || !pro.aan) return false;
+    const d = new Date(), nu = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    return !pro.tot || pro.tot >= nu;
+  }
+  async function haalPro() {
+    if (!sessie) return;
+    try {
+      const r = await api('/rest/v1/profielen?select=premium,premium_tot'), rij = r && r[0];
+      pro = { user: sessie.user.id, aan: !!(rij && rij.premium), tot: (rij && rij.premium_tot) || null };
+    } catch (e) {
+      if (e.status !== 404) return; // offline: houd wat we al wisten
+      pro = { user: sessie.user.id, aan: false, tot: null }; // de tabel bestaat (nog) niet
+    }
+    schrijf(PRO_KEY, pro); zetStatus(syncStatus, syncFout);
+  }
 
   // Stuur wat hier veranderd is naar je account
   async function push() {
@@ -1394,6 +1441,7 @@
         await push();
         verwerk(await haalAlles());
         await push(); // wat tijdens het ophalen veranderde
+        await haalPro();
         syncMeta.laatste = Date.now(); bewaarMeta(); zetStatus('ok');
       } catch (e) {
         if (e.code === 'offline') zetStatus('offline');
@@ -1436,10 +1484,11 @@
   window.__duppieSync = {
     ingelogd: () => !!sessie, email: () => (sessie ? sessie.user.email : ''), status: () => syncStatus, fout: () => syncFout, laatste: () => syncMeta.laatste,
     opStatus: (f) => luisteraars.push(f),
-    async login(email, ww) { zetSessie(await api('/auth/v1/token?grant_type=password', { method: 'POST', auth: false, body: { email, password: ww } })); return naInloggen(); },
+    async login(email, ww) { zetSessie(await api('/auth/v1/token?grant_type=password', { method: 'POST', auth: false, body: { email, password: ww } })); haalPro(); return naInloggen(); },
+    pro: proGeldig, proTot: () => (proGeldig() && pro.tot) || null, proVerlopen: () => !!(sessie && pro && pro.user === sessie.user.id && pro.aan && !proGeldig()), haalPro,
     async registreer(email, ww) {
       const r = await api('/auth/v1/signup?redirect_to=' + encodeURIComponent(terugUrl()), { method: 'POST', auth: false, body: { email, password: ww } });
-      if (r && r.access_token) { zetSessie(r); return naInloggen(); }
+      if (r && r.access_token) { zetSessie(r); haalPro(); return naInloggen(); }
       return { bevestigen: true };
     },
     vergeten: (email) => api('/auth/v1/recover?redirect_to=' + encodeURIComponent(terugUrl()), { method: 'POST', auth: false, body: { email } }),
@@ -1447,7 +1496,7 @@
     async uitloggen() {
       try { await syncNu(); } catch (e) {}
       try { await api('/auth/v1/logout', { method: 'POST' }); } catch (e) {}
-      zetSessie(null); zetStatus('uit');
+      zetSessie(null); pro = null; schrijf(PRO_KEY, null); zetStatus('uit');
     },
     syncNu, kies,
     // Kom je via de link in een mail (bevestigen of wachtwoord vergeten)? Dan ben je meteen ingelogd.
@@ -1460,6 +1509,7 @@
       sessie = { access_token: hash.get('access_token'), refresh_token: hash.get('refresh_token'), expires_at: Number(hash.get('expires_at')) || Math.floor(Date.now() / 1000) + 3600, user: { id: '', email: '' } };
       try { const u = await api('/auth/v1/user'); zetSessie(Object.assign({}, sessie, { user: u })); }
       catch (e) { zetSessie(null); return { mailFout: 'De link uit de mail werkt niet meer. Vraag een nieuwe aan.' }; }
+      haalPro();
       const res = await naInloggen();
       return Object.assign(res, { herstel: type === 'recovery', bevestigd: type === 'signup' });
     },
@@ -2176,6 +2226,38 @@
     if (res.herstel) accOpen('nieuw');
   }).catch((e) => showNotice(accFoutTekst(e)));
 
+  // ---------- Duppie Pro ----------
+  // Bon scannen en "Kan ik dit betalen?" zijn Pro. Of je Pro hebt, staat in je account (tabel profielen).
+  function renderPro() {
+    const aan = S.pro();
+    document.querySelectorAll('.pro-pil:not(.groot)').forEach((p) => { p.hidden = aan; });
+    const el = $('acc-pro'); if (!el) return;
+    const tot = S.proTot();
+    el.textContent = aan ? '⭐ Duppie Pro staat aan' + (tot ? ' tot ' + kort(tot) : '') + '.' : S.proVerlopen() ? 'Je Duppie Pro is verlopen.' : 'Je hebt nog geen Duppie Pro.';
+  }
+  S.opStatus(renderPro); renderPro();
+  // Geeft true als je Pro hebt. Zo niet, dan uitleg over Duppie Pro.
+  function vraagPro() {
+    if (S.pro()) return true;
+    const staat = $('pro-staat'), actie = $('pro-actie');
+    if (!S.ingelogd()) {
+      staat.textContent = 'Heb je Duppie Pro al gekregen? Log dan in met je account.';
+      actie.textContent = 'Inloggen'; actie.onclick = () => { $('pro').hidden = true; accOpen('login'); };
+    } else {
+      staat.textContent = (S.proVerlopen() ? 'Je Duppie Pro is verlopen.' : 'Je account (' + S.email() + ') heeft nog geen Duppie Pro.') + ' Kopen kan nog niet, dat komt binnenkort.';
+      actie.textContent = 'Opnieuw controleren';
+      actie.onclick = async () => {
+        actie.disabled = true; await S.haalPro(); actie.disabled = false;
+        if (S.pro()) { $('pro').hidden = true; showNotice('Duppie Pro staat aan ⭐'); mascotteFeest(); }
+        else staat.textContent = 'Je account heeft nog steeds geen Duppie Pro.';
+      };
+    }
+    $('pro').hidden = false;
+    return false;
+  }
+  $('pro-dicht').addEventListener('click', () => { $('pro').hidden = true; });
+  $('pro').addEventListener('click', (e) => { if (e.target === $('pro')) $('pro').hidden = true; });
+
   // ---------- kan ik dit betalen? ----------
   // Rekent uit wat een aankoop van vandaag doet met deze week en de weken die nog komen. Er wordt niets opgeslagen.
   function kanRekenen() {
@@ -2221,7 +2303,7 @@
     kanRekenen(); $('kan').hidden = false; setTimeout(() => $('kan-bedrag').focus(), 30);
   }
   function kanDicht() { $('kan').hidden = true; }
-  $('kan-open').addEventListener('click', kanOpen);
+  $('kan-open').addEventListener('click', () => { if (vraagPro()) kanOpen(); });
   $('kan-dicht').addEventListener('click', kanDicht);
   $('kan').addEventListener('click', (e) => { if (e.target === $('kan')) kanDicht(); });
   $('kan-bedrag').addEventListener('input', kanRekenen);
@@ -3846,7 +3928,7 @@
     $('u-handmatig').hidden = !open; $('u-open').setAttribute('aria-expanded', String(open));
     if (open) setTimeout(() => $('u-bedrag').focus(), 30);
   });
-  $('bon-knop').addEventListener('click', () => { if (!readOnly) { $('bon-file').value = ''; $('bon-file').click(); } });
+  $('bon-knop').addEventListener('click', () => { if (!readOnly && vraagPro()) { $('bon-file').value = ''; $('bon-file').click(); } });
   $('bon-file').addEventListener('change', () => { const f = $('bon-file').files[0]; if (f) bonVerwerk(f); });
   $('bon-tweede').addEventListener('click', () => { $('bon-file2').value = ''; $('bon-file2').click(); });
   $('bon-file2').addEventListener('change', () => { const f = $('bon-file2').files[0]; if (f) bonVerwerk(f, true); });
@@ -4577,7 +4659,7 @@
     if (!file) { showNotice('Het gedeelde bestand kwam niet aan. Probeer het nog een keer.'); return; }
     for (let i = 0; i < 100 && !state; i++) await new Promise((r) => setTimeout(r, 100));
     if (!state || readOnly) { showNotice('Maak eerst je budget en deel het bestand daarna opnieuw met Duppie.'); return; }
-    if (/^image\//.test(file.type)) { showTab('overzicht', true); bonVerwerk(file); }
+    if (/^image\//.test(file.type)) { if (vraagPro()) { showTab('overzicht', true); bonVerwerk(file); } }
     else importBestand(file);
   }
   gedeeldOphalen();
