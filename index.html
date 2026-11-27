@@ -299,6 +299,8 @@
   .modal-bg { position: fixed; inset: 0; background: rgba(8,20,17,.5); display: flex; align-items: flex-end; justify-content: center; padding: 16px; z-index: 20; }
   @media (min-width: 560px) { .modal-bg { align-items: center; } }
   .modal { max-width: 440px; width: 100%; background: var(--surface); border-radius: var(--r-lg); padding: 22px; }
+  /* Een hoog venster (lange lijst, opengeklapte som) kan nooit meer onder het scherm verdwijnen: dan scrol je erin */
+  .modal { max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; }
   .modal h3 { font-family: var(--display); margin: 0 0 8px; font-size: 20px; }
   .modal p { margin: 0 0 18px; color: var(--ink-2); }
   .modal .btns { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
@@ -307,6 +309,8 @@
   #u-lijst { overflow: hidden; }
   #u-lijst li:not(.empty) { grid-template-columns: 40px 1fr auto; position: relative; cursor: pointer; touch-action: pan-y; transition: transform .2s ease, background-color .15s; border-radius: 12px; }
   #u-lijst li.veegt { transition: none; }
+  #u-lijst li.gekoppeld { opacity: .55; }
+  #u-lijst li.gekoppeld .e-b { color: var(--ink-2); font-weight: 500; }
   #u-lijst li::after { position: absolute; top: 50%; transform: translateY(-50%); font-size: 13px; font-weight: 700; opacity: 0; pointer-events: none; }
   #u-lijst li.veeg-l { background: color-mix(in srgb, var(--bad) 16%, transparent); }
   #u-lijst li.veeg-l::after { content: "Verwijderen"; right: -110px; color: var(--bad); opacity: 1; }
@@ -416,6 +420,7 @@
   .acc-links { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px 14px; margin-top: 14px; }
   .acc-links .linkdel { margin: 0; }
   .acc-kies { display: grid; gap: 10px; }
+  #koppel-lijst { max-height: min(52vh, 420px); overflow-y: auto; overscroll-behavior: contain; padding: 2px; }
   .acc-optie { text-align: left; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); border-radius: 14px; padding: 12px 14px; display: grid; gap: 2px; font: inherit; cursor: pointer; }
   .acc-optie:hover { border-color: var(--pine); }
   .acc-optie span { font-size: 13px; color: var(--ink-2); }
@@ -1579,7 +1584,8 @@
   const DOC = 'budget/huidig';
   const naRender = []; // extra onderdelen die na renderAll() bijgewerkt worden
   // Wat telt mee voor een potje: zonder het deel dat via een voorschot van een ander potje afgaat
-  const telt = (u) => (u.voor > 0 ? r2(u.bedrag - Math.min(u.bedrag, u.voor)) : u.bedrag);
+  // Gekoppeld aan een vaste last of tijdelijke kosten (u.vastId)? Dan telt hij niet mee: die kosten zitten al in je budget.
+  const telt = (u) => (u.vastId ? 0 : u.voor > 0 ? r2(u.bedrag - Math.min(u.bedrag, u.voor)) : u.bedrag);
   const SOORTEN = ['inkomsten', 'extra', 'vast', 'aflossing', 'tijdelijk'];
   const DOELEN = 'doelen/lijst';
   const eur = new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' });
@@ -1684,6 +1690,7 @@
         bedrag: Number.isFinite(Number(u.bedrag)) ? r2(Number(u.bedrag)) : 0,
         bron: typeof u.bron === 'string' ? u.bron : undefined,
         bankId: typeof u.bankId === 'string' ? u.bankId : undefined,
+        vastId: typeof u.vastId === 'string' ? u.vastId : undefined,
         bankNaam: typeof u.bankNaam === 'string' ? u.bankNaam : undefined,
         voor: Number(u.voor) > 0 ? r2(Math.min(Number(u.voor), Number(u.bedrag) || 0)) : undefined,
         voorschot: typeof u.voorschot === 'string' ? u.voorschot : undefined,
@@ -3101,6 +3108,12 @@
       const nm = document.createElement('button'); nm.type = 'button'; nm.className = 'e-nm e-open'; nm.textContent = u.naam || (u.pot === 'eigen' ? 'Eigen invulling' : 'Boodschappen');
       nm.setAttribute('aria-label', 'Aanpassen: ' + nm.textContent + ', ' + eur.format(Math.abs(u.bedrag)));
       const dd = document.createElement('div'); dd.className = 'e-d'; dd.textContent = kortDag(u.datum) + ' · ' + (u.pot === 'eigen' ? 'Eigen invulling' : 'Boodschappen');
+      if (u.vastId) {
+        // Gekoppeld: grijs, met waar hij bij hoort
+        const post = state.posten.find((p) => p.id === u.vastId);
+        li.classList.add('gekoppeld');
+        dd.textContent = kortDag(u.datum) + ' · 📌 betaald als ' + (post ? (post.soort === 'tijdelijk' ? 'tijdelijke kosten' : 'vaste last') + ': ' + (post.naam || '') : 'vaste last');
+      }
       mid.append(nm, dd);
       if (u.voor > 0 || u.voorschot) {
         const v = state.voorschotten.find((x) => x.uitgave === u.id || x.id === u.voorschot);
@@ -3117,7 +3130,7 @@
         knop.addEventListener('click', () => { lijst.hidden = !lijst.hidden; zet(); });
         zet(); mid.append(knop); li._items = lijst;
       }
-      const bd = document.createElement('span'); bd.className = 'e-b' + (u.bedrag < 0 ? ' plus' : ''); bd.textContent = (u.bedrag < 0 ? '+ ' : '− ') + eur.format(Math.abs(u.bedrag));
+      const bd = document.createElement('span'); bd.className = 'e-b' + (u.bedrag < 0 ? ' plus' : ''); bd.textContent = u.vastId ? eur.format(Math.abs(u.bedrag)) : (u.bedrag < 0 ? '+ ' : '− ') + eur.format(Math.abs(u.bedrag));
       li.append(ic, mid, bd); if (li._items) li.append(li._items); ul.append(li);
       // Tikken = aanpassen (niet als je op de artikelen tikt), vegen = verwijderen of voorgeschoten
       li.addEventListener('click', (e) => { if (li._geveegd || e.target.closest('.e-items-knop, .e-items')) return; ueOpen(u); });
@@ -3262,6 +3275,7 @@
     document.querySelectorAll('input[name="ue-pot"]').forEach((r) => { r.checked = r.value === u.pot; r.disabled = vast; });
     $('ue-voor').hidden = vast || u.voor > 0 || u.bedrag <= 0;
     $('ue-koppel').hidden = vast || u.voor > 0 || u.bedrag <= 0;
+    $('ue-koppel').textContent = u.vastId ? '📌 Ontkoppelen' : '📌 Vaste last';
     $('ue-fout').hidden = true; $('ue').hidden = false;
   }
   function ueDicht() { $('ue').hidden = true; ueU = null; }
@@ -3297,12 +3311,22 @@
   // ---------- uitgave koppelen aan een vaste last ----------
   // Een uitgave die eigenlijk een vaste last is (huur, abonnement…): de vaste last wordt afgevinkt en de uitgave
   // verdwijnt uit je potjes. Kwam hij van de bank, dan onthoudt Duppie het voor de volgende keer.
-  $('ue-koppel').addEventListener('click', () => { const u = ueU; ueDicht(); if (u) koppelOpen(u); });
+  $('ue-koppel').addEventListener('click', () => {
+    const u = ueU; ueDicht(); if (!u) return;
+    if (!u.vastId) { koppelOpen(u); return; }
+    // Ontkoppelen: telt weer mee als uitgave, en de vaste last staat weer open
+    const post = state.posten.find((p) => p.id === u.vastId);
+    if (post) delete state.betaald[post.id];
+    if (u.bankNaam) delete state.bankVast[bankSleutel(u.bankNaam)];
+    delete u.vastId; renderAll(); changed();
+    showNotice((u.naam || 'De uitgave') + ' telt weer mee' + (post ? ', en ' + (post.naam || 'de vaste last') + ' staat weer open.' : '.'));
+  });
   function koppelOpen(u) {
     const lijst = $('koppel-lijst'); lijst.replaceChildren();
     const posten = state.posten.filter((p) => (p.soort === 'vast' || p.soort === 'aflossing' || p.soort === 'tijdelijk') && p.bedrag > 0)
-      .sort((a, b) => (state.betaald[a.id] === true) - (state.betaald[b.id] === true) || Math.abs(a.bedrag - u.bedrag) - Math.abs(b.bedrag - u.bedrag));
-    $('koppel-uitleg').textContent = (u.naam || 'Deze uitgave') + ' van ' + eur.format(u.bedrag) + ' telt dan niet meer mee in je potjes. Wat je kiest, wordt afgevinkt.';
+      // Eerst wat precies hetzelfde bedrag heeft, dan wat nog niet betaald is, dan wat qua bedrag het dichtst in de buurt komt
+      .sort((a, b) => (Math.abs(b.bedrag - u.bedrag) < 0.01) - (Math.abs(a.bedrag - u.bedrag) < 0.01) || (state.betaald[a.id] === true) - (state.betaald[b.id] === true) || Math.abs(a.bedrag - u.bedrag) - Math.abs(b.bedrag - u.bedrag));
+    $('koppel-uitleg').textContent = (u.naam || 'Deze uitgave') + ' van ' + eur.format(u.bedrag) + ' blijft als grijze regel in je lijst staan, maar telt niet meer mee in je potjes. Wat je kiest, wordt afgevinkt.';
     $('koppel-leeg').hidden = posten.length > 0;
     posten.forEach((p) => {
       const b = document.createElement('button'); b.type = 'button'; b.className = 'acc-optie';
@@ -3320,7 +3344,7 @@
       betaald: JSON.stringify(state.betaald), bankVast: JSON.stringify(state.bankVast) };
     state.betaald[p.id] = true;
     if (u.bankNaam) state.bankVast[bankSleutel(u.bankNaam)] = p.id; // volgende keer vanzelf
-    state.uitgaven = state.uitgaven.filter((v) => v !== u);
+    u.vastId = p.id; // blijft zichtbaar als grijze regel, maar telt niet meer mee in je potjes
     renderAll(); changed();
     const afwijk = Math.abs(p.bedrag - u.bedrag) >= 0.01;
     $('undo-t').textContent = (p.naam || 'Vaste last') + ' afgevinkt' + (afwijk ? ' (bedrag wijkt af: ' + eur.format(u.bedrag) + ')' : '');
