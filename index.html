@@ -3123,7 +3123,7 @@
     // Nieuwste bovenaan: eerst op datum, en op dezelfde dag wat je het laatst toevoegde (reverse + stabiele sort)
     inWeek.slice().reverse().sort((a, b) => (a.datum < b.datum ? 1 : a.datum > b.datum ? -1 : 0)).forEach((u) => {
       const li = document.createElement('li');
-      li.style.setProperty('--pot', u.vastId ? 'var(--vast)' : u.pot === 'eigen' ? 'var(--eigen)' : 'var(--bood)');
+      li.style.setProperty('--pot', u.vastId ? 'var(--vast)' : u.onzeker ? 'var(--bad)' : u.pot === 'eigen' ? 'var(--eigen)' : 'var(--bood)');
       const ic = document.createElement('span'); ic.className = 'e-ic'; ic.innerHTML = u.vastId ? ICOON_VAST : u.onzeker ? ICOON_VRAAG : u.pot === 'eigen' ? ICOON_EIGEN : ICOON_KAR;
       const mid = document.createElement('div');
       const nm = document.createElement('button'); nm.type = 'button'; nm.className = 'e-nm e-open'; nm.textContent = u.naam || (u.pot === 'eigen' ? 'Eigen invulling' : 'Boodschappen');
