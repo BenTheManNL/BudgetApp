@@ -1671,6 +1671,8 @@
         naam: typeof u.naam === 'string' ? u.naam : '',
         bedrag: Number.isFinite(Number(u.bedrag)) ? r2(Number(u.bedrag)) : 0,
         bron: typeof u.bron === 'string' ? u.bron : undefined,
+        bankId: typeof u.bankId === 'string' ? u.bankId : undefined,
+        bankNaam: typeof u.bankNaam === 'string' ? u.bankNaam : undefined,
         voor: Number(u.voor) > 0 ? r2(Math.min(Number(u.voor), Number(u.bedrag) || 0)) : undefined,
         voorschot: typeof u.voorschot === 'string' ? u.voorschot : undefined,
         items: Array.isArray(u.items) && u.items.length ? u.items.filter((i) => i && typeof i === 'object').slice(0, 200).map((i) => ({ naam: String(i.naam || '').slice(0, 80), bedrag: Number.isFinite(Number(i.bedrag)) ? r2(Number(i.bedrag)) : 0 })) : undefined,
@@ -1691,6 +1693,10 @@
         status: ['terug', 'kwijt'].includes(v.status) ? v.status : 'open', klaar: typeof v.klaar === 'string' ? v.klaar : undefined,
       })),
       saldoBuffer: Number.isFinite(Number(o.saldoBuffer)) ? r2(Number(o.saldoBuffer)) : 0,
+      // Bankkoppeling: vanaf wanneer automatisch, welke transacties al verwerkt zijn, en welk potje bij welke winkel hoort
+      bankVanaf: typeof o.bankVanaf === 'string' ? o.bankVanaf : undefined,
+      bankIds: o.bankIds && typeof o.bankIds === 'object' && !Array.isArray(o.bankIds) ? Object.fromEntries(Object.entries(o.bankIds).filter(([k, v]) => typeof v === 'string').slice(-2000)) : {},
+      bankPotten: o.bankPotten && typeof o.bankPotten === 'object' && !Array.isArray(o.bankPotten) ? Object.fromEntries(Object.entries(o.bankPotten).filter(([k, v]) => v === 'eigen' || v === 'boodschappen').slice(-500)) : {},
       saldoCheck: o.saldoCheck && typeof o.saldoCheck === 'object' && typeof o.saldoCheck.datum === 'string' ? { datum: o.saldoCheck.datum, verschil: r2(Number(o.saldoCheck.verschil) || 0) } : null,
       spaarGeboekt: o.spaarGeboekt && typeof o.spaarGeboekt === 'object' && typeof o.spaarGeboekt.doelId === 'string' && Number.isFinite(Number(o.spaarGeboekt.bedrag))
         ? { doelId: o.spaarGeboekt.doelId, bedrag: r2(Number(o.spaarGeboekt.bedrag)) } : null,
@@ -2434,6 +2440,7 @@
     const knop = $('saldo-bank'), info = $('saldo-bank-info');
     knop.disabled = true; info.style.color = ''; info.textContent = 'Saldo ophalen bij ING…';
     try {
+      await bankImport();
       const r = await S.bankRoep('saldo');
       if (r.koppelen) { info.textContent = ''; bankKoppelen(); return; }
       $('saldo-in').value = String(r.bedrag).replace('.', ',');
@@ -2459,6 +2466,68 @@
     });
   }
   $('saldo-bank').addEventListener('click', bankOphalen);
+
+  // ---------- transacties automatisch verwerken ----------
+  // Afschrijvingen van ING worden vanzelf uitgaven. Een vaste last wordt afgevinkt, geld naar je eigen
+  // rekening telt niet mee, en een uitgave die je zelf al had ingevoerd (of gescand) wordt niet dubbel geteld.
+  const SUPERMARKTEN = /albert heijn|\bah\b|jumbo|lidl|aldi|\bplus\b|dirk|coop|spar\b|vomar|hoogvliet|deka|picnic|ekoplaza|poiesz|boni|nettorama|jan linders|kruidvat|etos|action/i;
+  const bankSleutel = (naam) => String(naam || '').toLowerCase().replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim().split(' ').slice(0, 2).join(' ');
+  const netteNaam = (t) => {
+    const n = (t.naam || t.omschrijving || 'Betaling').replace(/\s+\d{2,}.*$/, '').replace(/\s+/g, ' ').trim();
+    return (n.length > 3 && n === n.toUpperCase() ? n.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()) : n).slice(0, 60);
+  };
+  const woorden = (s) => new Set(String(s || '').toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 3));
+  const dagenTussen = (a, b) => Math.abs(parseISO(a) - parseISO(b)) / DAG;
+  let bankBezig = false;
+  async function bankImport() {
+    if (!state || readOnly || state.voorbeeld || !S.bank() || !S.pro() || bankBezig) return null;
+    bankBezig = true;
+    try {
+      // De eerste keer: vanaf vandaag, zodat wat je al zelf had ingevoerd niet dubbel komt
+      if (!state.bankVanaf) { state.bankVanaf = vandaag(); changed(); }
+      const vanaf = [state.bankVanaf, state.start].sort()[1];
+      const r = await S.bankRoep('transacties', { vanaf: toISO(parseISO(vanaf) - 5 * DAG) });
+      if (r.koppelen) return { koppelen: true };
+      const tel = { uitgaven: 0, vast: 0, gekoppeld: 0 };
+      for (const t of r.transacties || []) {
+        if (state.bankIds[t.id] || !t.geboekt || !t.af || !(t.bedrag > 0)) continue;
+        if (t.datum < vanaf || t.datum < state.start || t.datum >= state.eind) continue;
+        state.bankIds[t.id] = t.datum;
+        if (t.eigen) continue; // naar je eigen spaarrekening
+        // 1. Een vaste last? Zelfde bedrag, en de naam lijkt erop of de datum ligt in de buurt
+        const tw = woorden(t.naam + ' ' + t.omschrijving);
+        const vast = state.posten.find((p) => (p.soort === 'vast' || p.soort === 'aflossing') && state.betaald[p.id] !== true && Math.abs(p.bedrag - t.bedrag) < 0.01
+          && ([...woorden(p.naam)].some((w) => tw.has(w)) || (p.dag && afschrijfDatum(state, p.dag) && dagenTussen(afschrijfDatum(state, p.dag), t.datum) <= 7)));
+        if (vast) { state.betaald[vast.id] = true; tel.vast++; continue; }
+        // 2. Al zelf ingevoerd? Zelfde bedrag, binnen 3 dagen, nog niet aan een transactie gekoppeld
+        const al = state.uitgaven.find((u) => !u.bankId && !u.voorschot && Math.abs(u.bedrag - t.bedrag) < 0.01 && dagenTussen(u.datum, t.datum) <= 3);
+        if (al) { al.bankId = t.id; tel.gekoppeld++; continue; }
+        // 3. Nieuwe uitgave
+        const pot = state.bankPotten[bankSleutel(t.naam)] || (SUPERMARKTEN.test(t.naam + ' ' + t.omschrijving) ? 'boodschappen' : 'eigen');
+        state.uitgaven.push({ id: uid(), datum: t.datum, pot, naam: netteNaam(t), bedrag: r2(t.bedrag), bron: 'bank', bankId: t.id, bankNaam: t.naam || t.omschrijving });
+        tel.uitgaven++;
+      }
+      // Oude verwerkte transacties vergeten (van voor deze periode)
+      Object.keys(state.bankIds).forEach((id) => { if (state.bankIds[id] < toISO(parseISO(state.start) - 10 * DAG)) delete state.bankIds[id]; });
+      try { localStorage.setItem('duppie:bankLaatst', String(Date.now())); } catch (e) {}
+      if (tel.uitgaven || tel.vast || tel.gekoppeld) {
+        renderAll(); changed();
+        const delen = [];
+        if (tel.uitgaven) delen.push(tel.uitgaven + (tel.uitgaven === 1 ? ' uitgave' : ' uitgaven') + ' toegevoegd');
+        if (tel.vast) delen.push(tel.vast + (tel.vast === 1 ? ' vaste last' : ' vaste lasten') + ' afgevinkt');
+        if (delen.length) showNotice('🏦 Van ING: ' + delen.join(' en ') + '.');
+      }
+      return tel;
+    } catch (e) { return { fout: e }; }
+    finally { bankBezig = false; }
+  }
+  // Vanzelf: bij het openen en als je de app terug opent, hooguit eens per 10 minuten
+  function bankAuto() {
+    let laatst = 0; try { laatst = Number(localStorage.getItem('duppie:bankLaatst')) || 0; } catch (e) {}
+    if (Date.now() - laatst > 10 * 60 * 1000) bankImport();
+  }
+  setTimeout(bankAuto, 2500);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(bankAuto, 1500); });
   // Terug van ING: de adresbalk bevat ?code=...&state=... (of ?error=...)
   (async () => {
     const q = new URLSearchParams(location.search);
@@ -3080,6 +3149,7 @@
         // Bij een gescande bon met een ander bedrag kloppen de artikelen niet meer: die vallen dan weg
         if (u.items && Math.abs(bedrag - u.bedrag) >= 0.01) delete u.items;
         u.bedrag = bedrag; u.pot = pot;
+        if (u.bankNaam) state.bankPotten[bankSleutel(u.bankNaam)] = pot; // onthoud welk potje bij deze winkel hoort
       }
       u.naam = $('ue-naam').value.trim().slice(0, 80); u.datum = datum; ueDicht(); viewWeek = weekVan(weken(state), datum); renderAll(); changed();
     };
