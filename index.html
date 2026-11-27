@@ -1697,7 +1697,11 @@
       bankVanaf: typeof o.bankVanaf === 'string' ? o.bankVanaf : undefined,
       bankIds: o.bankIds && typeof o.bankIds === 'object' && !Array.isArray(o.bankIds) ? Object.fromEntries(Object.entries(o.bankIds).filter(([k, v]) => typeof v === 'string').slice(-2000)) : {},
       bankPotten: o.bankPotten && typeof o.bankPotten === 'object' && !Array.isArray(o.bankPotten) ? Object.fromEntries(Object.entries(o.bankPotten).filter(([k, v]) => v === 'eigen' || v === 'boodschappen').slice(-500)) : {},
-      saldoCheck: o.saldoCheck && typeof o.saldoCheck === 'object' && typeof o.saldoCheck.datum === 'string' ? { datum: o.saldoCheck.datum, verschil: r2(Number(o.saldoCheck.verschil) || 0) } : null,
+      saldoCheck: o.saldoCheck && typeof o.saldoCheck === 'object' && typeof o.saldoCheck.datum === 'string' ? {
+        datum: o.saldoCheck.datum, verschil: r2(Number(o.saldoCheck.verschil) || 0),
+        saldo: Number.isFinite(Number(o.saldoCheck.saldo)) && o.saldoCheck.saldo !== null ? r2(Number(o.saldoCheck.saldo)) : undefined,
+        tijd: Number(o.saldoCheck.tijd) > 0 ? Number(o.saldoCheck.tijd) : undefined, bank: o.saldoCheck.bank === true || undefined,
+      } : null,
       spaarGeboekt: o.spaarGeboekt && typeof o.spaarGeboekt === 'object' && typeof o.spaarGeboekt.doelId === 'string' && Number.isFinite(Number(o.spaarGeboekt.bedrag))
         ? { doelId: o.spaarGeboekt.doelId, bedrag: r2(Number(o.spaarGeboekt.bedrag)) } : null,
     };
@@ -2444,7 +2448,8 @@
       const r = await S.bankRoep('saldo');
       if (r.koppelen) { info.textContent = ''; bankKoppelen(); return; }
       $('saldo-in').value = String(r.bedrag).replace('.', ',');
-      saldoRekenen();
+      const verschil = saldoRekenen();
+      if (verschil !== null) { state.saldoCheck = { datum: vandaag(), verschil, saldo: r.bedrag, tijd: Date.now(), bank: true }; changed(); renderSaldoKaart(); }
       const tot = r.geldig_tot ? r.geldig_tot.slice(0, 10) : '';
       const bijnaVerlopen = tot && tot <= toISO(parseISO(vandaag()) + 14 * DAG);
       info.textContent = 'Opgehaald bij ING' + (r.iban ? ' (…' + r.iban.slice(-4) + ')' : '') + ' om ' + new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }) + '.'
@@ -2524,7 +2529,18 @@
   // Vanzelf: bij het openen en als je de app terug opent, hooguit eens per 10 minuten
   function bankAuto() {
     let laatst = 0; try { laatst = Number(localStorage.getItem('duppie:bankLaatst')) || 0; } catch (e) {}
-    if (Date.now() - laatst > 10 * 60 * 1000) bankImport();
+    if (Date.now() - laatst > 10 * 60 * 1000) bankImport().then(() => bankSaldoAuto());
+  }
+  // Je saldo vanzelf ophalen en vergelijken; het resultaat zie je op de kaart "Klopt mijn saldo?"
+  async function bankSaldoAuto() {
+    if (!state || readOnly || state.voorbeeld || !S.bank() || !S.pro()) return;
+    try {
+      const r = await S.bankRoep('saldo');
+      if (r.koppelen || !Number.isFinite(r.bedrag)) return;
+      const verschil = r2(r.bedrag - saldoVerwacht().totaal);
+      state.saldoCheck = { datum: vandaag(), verschil, saldo: r2(r.bedrag), tijd: Date.now(), bank: true };
+      changed(); renderSaldoKaart();
+    } catch (e) {}
   }
   setTimeout(bankAuto, 2500);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(bankAuto, 1500); });
@@ -2547,7 +2563,10 @@
   function renderSaldoKaart() {
     if (!state) return;
     const c = state.saldoCheck;
-    $('saldo-sub').textContent = (c ? 'Laatste check op ' + kortDag(c.datum) + ': ' + (Math.abs(c.verschil) < 1 ? 'klopte ✓' : minEur(c.verschil) + ' verschil') + '.' : 'Vergelijk wat er op je bank staat met wat Duppie verwacht.')
+    const wanneer = c && c.tijd ? (c.datum === vandaag() ? 'vandaag ' : kortDag(c.datum) + ' ') + new Date(c.tijd).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }) : c ? kortDag(c.datum) : '';
+    const oordeel = c ? (Math.abs(c.verschil) < 1 ? 'Klopt ✓' : c.verschil < 0 ? minEur(-c.verschil).replace('−', '') + ' minder dan Duppie verwacht.' : eur.format(c.verschil) + ' meer dan Duppie verwacht.') : '';
+    $('saldo-sub').textContent = (c && c.bank && c.saldo !== undefined ? 'Saldo bij ING: ' + minEur(c.saldo) + ' (' + wanneer + '). ' + oordeel
+      : c ? 'Laatste check op ' + wanneer + ': ' + (Math.abs(c.verschil) < 1 ? 'klopte ✓' : minEur(c.verschil) + ' verschil') + '.' : 'Vergelijk wat er op je bank staat met wat Duppie verwacht.')
       + (state.saldoBuffer ? ' Buffer: ' + minEur(state.saldoBuffer) + '.' : '');
   }
   naRender.push(renderSaldoKaart);
