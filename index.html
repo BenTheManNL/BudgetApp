@@ -1122,7 +1122,7 @@
 
 <div class="modal-bg" id="koppel" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="koppel-t">
-    <h3 id="koppel-t">Bij welke vaste last hoort dit?</h3>
+    <h3 id="koppel-t">Bij welke vaste last of tijdelijke kosten hoort dit?</h3>
     <p class="hint" id="koppel-uitleg" style="margin:0 0 12px"></p>
     <div class="acc-kies" id="koppel-lijst"></div>
     <p class="hint" id="koppel-leeg" hidden style="margin:0">Je hebt nog geen vaste lasten. Voeg ze toe bij Budget.</p>
@@ -1931,6 +1931,18 @@
     li.append(rowEl(p, 'div'), rij);
     return li;
   }
+  // Tijdelijke kosten kun je afvinken als ze betaald zijn (dan telt de saldo-check ze niet meer als "nog te betalen")
+  function tijdelijkEl(p) {
+    const li = document.createElement('li'); li.className = 'arow vrow'; li.dataset.id = p.id;
+    const rij = document.createElement('label'); rij.className = 'rest dagrij'; rij.style.cssText = 'display:flex;align-items:center;gap:10px;cursor:pointer';
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = state.betaald[p.id] === true; cb.disabled = readOnly;
+    const lab = document.createElement('span'); lab.textContent = 'Al betaald';
+    cb.addEventListener('change', () => { if (cb.checked) state.betaald[p.id] = true; else delete state.betaald[p.id]; renderSaldoKaart(); changed(); });
+    rij.append(cb, lab);
+    li._upd = () => { cb.checked = state.betaald[p.id] === true; };
+    li.append(rowEl(p, 'div'), rij);
+    return li;
+  }
   function vastEl(p) {
     const li = document.createElement('li'); li.className = 'arow vrow'; li.dataset.id = p.id;
     const { rij, upd } = dagRegel(p);
@@ -2052,7 +2064,7 @@
       const items = state.posten.filter((p) => p.soort === sec.dataset.soort);
       if (sec.dataset.soort === 'aflossing') items.sort(aflosVolgorde);
       if (!items.length) { const li = document.createElement('li'); li.className = 'empty-list'; li.textContent = 'Nog niets ingevuld.'; ul.append(li); }
-      items.forEach((p) => ul.append(p.soort === 'aflossing' ? aflosEl(p) : p.soort === 'extra' ? extraEl(p) : p.soort === 'vast' ? vastEl(p) : p.soort === 'inkomsten' ? inkomenEl(p) : rowEl(p)));
+      items.forEach((p) => ul.append(p.soort === 'aflossing' ? aflosEl(p) : p.soort === 'extra' ? extraEl(p) : p.soort === 'vast' ? vastEl(p) : p.soort === 'inkomsten' ? inkomenEl(p) : p.soort === 'tijdelijk' ? tijdelijkEl(p) : rowEl(p)));
     }
   }
 
@@ -2414,7 +2426,7 @@
     const zonderDag = state.posten.filter((p) => vl(p) && !p.dag).length;
     const regels = [
       ['Vaste lasten die nog afgeschreven worden', nogAf],
-      ['Tijdelijke kosten van deze periode', Math.max(0, t.tijdelijk)],
+      ['Tijdelijke kosten die nog betaald moeten worden', r2(state.posten.filter((p) => p.soort === 'tijdelijk' && p.bedrag > 0 && state.betaald[p.id] !== true).reduce((a, p) => a + p.bedrag, 0))],
       ['Nog over in Boodschappen en Eigen invulling', periodeRest(state, t)],
       ['Sparen (nog niet geboekt)', state.spaarGeboekt ? 0 : Math.max(0, t.sparen)],
     ];
@@ -2551,11 +2563,12 @@
         // 1. Een vaste last? Zelfde bedrag, en de naam lijkt erop of de datum ligt in de buurt
         const tw = woorden(t.naam + ' ' + t.omschrijving);
         const geleerdVast = state.posten.find((p) => p.id === geleerd(state.bankVast, t.naam || t.omschrijving) && state.betaald[p.id] !== true);
-        const vast = geleerdVast || state.posten.find((p) => (p.soort === 'vast' || p.soort === 'aflossing') && state.betaald[p.id] !== true && Math.abs(p.bedrag - t.bedrag) < 0.01
+        const vast = geleerdVast || state.posten.find((p) => p.soort === 'tijdelijk' && p.bedrag > 0 && state.betaald[p.id] !== true && Math.abs(p.bedrag - t.bedrag) < 0.01 && [...woorden(p.naam)].some((w) => tw.has(w)))
+          || state.posten.find((p) => (p.soort === 'vast' || p.soort === 'aflossing') && state.betaald[p.id] !== true && Math.abs(p.bedrag - t.bedrag) < 0.01
           && ([...woorden(p.naam)].some((w) => tw.has(w)) || (p.dag && afschrijfDatum(state, p.dag) && dagenTussen(afschrijfDatum(state, p.dag), t.datum) <= 7)));
         if (vast) { state.betaald[vast.id] = true; state.bankVast[bankSleutel(t.naam || t.omschrijving)] = vast.id; tel.vast++; continue; }
         // Een vaste last die je zelf al had afgevinkt: zelfde bedrag en de naam lijkt erop, dan niet nog eens als uitgave
-        const alBetaald = state.posten.find((p) => (p.soort === 'vast' || p.soort === 'aflossing') && state.betaald[p.id] === true && Math.abs(p.bedrag - t.bedrag) < 0.01
+        const alBetaald = state.posten.find((p) => (p.soort === 'vast' || p.soort === 'aflossing' || p.soort === 'tijdelijk') && state.betaald[p.id] === true && Math.abs(p.bedrag - t.bedrag) < 0.01
           && (geleerd(state.bankVast, t.naam || t.omschrijving) === p.id || [...woorden(p.naam)].some((w) => tw.has(w))));
         if (alBetaald) continue;
         // 2. Al zelf ingevoerd? Zelfde bedrag, binnen 3 dagen, nog niet aan een transactie gekoppeld
@@ -3287,13 +3300,13 @@
   $('ue-koppel').addEventListener('click', () => { const u = ueU; ueDicht(); if (u) koppelOpen(u); });
   function koppelOpen(u) {
     const lijst = $('koppel-lijst'); lijst.replaceChildren();
-    const posten = state.posten.filter((p) => (p.soort === 'vast' || p.soort === 'aflossing') && p.bedrag > 0)
+    const posten = state.posten.filter((p) => (p.soort === 'vast' || p.soort === 'aflossing' || p.soort === 'tijdelijk') && p.bedrag > 0)
       .sort((a, b) => (state.betaald[a.id] === true) - (state.betaald[b.id] === true) || Math.abs(a.bedrag - u.bedrag) - Math.abs(b.bedrag - u.bedrag));
-    $('koppel-uitleg').textContent = (u.naam || 'Deze uitgave') + ' van ' + eur.format(u.bedrag) + ' telt dan niet meer mee in je potjes. De vaste last wordt afgevinkt.';
+    $('koppel-uitleg').textContent = (u.naam || 'Deze uitgave') + ' van ' + eur.format(u.bedrag) + ' telt dan niet meer mee in je potjes. Wat je kiest, wordt afgevinkt.';
     $('koppel-leeg').hidden = posten.length > 0;
     posten.forEach((p) => {
       const b = document.createElement('button'); b.type = 'button'; b.className = 'acc-optie';
-      const t = document.createElement('b'); t.textContent = (p.naam || 'Vaste last') + ' · ' + eur.format(p.bedrag);
+      const t = document.createElement('b'); t.textContent = (p.naam || (p.soort === 'tijdelijk' ? 'Tijdelijke kosten' : 'Vaste last')) + ' · ' + eur.format(p.bedrag) + (p.soort === 'tijdelijk' ? ' (tijdelijk)' : '');
       const s = document.createElement('span');
       const d = p.dag && afschrijfDatum(state, p.dag);
       s.textContent = (state.betaald[p.id] === true ? 'Al afgevinkt' : 'Nog niet betaald') + (d ? ' · ' + kortDag(d) : '') + (Math.abs(p.bedrag - u.bedrag) < 0.01 ? ' · zelfde bedrag' : '');
