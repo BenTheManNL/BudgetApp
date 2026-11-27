@@ -2526,10 +2526,11 @@
     } catch (e) { return { fout: e }; }
     finally { bankBezig = false; }
   }
-  // Vanzelf: bij het openen en als je de app terug opent, hooguit eens per 10 minuten
+  // Vanzelf: elke keer dat je de app opent of terug naar de app gaat
+  // (alleen niet twee keer binnen een halve minuut, bijvoorbeeld als je snel heen en weer wisselt)
   function bankAuto() {
     let laatst = 0; try { laatst = Number(localStorage.getItem('duppie:bankLaatst')) || 0; } catch (e) {}
-    if (Date.now() - laatst > 10 * 60 * 1000) bankImport().then(() => bankSaldoAuto());
+    if (Date.now() - laatst > 30 * 1000) bankImport().then(() => bankSaldoAuto());
   }
   // Je saldo vanzelf ophalen en vergelijken; het resultaat zie je op de kaart "Klopt mijn saldo?"
   async function bankSaldoAuto() {
