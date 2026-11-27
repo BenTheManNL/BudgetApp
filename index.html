@@ -3317,7 +3317,7 @@
       if (!u.voorschot) {
         // Bij een gescande bon met een ander bedrag kloppen de artikelen niet meer: die vallen dan weg
         if (u.items && Math.abs(bedrag - u.bedrag) >= 0.01) delete u.items;
-        u.bedrag = bedrag; u.pot = pot;
+        u.bedrag = bedrag; u.pot = pot; delete u.onzeker;
         if (u.bankNaam) state.bankPotten[bankSleutel(u.bankNaam)] = pot; // onthoud welk potje bij deze winkel hoort
       }
       u.naam = $('ue-naam').value.trim().slice(0, 80); u.datum = datum; ueDicht(); viewWeek = weekVan(weken(state), datum); renderAll(); changed();
