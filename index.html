@@ -1690,6 +1690,7 @@
         bron: typeof u.bron === 'string' ? u.bron : undefined,
         bankId: typeof u.bankId === 'string' ? u.bankId : undefined,
         vastId: typeof u.vastId === 'string' ? u.vastId : undefined,
+        onzeker: u.onzeker === true ? true : undefined,
         bankNaam: typeof u.bankNaam === 'string' ? u.bankNaam : undefined,
         voor: Number(u.voor) > 0 ? r2(Math.min(Number(u.voor), Number(u.bedrag) || 0)) : undefined,
         voorschot: typeof u.voorschot === 'string' ? u.voorschot : undefined,
