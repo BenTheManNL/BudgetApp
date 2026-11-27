@@ -1524,7 +1524,8 @@
     async login(email, ww) { zetSessie(await api('/auth/v1/token?grant_type=password', { method: 'POST', auth: false, body: { email, password: ww } })); haalPro(); return naInloggen(); },
     // Bankkoppeling (alleen accounts waarbij "bank" aan staat in profielen)
     bank: () => !!(sessie && pro && pro.user === sessie.user.id && pro.bank),
-    bankRoep: (actie, extra) => api('/functions/v1/bank', { method: 'POST', auth: actie !== 'sessie', body: Object.assign({ actie }, extra || {}) }),
+    // De Edge Function heet in Supabase "bank", maar het adres (de slug) werd "super-service"
+    bankRoep: (actie, extra) => api('/functions/v1/super-service', { method: 'POST', auth: actie !== 'sessie', body: Object.assign({ actie }, extra || {}) }),
     pro: proGeldig, proTot: () => (proGeldig() && pro.tot) || null, proVerlopen: () => !!(sessie && pro && pro.user === sessie.user.id && pro.aan && !proGeldig()), haalPro,
     async registreer(email, ww) {
       const r = await api('/auth/v1/signup?redirect_to=' + encodeURIComponent(terugUrl()), { method: 'POST', auth: false, body: { email, password: ww } });
@@ -2443,7 +2444,7 @@
         + (bijnaVerlopen ? ' Je toestemming verloopt op ' + kortDag(tot) + '.' : '');
     } catch (e) {
       info.style.color = 'var(--bad)';
-      info.textContent = e.code === 'offline' ? 'Geen internet.' : e.status === 404 ? 'De Edge Function "bank" staat nog niet in Supabase.' : 'Ophalen lukte niet: ' + e.message;
+      info.textContent = e.code === 'offline' ? 'Geen internet.' : e.status === 404 ? 'De Edge Function staat nog niet in Supabase (adres /functions/v1/super-service).' : 'Ophalen lukte niet: ' + e.message;
     } finally { knop.disabled = false; }
   }
   function bankKoppelen() {
