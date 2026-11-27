@@ -438,6 +438,9 @@
   .saldo-som { margin: 0 0 14px; font-size: 14px; }
   .saldo-som summary { cursor: pointer; color: var(--ink-2); padding: 4px 0; }
   .saldo-som .kan-weken li:last-child { font-weight: 700; }
+  .saldo-bank { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; margin: -4px 0 12px; }
+  .saldo-bank .btn { padding: 8px 13px; font-size: 14px; }
+  .saldo-bank .hint { font-size: 13px; }
   .saldo-buffer { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: -4px 0 12px; font-size: 14px; }
   .saldo-buffer .btn { padding: 7px 12px; font-size: 13px; }
   /* Kan ik dit betalen? */
@@ -1136,6 +1139,7 @@
     <h3 id="saldo-t">Klopt mijn saldo?</h3>
     <p class="hint" style="margin:0 0 12px">Kijk in je bank-app hoeveel er nu op je betaalrekening staat en vul dat hier in.</p>
     <label class="g-veld">Saldo op je bank<input class="field" id="saldo-in" inputmode="decimal" placeholder="0,00"></label>
+    <div class="saldo-bank" id="saldo-bank-rij" hidden><button type="button" class="btn" id="saldo-bank">🏦 Haal op bij ING</button><span class="hint" id="saldo-bank-info" role="status"></span></div>
     <div class="kan-uit" id="saldo-uit" aria-live="polite"></div>
     <div class="saldo-buffer" id="saldo-buffer" hidden><span id="saldo-buffer-t"></span><button type="button" class="btn" id="saldo-reset">Buffer weghalen</button></div>
     <details class="saldo-som"><summary>Hoe rekent Duppie dit uit?</summary>
@@ -1387,7 +1391,7 @@
     catch (e) { throw fout('Geen verbinding', 'offline'); }
     const txt = await r.text(); let js = null;
     try { js = txt ? JSON.parse(txt) : null; } catch (e) {}
-    if (!r.ok) throw fout((js && (js.msg || js.message || js.error_description)) || ('HTTP ' + r.status), js && (js.error_code || js.code || js.error), r.status);
+    if (!r.ok) throw fout((js && (js.fout || js.msg || js.message || js.error_description)) || ('HTTP ' + r.status), js && (js.error_code || js.code || js.error), r.status);
     return js;
   }
   function zetSessie(s) {
@@ -1416,8 +1420,11 @@
   async function haalPro() {
     if (!sessie) return;
     try {
-      const r = await api('/rest/v1/profielen?select=premium,premium_tot'), rij = r && r[0];
-      pro = { user: sessie.user.id, aan: !!(rij && rij.premium), tot: (rij && rij.premium_tot) || null };
+      let r;
+      try { r = await api('/rest/v1/profielen?select=premium,premium_tot,bank'); }
+      catch (e) { if (e.status !== 400) throw e; r = await api('/rest/v1/profielen?select=premium,premium_tot'); } // kolom "bank" bestaat nog niet
+      const rij = r && r[0];
+      pro = { user: sessie.user.id, aan: !!(rij && rij.premium), tot: (rij && rij.premium_tot) || null, bank: !!(rij && rij.bank) };
     } catch (e) {
       if (e.status !== 404) return; // offline: houd wat we al wisten
       pro = { user: sessie.user.id, aan: false, tot: null }; // de tabel bestaat (nog) niet
@@ -1515,6 +1522,9 @@
     ingelogd: () => !!sessie, email: () => (sessie ? sessie.user.email : ''), status: () => syncStatus, fout: () => syncFout, laatste: () => syncMeta.laatste,
     opStatus: (f) => luisteraars.push(f),
     async login(email, ww) { zetSessie(await api('/auth/v1/token?grant_type=password', { method: 'POST', auth: false, body: { email, password: ww } })); haalPro(); return naInloggen(); },
+    // Bankkoppeling (alleen accounts waarbij "bank" aan staat in profielen)
+    bank: () => !!(sessie && pro && pro.user === sessie.user.id && pro.bank),
+    bankRoep: (actie, extra) => api('/functions/v1/bank', { method: 'POST', auth: actie !== 'sessie', body: Object.assign({ actie }, extra || {}) }),
     pro: proGeldig, proTot: () => (proGeldig() && pro.tot) || null, proVerlopen: () => !!(sessie && pro && pro.user === sessie.user.id && pro.aan && !proGeldig()), haalPro,
     async registreer(email, ww) {
       const r = await api('/auth/v1/signup?redirect_to=' + encodeURIComponent(terugUrl()), { method: 'POST', auth: false, body: { email, password: ww } });
@@ -2411,7 +2421,54 @@
     }
     return verschil;
   }
-  function saldoOpen() { if (!state) return; $('saldo-in').value = ''; saldoRekenen(); $('saldo').hidden = false; setTimeout(() => $('saldo-in').focus(), 30); }
+  function saldoOpen() {
+    if (!state) return;
+    $('saldo-in').value = ''; saldoRekenen(); $('saldo').hidden = false;
+    $('saldo-bank-rij').hidden = !S.bank(); $('saldo-bank-info').textContent = '';
+    if (S.bank()) bankOphalen(); else setTimeout(() => $('saldo-in').focus(), 30);
+  }
+  // ---------- bankkoppeling (ING via Enable Banking) ----------
+  // Haalt je saldo op via de Edge Function "bank" in Supabase. Die bewaart de toestemming van ING.
+  async function bankOphalen() {
+    const knop = $('saldo-bank'), info = $('saldo-bank-info');
+    knop.disabled = true; info.style.color = ''; info.textContent = 'Saldo ophalen bij ING…';
+    try {
+      const r = await S.bankRoep('saldo');
+      if (r.koppelen) { info.textContent = ''; bankKoppelen(); return; }
+      $('saldo-in').value = String(r.bedrag).replace('.', ',');
+      saldoRekenen();
+      const tot = r.geldig_tot ? r.geldig_tot.slice(0, 10) : '';
+      const bijnaVerlopen = tot && tot <= toISO(parseISO(vandaag()) + 14 * DAG);
+      info.textContent = 'Opgehaald bij ING' + (r.iban ? ' (…' + r.iban.slice(-4) + ')' : '') + ' om ' + new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }) + '.'
+        + (bijnaVerlopen ? ' Je toestemming verloopt op ' + kortDag(tot) + '.' : '');
+    } catch (e) {
+      info.style.color = 'var(--bad)';
+      info.textContent = e.code === 'offline' ? 'Geen internet.' : e.status === 404 ? 'De Edge Function "bank" staat nog niet in Supabase.' : 'Ophalen lukte niet: ' + e.message;
+    } finally { knop.disabled = false; }
+  }
+  function bankKoppelen() {
+    openModal({
+      title: 'ING koppelen',
+      text: 'Duppie heeft toestemming nodig om je saldo bij ING te lezen. Je gaat nu naar ING om in te loggen en toestemming te geven. Dat moet ongeveer elke 3 maanden opnieuw.',
+      ok: 'Naar ING',
+      onOk: async () => {
+        try { const r = await S.bankRoep('start'); location.href = r.url; }
+        catch (e) { showNotice('Koppelen lukte niet: ' + e.message); }
+      },
+    });
+  }
+  $('saldo-bank').addEventListener('click', bankOphalen);
+  // Terug van ING: de adresbalk bevat ?code=...&state=... (of ?error=...)
+  (async () => {
+    const q = new URLSearchParams(location.search);
+    if (!q.has('state') || !(q.has('code') || q.has('error'))) return;
+    history.replaceState(null, '', location.pathname + location.hash);
+    if (q.get('error')) { showNotice('Koppelen met ING is niet gelukt: ' + (q.get('error_description') || q.get('error'))); return; }
+    try {
+      await S.bankRoep('sessie', { code: q.get('code'), state: q.get('state') });
+      openModal({ title: 'ING gekoppeld ✓', text: 'Je ING-rekening is gekoppeld aan Duppie. Gebruik je Duppie vanaf je beginscherm? Ga dan terug naar die app en tik bij "Klopt mijn saldo?" op "Haal op bij ING".', ok: 'Top', onOk: () => {} });
+    } catch (e) { showNotice('Koppelen met ING is niet gelukt: ' + e.message); }
+  })();
   function saldoDicht() {
     // Onthoud de laatste check
     if (/\d/.test($('saldo-in').value)) { const v = saldoRekenen(); if (v !== null) { state.saldoCheck = { datum: vandaag(), verschil: v }; changed(); } }
