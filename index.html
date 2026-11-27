@@ -2548,7 +2548,11 @@
         const geleerd = state.posten.find((p) => p.id === state.bankVast[bankSleutel(t.naam || t.omschrijving)] && state.betaald[p.id] !== true);
         const vast = geleerd || state.posten.find((p) => (p.soort === 'vast' || p.soort === 'aflossing') && state.betaald[p.id] !== true && Math.abs(p.bedrag - t.bedrag) < 0.01
           && ([...woorden(p.naam)].some((w) => tw.has(w)) || (p.dag && afschrijfDatum(state, p.dag) && dagenTussen(afschrijfDatum(state, p.dag), t.datum) <= 7)));
-        if (vast) { state.betaald[vast.id] = true; tel.vast++; continue; }
+        if (vast) { state.betaald[vast.id] = true; state.bankVast[bankSleutel(t.naam || t.omschrijving)] = vast.id; tel.vast++; continue; }
+        // Een vaste last die je zelf al had afgevinkt: zelfde bedrag en de naam lijkt erop, dan niet nog eens als uitgave
+        const alBetaald = state.posten.find((p) => (p.soort === 'vast' || p.soort === 'aflossing') && state.betaald[p.id] === true && Math.abs(p.bedrag - t.bedrag) < 0.01
+          && (state.bankVast[bankSleutel(t.naam || t.omschrijving)] === p.id || [...woorden(p.naam)].some((w) => tw.has(w))));
+        if (alBetaald) continue;
         // 2. Al zelf ingevoerd? Zelfde bedrag, binnen 3 dagen, nog niet aan een transactie gekoppeld
         const al = state.uitgaven.find((u) => !u.bankId && !u.voorschot && Math.abs(u.bedrag - t.bedrag) < 0.01 && dagenTussen(u.datum, t.datum) <= 3);
         if (al) { al.bankId = t.id; tel.gekoppeld++; continue; }
