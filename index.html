@@ -438,7 +438,8 @@
   .saldo-som { margin: 0 0 14px; font-size: 14px; }
   .saldo-som summary { cursor: pointer; color: var(--ink-2); padding: 4px 0; }
   .saldo-som .kan-weken li:last-child { font-weight: 700; }
-  .saldo-som .linkdel { margin: 6px 0 0; padding: 0; }
+  .saldo-buffer { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: -4px 0 12px; font-size: 14px; }
+  .saldo-buffer .btn { padding: 7px 12px; font-size: 13px; }
   /* Kan ik dit betalen? */
   .kan-knop { width: 100%; margin-top: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; }
   .kan-uit { border-radius: 14px; padding: 12px 14px; margin: 2px 0 14px; font-size: 14px; line-height: 1.45; background: var(--surface-2); }
@@ -1136,11 +1137,12 @@
     <p class="hint" style="margin:0 0 12px">Kijk in je bank-app hoeveel er nu op je betaalrekening staat en vul dat hier in.</p>
     <label class="g-veld">Saldo op je bank<input class="field" id="saldo-in" inputmode="decimal" placeholder="0,00"></label>
     <div class="kan-uit" id="saldo-uit" aria-live="polite"></div>
+    <div class="saldo-buffer" id="saldo-buffer" hidden><span id="saldo-buffer-t"></span><button type="button" class="btn" id="saldo-reset">Buffer weghalen</button></div>
     <details class="saldo-som"><summary>Hoe rekent Duppie dit uit?</summary>
       <ul class="kan-weken" id="saldo-lijst"></ul>
       <p class="hint" id="saldo-noot" style="margin:8px 0 0"></p>
     </details>
-    <div class="btns"><button class="btn" id="saldo-dicht">Sluiten</button><button class="btn btn-primary" id="saldo-actie" hidden></button></div>
+    <div class="btns"><button class="btn" id="saldo-dicht">Sluiten</button><button class="btn" id="saldo-actie2" hidden></button><button class="btn btn-primary" id="saldo-actie" hidden></button></div>
   </div>
 </div>
 
@@ -2381,13 +2383,10 @@
       a.textContent = naam; c.textContent = minEur(b); li.append(a, c); lijst.append(li);
     });
     $('saldo-noot').textContent = 'Duppie gaat ervan uit dat je inkomen van deze periode al binnen is.' + (v.zonderDag ? ' Let op: ' + v.zonderDag + (v.zonderDag === 1 ? ' vaste last heeft' : ' vaste lasten hebben') + ' geen afschrijfdag en ' + (v.zonderDag === 1 ? 'telt' : 'tellen') + ' niet mee.' : '');
-    let reset = $('saldo-reset');
-    if (state.saldoBuffer && !reset) {
-      reset = document.createElement('button'); reset.type = 'button'; reset.className = 'linkdel'; reset.id = 'saldo-reset'; reset.textContent = 'Buffer weer op € 0 zetten';
-      reset.onclick = () => { state.saldoBuffer = 0; changed(); reset.remove(); saldoRekenen(); };
-      $('saldo-noot').after(reset);
-    } else if (!state.saldoBuffer && reset) reset.remove();
-    actie.hidden = true;
+    // Heb je een buffer? Dan zie je die altijd, met een knop om hem weg te halen
+    $('saldo-buffer').hidden = !state.saldoBuffer;
+    $('saldo-buffer-t').textContent = 'Je buffer: ' + minEur(state.saldoBuffer || 0);
+    actie.hidden = true; $('saldo-actie2').hidden = true;
     const zet = (s, html) => { uit.dataset.s = s; uit.innerHTML = html; };
     const raw = $('saldo-in').value.trim();
     if (!/\d/.test(raw)) { zet('', '<p>Volgens Duppie hoort er nu <b>' + minEur(v.totaal) + '</b> op je rekening te staan.</p>'); return null; }
@@ -2399,9 +2398,16 @@
       actie.textContent = 'Uitgave van ' + eur.format(-verschil) + ' toevoegen'; actie.hidden = false;
       actie.onclick = () => { saldoDicht(); vulUitgave(String(-verschil).replace('.', ','), 'boodschappen'); };
     } else {
-      zet('let', '<p>💡 Je hebt <b>' + eur.format(verschil) + ' meer</b> dan Duppie verwacht.</p><p style="margin-top:6px">Misschien is een vaste last nog niet afgeschreven terwijl je hem al hebt afgevinkt, of staat er nog geld van eerder op je rekening. Is dat laatste zo, zet het dan als buffer.</p>');
-      actie.textContent = 'Dit is mijn buffer'; actie.hidden = false;
-      actie.onclick = () => { state.saldoBuffer = r2((state.saldoBuffer || 0) + verschil); changed(); saldoRekenen(); };
+      zet('let', '<p>💡 Je hebt <b>' + eur.format(verschil) + ' meer</b> dan Duppie verwacht.</p><p style="margin-top:6px">Misschien is een vaste last nog niet afgeschreven terwijl je hem al hebt afgevinkt, of staat er nog geld van eerder op je rekening. Wil je het uitgeven, voeg het dan toe aan je periode. Wil je het apart houden, zet het dan als buffer.</p>');
+      // Toevoegen aan periode: als extra inkomen vanaf vandaag, zodat het over je potjes wordt verdeeld
+      actie.textContent = 'Toevoegen aan periode'; actie.hidden = false;
+      actie.onclick = () => {
+        state.posten.push({ id: uid(), soort: 'extra', naam: 'Extra op mijn rekening', bedrag: verschil, datum: vandaag() });
+        renderAll(); changed(); saldoRekenen();
+        showNotice(eur.format(verschil) + ' is toegevoegd aan deze periode als extra inkomen. Je vindt het bij Budget.');
+      };
+      const a2 = $('saldo-actie2'); a2.textContent = 'Dit is mijn buffer'; a2.hidden = false;
+      a2.onclick = () => { state.saldoBuffer = r2((state.saldoBuffer || 0) + verschil); changed(); saldoRekenen(); renderSaldoKaart(); };
     }
     return verschil;
   }
@@ -2414,11 +2420,13 @@
   function renderSaldoKaart() {
     if (!state) return;
     const c = state.saldoCheck;
-    $('saldo-sub').textContent = c ? 'Laatste check op ' + kortDag(c.datum) + ': ' + (Math.abs(c.verschil) < 1 ? 'klopte ✓' : minEur(c.verschil) + ' verschil') + '.' : 'Vergelijk wat er op je bank staat met wat Duppie verwacht.';
+    $('saldo-sub').textContent = (c ? 'Laatste check op ' + kortDag(c.datum) + ': ' + (Math.abs(c.verschil) < 1 ? 'klopte ✓' : minEur(c.verschil) + ' verschil') + '.' : 'Vergelijk wat er op je bank staat met wat Duppie verwacht.')
+      + (state.saldoBuffer ? ' Buffer: ' + minEur(state.saldoBuffer) + '.' : '');
   }
   naRender.push(renderSaldoKaart);
   $('saldo-open').addEventListener('click', () => { if (vraagPro()) saldoOpen(); });
   $('saldo-in').addEventListener('input', saldoRekenen);
+  $('saldo-reset').addEventListener('click', () => { state.saldoBuffer = 0; changed(); saldoRekenen(); renderSaldoKaart(); showNotice('Je buffer is weggehaald.'); });
   $('saldo-dicht').addEventListener('click', saldoDicht);
   $('saldo').addEventListener('click', (e) => { if (e.target === $('saldo')) saldoDicht(); });
 
