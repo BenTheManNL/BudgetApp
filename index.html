@@ -434,6 +434,11 @@
   .pro-lijst span { font-size: 13.5px; color: var(--ink-2); }
   .pro-staat { margin: 0 0 4px; font-size: 14px; }
   .acc-pro { margin: 0 0 12px; font-size: 14px; color: var(--ink-2); }
+  /* Klopt mijn saldo? */
+  .saldo-som { margin: 0 0 14px; font-size: 14px; }
+  .saldo-som summary { cursor: pointer; color: var(--ink-2); padding: 4px 0; }
+  .saldo-som .kan-weken li:last-child { font-weight: 700; }
+  .saldo-som .linkdel { margin: 6px 0 0; padding: 0; }
   /* Kan ik dit betalen? */
   .kan-knop { width: 100%; margin-top: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; }
   .kan-uit { border-radius: 14px; padding: 12px 14px; margin: 2px 0 14px; font-size: 14px; line-height: 1.45; background: var(--surface-2); }
@@ -786,6 +791,12 @@
         <p class="hint" id="afs-zonder" hidden style="margin-top:10px"></p>
       </section>
 
+      <section class="card" id="saldo-kaart">
+        <div class="card-h"><h2>Klopt mijn saldo? <span class="pro-pil" hidden>Pro</span></h2></div>
+        <p class="hint" id="saldo-sub" style="margin:0 0 12px">Vergelijk wat er op je bank staat met wat Duppie verwacht.</p>
+        <button type="button" class="btn kan-knop" id="saldo-open" style="margin-top:0"><span aria-hidden="true">🏦</span>Saldo checken</button>
+      </section>
+
       <section class="card" id="voorschot">
         <div class="card-h"><h2>Voorgeschoten</h2><button class="btn" type="button" id="vs-plus" style="padding:7px 12px;font-size:13px">+ Voorgeschoten</button></div>
         <div class="wb-big" id="vs-nog" hidden>—</div>
@@ -1119,6 +1130,20 @@
   </div>
 </div>
 
+<div class="modal-bg" id="saldo" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="saldo-t">
+    <h3 id="saldo-t">Klopt mijn saldo?</h3>
+    <p class="hint" style="margin:0 0 12px">Kijk in je bank-app hoeveel er nu op je betaalrekening staat en vul dat hier in.</p>
+    <label class="g-veld">Saldo op je bank<input class="field" id="saldo-in" inputmode="decimal" placeholder="0,00"></label>
+    <div class="kan-uit" id="saldo-uit" aria-live="polite"></div>
+    <details class="saldo-som"><summary>Hoe rekent Duppie dit uit?</summary>
+      <ul class="kan-weken" id="saldo-lijst"></ul>
+      <p class="hint" id="saldo-noot" style="margin:8px 0 0"></p>
+    </details>
+    <div class="btns"><button class="btn" id="saldo-dicht">Sluiten</button><button class="btn btn-primary" id="saldo-actie" hidden></button></div>
+  </div>
+</div>
+
 <div class="modal-bg" id="wa" hidden>
   <div class="modal wa-mod" role="dialog" aria-modal="true" aria-labelledby="wa-t">
     <div class="wa-masc" id="wa-masc"></div>
@@ -1229,6 +1254,7 @@
     <ul class="pro-lijst">
       <li><b>📷 Bon scannen</b><span>Maak een foto van je bonnetje en Duppie vult de uitgave in, met alle artikelen.</span></li>
       <li><b>🔎 Zoeken</b><span>Vind elke uitgave terug in al je periodes, bijvoorbeeld alles bij de Jumbo.</span></li>
+      <li><b>🏦 Klopt mijn saldo?</b><span>Vergelijk je banksaldo met Duppie en zie meteen of je een uitgave bent vergeten.</span></li>
       <li><b>🤔 Kan ik dit betalen?</b><span>Zie vooraf wat een aankoop doet met deze week en de weken die nog komen.</span></li>
     </ul>
     <p class="pro-staat" id="pro-staat"></p>
@@ -1651,6 +1677,8 @@
         uitgave: typeof v.uitgave === 'string' ? v.uitgave : null, kosten: typeof v.kosten === 'string' ? v.kosten : null,
         status: ['terug', 'kwijt'].includes(v.status) ? v.status : 'open', klaar: typeof v.klaar === 'string' ? v.klaar : undefined,
       })),
+      saldoBuffer: Number.isFinite(Number(o.saldoBuffer)) ? r2(Number(o.saldoBuffer)) : 0,
+      saldoCheck: o.saldoCheck && typeof o.saldoCheck === 'object' && typeof o.saldoCheck.datum === 'string' ? { datum: o.saldoCheck.datum, verschil: r2(Number(o.saldoCheck.verschil) || 0) } : null,
       spaarGeboekt: o.spaarGeboekt && typeof o.spaarGeboekt === 'object' && typeof o.spaarGeboekt.doelId === 'string' && Number.isFinite(Number(o.spaarGeboekt.bedrag))
         ? { doelId: o.spaarGeboekt.doelId, bedrag: r2(Number(o.spaarGeboekt.bedrag)) } : null,
     };
@@ -2317,14 +2345,82 @@
   // "Ik koop het": het formulier voor een uitgave openen, al ingevuld met dit bedrag en potje voor vandaag
   $('kan-koop').addEventListener('click', () => {
     const bedrag = $('kan-bedrag').value, pot = (document.querySelector('input[name="kan-pot"]:checked') || {}).value || 'boodschappen';
-    kanDicht();
+    kanDicht(); vulUitgave(bedrag, pot);
+  });
+  // Opent het formulier voor een nieuwe uitgave van vandaag, al ingevuld met dit bedrag en potje
+  function vulUitgave(bedrag, pot) {
     const ws = weken(state); viewWeek = weekVan(ws, vandaag()); renderWeek();
     if ($('u-handmatig').hidden) $('u-open').click();
     $('u-bedrag').value = bedrag; $('u-datum').value = vandaag();
     document.querySelectorAll('input[name="u-pot"]').forEach((r) => { r.checked = r.value === pot; });
     $('u-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
     setTimeout(() => $('u-naam').focus(), 350);
-  });
+  }
+
+  // ---------- klopt mijn saldo? ----------
+  // Wat hoort er volgens Duppie nu nog op je betaalrekening te staan?
+  function saldoVerwacht() {
+    const t = totalen(state), vl = (p) => (p.soort === 'vast' || p.soort === 'aflossing') && p.bedrag > 0;
+    const nogAf = r2(state.posten.filter((p) => vl(p) && p.dag && afschrijfDatum(state, p.dag) && state.betaald[p.id] !== true).reduce((a, p) => a + p.bedrag, 0));
+    const zonderDag = state.posten.filter((p) => vl(p) && !p.dag).length;
+    const regels = [
+      ['Vaste lasten die nog afgeschreven worden', nogAf],
+      ['Tijdelijke kosten van deze periode', Math.max(0, t.tijdelijk)],
+      ['Nog over in Boodschappen en Eigen invulling', periodeRest(state, t)],
+      ['Sparen (nog niet geboekt)', state.spaarGeboekt ? 0 : Math.max(0, t.sparen)],
+    ];
+    if (state.saldoBuffer) regels.push(['Buffer (geld buiten je budget)', state.saldoBuffer]);
+    return { regels, totaal: r2(regels.reduce((a, r) => a + r[1], 0)), zonderDag };
+  }
+  const minEur = (x) => (x < 0 ? '−' : '') + eur.format(Math.abs(x));
+  function saldoRekenen() {
+    const uit = $('saldo-uit'), actie = $('saldo-actie'), v = saldoVerwacht();
+    const lijst = $('saldo-lijst'); lijst.replaceChildren();
+    v.regels.concat([['Verwacht op je rekening', v.totaal]]).forEach(([naam, b]) => {
+      const li = document.createElement('li'), a = document.createElement('span'), c = document.createElement('span');
+      a.textContent = naam; c.textContent = minEur(b); li.append(a, c); lijst.append(li);
+    });
+    $('saldo-noot').textContent = 'Duppie gaat ervan uit dat je inkomen van deze periode al binnen is.' + (v.zonderDag ? ' Let op: ' + v.zonderDag + (v.zonderDag === 1 ? ' vaste last heeft' : ' vaste lasten hebben') + ' geen afschrijfdag en ' + (v.zonderDag === 1 ? 'telt' : 'tellen') + ' niet mee.' : '');
+    let reset = $('saldo-reset');
+    if (state.saldoBuffer && !reset) {
+      reset = document.createElement('button'); reset.type = 'button'; reset.className = 'linkdel'; reset.id = 'saldo-reset'; reset.textContent = 'Buffer weer op € 0 zetten';
+      reset.onclick = () => { state.saldoBuffer = 0; changed(); reset.remove(); saldoRekenen(); };
+      $('saldo-noot').after(reset);
+    } else if (!state.saldoBuffer && reset) reset.remove();
+    actie.hidden = true;
+    const zet = (s, html) => { uit.dataset.s = s; uit.innerHTML = html; };
+    const raw = $('saldo-in').value.trim();
+    if (!/\d/.test(raw)) { zet('', '<p>Volgens Duppie hoort er nu <b>' + minEur(v.totaal) + '</b> op je rekening te staan.</p>'); return null; }
+    const saldo = (/^[-−]/.test(raw) ? -1 : 1) * Math.abs(parseBedrag(raw.replace(/^[-−]/, '')));
+    const verschil = r2(saldo - v.totaal);
+    if (Math.abs(verschil) < 1) zet('ok', '<p>✅ <b>Klopt!</b> Je bank en Duppie zijn het eens' + (Math.abs(verschil) >= 0.01 ? ' (' + minEur(verschil) + ' verschil)' : '') + '.</p>');
+    else if (verschil < 0) {
+      zet('let', '<p>⚠️ Je hebt <b>' + eur.format(-verschil) + ' minder</b> dan Duppie verwacht.</p><p style="margin-top:6px">Misschien ben je een uitgave vergeten in te voeren, of is een vaste last al afgeschreven die je nog niet hebt afgevinkt.</p>');
+      actie.textContent = 'Uitgave van ' + eur.format(-verschil) + ' toevoegen'; actie.hidden = false;
+      actie.onclick = () => { saldoDicht(); vulUitgave(String(-verschil).replace('.', ','), 'boodschappen'); };
+    } else {
+      zet('let', '<p>💡 Je hebt <b>' + eur.format(verschil) + ' meer</b> dan Duppie verwacht.</p><p style="margin-top:6px">Misschien is een vaste last nog niet afgeschreven terwijl je hem al hebt afgevinkt, of staat er nog geld van eerder op je rekening. Is dat laatste zo, zet het dan als buffer.</p>');
+      actie.textContent = 'Dit is mijn buffer'; actie.hidden = false;
+      actie.onclick = () => { state.saldoBuffer = r2((state.saldoBuffer || 0) + verschil); changed(); saldoRekenen(); };
+    }
+    return verschil;
+  }
+  function saldoOpen() { if (!state) return; $('saldo-in').value = ''; saldoRekenen(); $('saldo').hidden = false; setTimeout(() => $('saldo-in').focus(), 30); }
+  function saldoDicht() {
+    // Onthoud de laatste check
+    if (/\d/.test($('saldo-in').value)) { const v = saldoRekenen(); if (v !== null) { state.saldoCheck = { datum: vandaag(), verschil: v }; changed(); } }
+    $('saldo').hidden = true; renderSaldoKaart();
+  }
+  function renderSaldoKaart() {
+    if (!state) return;
+    const c = state.saldoCheck;
+    $('saldo-sub').textContent = c ? 'Laatste check op ' + kortDag(c.datum) + ': ' + (Math.abs(c.verschil) < 1 ? 'klopte ✓' : minEur(c.verschil) + ' verschil') + '.' : 'Vergelijk wat er op je bank staat met wat Duppie verwacht.';
+  }
+  naRender.push(renderSaldoKaart);
+  $('saldo-open').addEventListener('click', () => { if (vraagPro()) saldoOpen(); });
+  $('saldo-in').addEventListener('input', saldoRekenen);
+  $('saldo-dicht').addEventListener('click', saldoDicht);
+  $('saldo').addEventListener('click', (e) => { if (e.target === $('saldo')) saldoDicht(); });
 
   // ---------- saving ----------
   function setStatus(text, err) { const s = $('status'); s.textContent = text; s.classList.toggle('err', !!err); }
