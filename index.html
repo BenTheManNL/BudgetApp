@@ -2591,8 +2591,10 @@
         const al = state.uitgaven.find((u) => !u.bankId && !u.voorschot && Math.abs(u.bedrag - t.bedrag) < 0.01 && dagenTussen(u.datum, t.datum) <= 3);
         if (al) { al.bankId = t.id; tel.gekoppeld++; continue; }
         // 3. Nieuwe uitgave
-        const pot = geleerd(state.bankPotten, t.naam) || (SUPERMARKTEN.test(t.naam + ' ' + t.omschrijving) ? 'boodschappen' : 'eigen');
-        state.uitgaven.push({ id: uid(), datum: t.datum, pot, naam: netteNaam(t), bedrag: r2(t.bedrag), bron: 'bank', bankId: t.id, bankNaam: t.naam || t.omschrijving });
+        const geleerdPot = geleerd(state.bankPotten, t.naam);
+        const pot = geleerdPot || (SUPERMARKTEN.test(t.naam + ' ' + t.omschrijving) ? 'boodschappen' : 'eigen');
+        const onzeker = !geleerdPot && pot === 'eigen';
+        state.uitgaven.push({ id: uid(), datum: t.datum, pot, onzeker, naam: netteNaam(t), bedrag: r2(t.bedrag), bron: 'bank', bankId: t.id, bankNaam: t.naam || t.omschrijving });
         tel.uitgaven++;
       }
       // Oude verwerkte transacties vergeten (van voor deze periode)
@@ -3070,6 +3072,7 @@
 
   const ICOON_KAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 11h11.2L21 7H6.2"/><circle cx="9" cy="19" r="1.5"/><circle cx="17" cy="19" r="1.5"/></svg>', ICOON_EIGEN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.6L19.5 10.5l-5.6 1.9L12 18l-1.9-5.6L4.5 10.5l5.6-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>';
   const ICOON_VAST = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg>';
+  const ICOON_VRAAG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 9a3 3 0 1 1 4.2 2.7c-.7.4-1.2 1-1.2 1.8V15"/><circle cx="12" cy="18.5" r=".8" fill="currentColor"/></svg>';
   function renderWeek() {
     if (!state) return;
     const ws = weken(state), t = totalen(state);
