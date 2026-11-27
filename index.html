@@ -1706,6 +1706,7 @@
       // Bankkoppeling: vanaf wanneer automatisch, welke transacties al verwerkt zijn, en welk potje bij welke winkel hoort
       bankVanaf: typeof o.bankVanaf === 'string' ? o.bankVanaf : undefined,
       bankIds: o.bankIds && typeof o.bankIds === 'object' && !Array.isArray(o.bankIds) ? Object.fromEntries(Object.entries(o.bankIds).filter(([k, v]) => typeof v === 'string').slice(-2000)) : {},
+      ontvangen: o.ontvangen && typeof o.ontvangen === 'object' && !Array.isArray(o.ontvangen) ? Object.fromEntries(Object.keys(o.ontvangen).filter((k) => o.ontvangen[k] === true).map((k) => [k, true])) : {},
       bankVast: o.bankVast && typeof o.bankVast === 'object' && !Array.isArray(o.bankVast) ? Object.fromEntries(Object.entries(o.bankVast).filter(([k, v]) => typeof v === 'string').slice(-200)) : {},
       bankPotten: o.bankPotten && typeof o.bankPotten === 'object' && !Array.isArray(o.bankPotten) ? Object.fromEntries(Object.entries(o.bankPotten).filter(([k, v]) => v === 'eigen' || v === 'boodschappen').slice(-500)) : {},
       saldoCheck: o.saldoCheck && typeof o.saldoCheck === 'object' && typeof o.saldoCheck.datum === 'string' ? {
@@ -1921,8 +1922,10 @@
   }
   function inkomenEl(p) {
     const li = document.createElement('li'); li.className = 'arow vrow'; li.dataset.id = p.id;
-    const { rij, upd } = dagRegel(p, 'Ontvangst');
-    li._upd = upd;
+    const { rij, upd: dagUpd } = dagRegel(p, 'Ontvangst');
+    // Van de bank binnengekomen? Dan staat het erbij
+    const upd = () => { dagUpd(); if (state.ontvangen && state.ontvangen[p.id]) rij.querySelector('.info').textContent += ' · ✓ ontvangen'; };
+    upd(); li._upd = upd;
     li.append(rowEl(p, 'div'), rij);
     return li;
   }
@@ -1932,6 +1935,16 @@
     li._upd = upd;
     li.append(rowEl(p, 'div'), rij);
     return li;
+  }
+  // Een voorschot is terugbetaald: het geld komt terug in het potje (of spaardoel) waar het vanaf ging
+  function voorschotTerug(v, datum) {
+    v.status = 'terug'; v.klaar = datum;
+    if (v.van === 'sparen') {
+      const doel = doelen ? doelen.doelen.find((g) => g.id === v.doelId) : null;
+      if (doel) { doel.gespaard = r2(doel.gespaard + v.bedrag); doelenChanged(); renderDoelen(); }
+    } else {
+      state.uitgaven.push({ id: uid(), datum, pot: v.van, naam: ('Terug van ' + v.wie + (v.waarvoor ? ': ' + v.waarvoor : '')).slice(0, 80), bedrag: -v.bedrag, voorschot: v.id });
+    }
   }
   let afsTab = 'open';
   function kiesAfsTab(t) { afsTab = t; renderAfschrijvingen(); }
@@ -2403,6 +2416,11 @@
       ['Nog over in Boodschappen en Eigen invulling', periodeRest(state, t)],
       ['Sparen (nog niet geboekt)', state.spaarGeboekt ? 0 : Math.max(0, t.sparen)],
     ];
+    // Met de bankkoppeling weet Duppie of je inkomen al binnen is. Wat nog moet komen, staat nog niet op je rekening.
+    if (S.bank() && state.bankVanaf) {
+      const nog = r2(state.posten.filter((p) => p.soort === 'inkomsten' && p.bedrag > 0 && !state.ontvangen[p.id] && p.dag && (afschrijfDatum(state, p.dag) || '') > vandaag()).reduce((a, p) => a + p.bedrag, 0));
+      if (nog > 0) regels.push(['Inkomen dat nog moet binnenkomen', -nog]);
+    }
     if (state.saldoBuffer) regels.push(['Buffer (geld buiten je budget)', state.saldoBuffer]);
     return { regels, totaal: r2(regels.reduce((a, r) => a + r[1], 0)), zonderDag };
   }
@@ -2504,9 +2522,12 @@
       const vanaf = [state.bankVanaf, state.start].sort()[1];
       const r = await S.bankRoep('transacties', { vanaf: toISO(parseISO(vanaf) - 5 * DAG) });
       if (r.koppelen) return { koppelen: true };
-      const tel = { uitgaven: 0, vast: 0, gekoppeld: 0 };
+      const tel = { uitgaven: 0, vast: 0, gekoppeld: 0, inkomen: 0, terug: 0, retour: 0, extra: 0 };
+      // Je loon komt soms net vóór de periode binnen: kijk daarvoor 5 dagen terug
+      const vanafInkomen = [state.bankVanaf, toISO(parseISO(state.start) - 5 * DAG)].sort()[1];
       for (const t of r.transacties || []) {
-        if (state.bankIds[t.id] || !t.geboekt || !t.af || !(t.bedrag > 0)) continue;
+        if (state.bankIds[t.id] || !t.geboekt || !(t.bedrag > 0)) continue;
+        if (!t.af) { if (t.datum >= vanafInkomen && t.datum < state.eind && bijschrijving(t, tel)) state.bankIds[t.id] = t.datum; continue; }
         if (t.datum < vanaf || t.datum < state.start || t.datum >= state.eind) continue;
         state.bankIds[t.id] = t.datum;
         if (t.eigen) continue; // naar je eigen spaarrekening
@@ -2527,16 +2548,43 @@
       // Oude verwerkte transacties vergeten (van voor deze periode)
       Object.keys(state.bankIds).forEach((id) => { if (state.bankIds[id] < toISO(parseISO(state.start) - 10 * DAG)) delete state.bankIds[id]; });
       try { localStorage.setItem('duppie:bankLaatst', String(Date.now())); } catch (e) {}
-      if (tel.uitgaven || tel.vast || tel.gekoppeld) {
+      if (Object.values(tel).some((n) => n > 0)) {
         renderAll(); changed();
         const delen = [];
         if (tel.uitgaven) delen.push(tel.uitgaven + (tel.uitgaven === 1 ? ' uitgave' : ' uitgaven') + ' toegevoegd');
         if (tel.vast) delen.push(tel.vast + (tel.vast === 1 ? ' vaste last' : ' vaste lasten') + ' afgevinkt');
-        if (delen.length) showNotice('🏦 Van ING: ' + delen.join(' en ') + '.');
+        if (tel.inkomen) delen.push((tel.inkomen === 1 ? 'je inkomen is' : tel.inkomen + ' inkomsten zijn') + ' binnen');
+        if (tel.terug) delen.push(tel.terug + (tel.terug === 1 ? ' voorschot' : ' voorschotten') + ' terugbetaald');
+        if (tel.retour) delen.push(tel.retour + (tel.retour === 1 ? ' retour' : ' retouren') + ' verwerkt');
+        if (tel.extra) delen.push(tel.extra + ' keer extra inkomen');
+        if (delen.length) showNotice('🏦 Van ING: ' + (delen.length > 1 ? delen.slice(0, -1).join(', ') + ' en ' + delen[delen.length - 1] : delen[0]) + '.');
       }
       return tel;
     } catch (e) { return { fout: e }; }
     finally { bankBezig = false; }
+  }
+  // Geld dat binnenkomt. Geeft false als het (nog) niet in deze periode hoort.
+  function bijschrijving(t, tel) {
+    if (t.eigen) return true; // van je eigen spaarrekening
+    const tw = woorden(t.naam + ' ' + t.omschrijving);
+    // 1. Je loon of ander vast inkomen: zelfde bedrag, of een naam die erop lijkt (loon kan wat schommelen)
+    const ink = state.posten.find((p) => p.soort === 'inkomsten' && p.bedrag > 0 && !state.ontvangen[p.id]
+      && (Math.abs(p.bedrag - t.bedrag) < 0.01 || ([...woorden(p.naam)].some((w) => tw.has(w)) && Math.abs(p.bedrag - t.bedrag) <= p.bedrag * 0.25)));
+    if (ink) { state.ontvangen[ink.id] = true; tel.inkomen++; return true; }
+    if (t.datum < state.start) return false; // de rest hoort pas bij deze periode vanaf de startdatum
+    // 2. Voorgeschoten geld dat terugkomt: zelfde bedrag als een openstaand voorschot
+    const v = state.voorschotten.find((x) => x.status === 'open' && Math.abs(x.bedrag - t.bedrag) < 0.01);
+    if (v) { voorschotTerug(v, t.datum); tel.terug++; return true; }
+    // 3. Een retour bij een winkel waar je eerder iets kocht: het geld gaat terug in hetzelfde potje
+    const sleutel = bankSleutel(t.naam);
+    const winkel = sleutel && state.uitgaven.find((u) => u.bedrag > 0 && bankSleutel(u.bankNaam || u.naam) === sleutel);
+    if (winkel) {
+      state.uitgaven.push({ id: uid(), datum: t.datum, pot: winkel.pot, naam: ('Retour ' + winkel.naam).slice(0, 80), bedrag: -r2(t.bedrag), bron: 'bank', bankId: t.id, bankNaam: t.naam });
+      tel.retour++; return true;
+    }
+    // 4. Iets anders (Tikkie, cadeau…): extra inkomen in deze periode
+    state.posten.push({ id: uid(), soort: 'extra', naam: netteNaam(t), bedrag: r2(t.bedrag), datum: t.datum });
+    tel.extra++; return true;
   }
   // Vanzelf: elke keer dat je de app opent of terug naar de app gaat
   // (alleen niet twee keer binnen een halve minuut, bijvoorbeeld als je snel heen en weer wisselt)
@@ -2722,7 +2770,7 @@
       if (p.rest < p.bedrag) p.bedrag = p.rest;
       return true;
     });
-    state.uitgaven = []; state.spaarGeboekt = null; state.betaald = {}; viewWeek = null;
+    state.uitgaven = []; state.spaarGeboekt = null; state.betaald = {}; state.ontvangen = {}; viewWeek = null;
     restMelding = '';
     if (rest >= 0.01 && state.restNaar !== 'niets') {
       const doel = state.restNaar === 'sparen' && doelen ? doelen.doelen.find((g) => !(g.doel > 0 && g.gespaard >= g.doel)) : null;
@@ -3427,13 +3475,7 @@
       const weg = document.createElement('button'); weg.className = 'x'; weg.textContent = '×'; weg.setAttribute('aria-label', 'Voorschot van ' + v.wie + ' wissen');
       [ok, nee, weg].forEach((x) => { x.disabled = readOnly; });
       ok.addEventListener('click', () => {
-        v.status = 'terug'; v.klaar = vandaag();
-        if (v.van === 'sparen') {
-          if (doel) { doel.gespaard = r2(doel.gespaard + v.bedrag); doelenChanged(); renderDoelen(); }
-        } else {
-          // Het geld komt terug in het potje waar het vanaf ging, in de week waarin je het terugkrijgt
-          state.uitgaven.push({ id: uid(), datum: vandaag(), pot: v.van, naam: ('Terug van ' + v.wie + (v.waarvoor ? ': ' + v.waarvoor : '')).slice(0, 80), bedrag: -v.bedrag, voorschot: v.id });
-        }
+        voorschotTerug(v, vandaag());
         viewWeek = null; renderAll(); changed();
         showNotice(v.wie + ' heeft ' + eur.format(v.bedrag) + ' terugbetaald. Het staat weer bij ' + vanNaam + '.', true);
       });
