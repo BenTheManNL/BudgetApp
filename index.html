@@ -2511,7 +2511,12 @@
   // Afschrijvingen van ING worden vanzelf uitgaven. Een vaste last wordt afgevinkt, geld naar je eigen
   // rekening telt niet mee, en een uitgave die je zelf al had ingevoerd (of gescand) wordt niet dubbel geteld.
   const SUPERMARKTEN = /albert heijn|\bah\b|jumbo|lidl|aldi|\bplus\b|dirk|coop|spar\b|vomar|hoogvliet|deka|picnic|ekoplaza|poiesz|boni|nettorama|jan linders|kruidvat|etos|action/i;
-  const bankSleutel = (naam) => String(naam || '').toLowerCase().replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim().split(' ').slice(0, 2).join(' ');
+  // Sleutel om een naam te onthouden: de naam tot het eerste cijfer (winkelnummer en plaats vallen weg),
+  // en niet alleen de eerste twee woorden (zo worden "Hr F Toet" en "Hr F Jansen" niet hetzelfde)
+  const bankSleutel = (naam) => String(naam || '').toLowerCase().replace(/\d.*$/, '').replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim().split(' ').slice(0, 4).join(' ');
+  // Eerder onthouden met alleen de eerste twee woorden; die tellen nog mee als ze lang genoeg zijn om niet te botsen
+  const oudeSleutel = (naam) => String(naam || '').toLowerCase().replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim().split(' ').slice(0, 2).join(' ');
+  const geleerd = (lijst, naam) => { const n = bankSleutel(naam), o = oudeSleutel(naam); return lijst[n] ?? (o.length >= 8 ? lijst[o] : undefined); };
   const netteNaam = (t) => {
     const n = (t.naam || t.omschrijving || 'Betaling').replace(/\s+\d{2,}.*$/, '').replace(/\s+/g, ' ').trim();
     return (n.length > 3 && n === n.toUpperCase() ? n.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()) : n).slice(0, 60);
@@ -2545,19 +2550,19 @@
         if (t.eigen) continue; // naar je eigen spaarrekening
         // 1. Een vaste last? Zelfde bedrag, en de naam lijkt erop of de datum ligt in de buurt
         const tw = woorden(t.naam + ' ' + t.omschrijving);
-        const geleerd = state.posten.find((p) => p.id === state.bankVast[bankSleutel(t.naam || t.omschrijving)] && state.betaald[p.id] !== true);
-        const vast = geleerd || state.posten.find((p) => (p.soort === 'vast' || p.soort === 'aflossing') && state.betaald[p.id] !== true && Math.abs(p.bedrag - t.bedrag) < 0.01
+        const geleerdVast = state.posten.find((p) => p.id === geleerd(state.bankVast, t.naam || t.omschrijving) && state.betaald[p.id] !== true);
+        const vast = geleerdVast || state.posten.find((p) => (p.soort === 'vast' || p.soort === 'aflossing') && state.betaald[p.id] !== true && Math.abs(p.bedrag - t.bedrag) < 0.01
           && ([...woorden(p.naam)].some((w) => tw.has(w)) || (p.dag && afschrijfDatum(state, p.dag) && dagenTussen(afschrijfDatum(state, p.dag), t.datum) <= 7)));
         if (vast) { state.betaald[vast.id] = true; state.bankVast[bankSleutel(t.naam || t.omschrijving)] = vast.id; tel.vast++; continue; }
         // Een vaste last die je zelf al had afgevinkt: zelfde bedrag en de naam lijkt erop, dan niet nog eens als uitgave
         const alBetaald = state.posten.find((p) => (p.soort === 'vast' || p.soort === 'aflossing') && state.betaald[p.id] === true && Math.abs(p.bedrag - t.bedrag) < 0.01
-          && (state.bankVast[bankSleutel(t.naam || t.omschrijving)] === p.id || [...woorden(p.naam)].some((w) => tw.has(w))));
+          && (geleerd(state.bankVast, t.naam || t.omschrijving) === p.id || [...woorden(p.naam)].some((w) => tw.has(w))));
         if (alBetaald) continue;
         // 2. Al zelf ingevoerd? Zelfde bedrag, binnen 3 dagen, nog niet aan een transactie gekoppeld
         const al = state.uitgaven.find((u) => !u.bankId && !u.voorschot && Math.abs(u.bedrag - t.bedrag) < 0.01 && dagenTussen(u.datum, t.datum) <= 3);
         if (al) { al.bankId = t.id; tel.gekoppeld++; continue; }
         // 3. Nieuwe uitgave
-        const pot = state.bankPotten[bankSleutel(t.naam)] || (SUPERMARKTEN.test(t.naam + ' ' + t.omschrijving) ? 'boodschappen' : 'eigen');
+        const pot = geleerd(state.bankPotten, t.naam) || (SUPERMARKTEN.test(t.naam + ' ' + t.omschrijving) ? 'boodschappen' : 'eigen');
         state.uitgaven.push({ id: uid(), datum: t.datum, pot, naam: netteNaam(t), bedrag: r2(t.bedrag), bron: 'bank', bankId: t.id, bankNaam: t.naam || t.omschrijving });
         tel.uitgaven++;
       }
