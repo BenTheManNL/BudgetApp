@@ -309,8 +309,7 @@
   #u-lijst { overflow: hidden; }
   #u-lijst li:not(.empty) { grid-template-columns: 40px 1fr auto; position: relative; cursor: pointer; touch-action: pan-y; transition: transform .2s ease, background-color .15s; border-radius: 12px; }
   #u-lijst li.veegt { transition: none; }
-  #u-lijst li.gekoppeld { opacity: .55; }
-  #u-lijst li.gekoppeld .e-b { color: var(--ink-2); font-weight: 500; }
+  #u-lijst li.gekoppeld .e-ic { color: #a31d1d; background: #bbbbbb; }
   #u-lijst li::after { position: absolute; top: 50%; transform: translateY(-50%); font-size: 13px; font-weight: 700; opacity: 0; pointer-events: none; }
   #u-lijst li.veeg-l { background: color-mix(in srgb, var(--bad) 16%, transparent); }
   #u-lijst li.veeg-l::after { content: "Verwijderen"; right: -110px; color: var(--bad); opacity: 1; }
@@ -3070,6 +3069,7 @@
 
 
   const ICOON_KAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 11h11.2L21 7H6.2"/><circle cx="9" cy="19" r="1.5"/><circle cx="17" cy="19" r="1.5"/></svg>', ICOON_EIGEN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.6L19.5 10.5l-5.6 1.9L12 18l-1.9-5.6L4.5 10.5l5.6-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>';
+  const ICOON_VAST = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg>';
   function renderWeek() {
     if (!state) return;
     const ws = weken(state), t = totalen(state);
@@ -3119,8 +3119,8 @@
     // Nieuwste bovenaan: eerst op datum, en op dezelfde dag wat je het laatst toevoegde (reverse + stabiele sort)
     inWeek.slice().reverse().sort((a, b) => (a.datum < b.datum ? 1 : a.datum > b.datum ? -1 : 0)).forEach((u) => {
       const li = document.createElement('li');
-      li.style.setProperty('--pot', u.pot === 'eigen' ? 'var(--eigen)' : 'var(--bood)');
-      const ic = document.createElement('span'); ic.className = 'e-ic'; ic.innerHTML = u.pot === 'eigen' ? ICOON_EIGEN : ICOON_KAR;
+      li.style.setProperty('--pot', u.vastId ? 'var(--vast)' : u.pot === 'eigen' ? 'var(--eigen)' : 'var(--bood)');
+      const ic = document.createElement('span'); ic.className = 'e-ic'; ic.innerHTML = u.vastId ? ICOON_VAST : u.pot === 'eigen' ? ICOON_EIGEN : ICOON_KAR;
       const mid = document.createElement('div');
       const nm = document.createElement('button'); nm.type = 'button'; nm.className = 'e-nm e-open'; nm.textContent = u.naam || (u.pot === 'eigen' ? 'Eigen invulling' : 'Boodschappen');
       nm.setAttribute('aria-label', 'Aanpassen: ' + nm.textContent + ', ' + eur.format(Math.abs(u.bedrag)));
