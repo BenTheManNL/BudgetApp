@@ -2553,7 +2553,7 @@
       const vanaf = [state.bankVanaf, state.start].sort()[1];
       const r = await S.bankRoep('transacties', { vanaf: toISO(parseISO(vanaf) - 5 * DAG) });
       if (r.koppelen) return { koppelen: true };
-      const tel = { uitgaven: 0, vast: 0, gekoppeld: 0, inkomen: 0, terug: 0, retour: 0, extra: 0 };
+      const tel = { uitgaven: 0, vast: 0, gekoppeld: 0, inkomen: 0, terug: 0, retour: 0, extra: 0, hersteld: 0 };
       // Je loon komt soms net vóór de periode binnen: kijk daarvoor 5 dagen terug
       const vanafInkomen = [state.bankVanaf, toISO(parseISO(state.start) - 5 * DAG)].sort()[1];
       // Betalingen die ING nog verwerkt: die staan al wel van je saldo af, maar worden pas een uitgave als ze geboekt zijn
@@ -2561,6 +2561,16 @@
         && !state.uitgaven.some((u) => !u.bankId && Math.abs(u.bedrag - t.bedrag) < 0.01 && dagenTussen(u.datum, t.datum) <= 3))
         .map((t) => ({ naam: netteNaam(t), bedrag: r2(t.bedrag) }));
       try { localStorage.setItem('duppie:onderweg', JSON.stringify(bankOnderweg)); } catch (e) {}
+      // Herstel: betalingen die al verwerkt zijn, bij een vaste last horen, maar (nog) geen regel in je lijst hebben.
+      // Bijvoorbeeld omdat een eerdere versie een gekoppelde uitgave weghaalde. Ze komen terug als grijze regel.
+      for (const t of r.transacties || []) {
+        if (!state.bankIds[t.id] || !t.geboekt || !t.af || t.eigen || !(t.bedrag > 0) || t.datum < state.start || t.datum >= state.eind) continue;
+        if (state.uitgaven.some((u) => u.bankId === t.id)) continue;
+        const tw = woorden(t.naam + ' ' + t.omschrijving), id = geleerd(state.bankVast, t.naam || t.omschrijving);
+        const post = state.posten.find((p) => p.id === id && state.betaald[p.id] === true)
+          || state.posten.find((p) => ['vast', 'aflossing', 'tijdelijk'].includes(p.soort) && state.betaald[p.id] === true && Math.abs(p.bedrag - t.bedrag) < 0.01 && [...woorden(p.naam)].some((w) => tw.has(w)));
+        if (post) { grijzeRegel(t, post); tel.hersteld++; }
+      }
       for (const t of r.transacties || []) {
         if (state.bankIds[t.id] || !t.geboekt || !(t.bedrag > 0)) continue;
         if (!t.af) { if (t.datum >= vanafInkomen && t.datum < state.eind && bijschrijving(t, tel)) state.bankIds[t.id] = t.datum; continue; }
@@ -2573,11 +2583,11 @@
         const vast = geleerdVast || state.posten.find((p) => p.soort === 'tijdelijk' && p.bedrag > 0 && state.betaald[p.id] !== true && Math.abs(p.bedrag - t.bedrag) < 0.01 && [...woorden(p.naam)].some((w) => tw.has(w)))
           || state.posten.find((p) => (p.soort === 'vast' || p.soort === 'aflossing') && state.betaald[p.id] !== true && Math.abs(p.bedrag - t.bedrag) < 0.01
           && ([...woorden(p.naam)].some((w) => tw.has(w)) || (p.dag && afschrijfDatum(state, p.dag) && dagenTussen(afschrijfDatum(state, p.dag), t.datum) <= 7)));
-        if (vast) { state.betaald[vast.id] = true; state.bankVast[bankSleutel(t.naam || t.omschrijving)] = vast.id; tel.vast++; continue; }
+        if (vast) { state.betaald[vast.id] = true; state.bankVast[bankSleutel(t.naam || t.omschrijving)] = vast.id; grijzeRegel(t, vast); tel.vast++; continue; }
         // Een vaste last die je zelf al had afgevinkt: zelfde bedrag en de naam lijkt erop, dan niet nog eens als uitgave
         const alBetaald = state.posten.find((p) => (p.soort === 'vast' || p.soort === 'aflossing' || p.soort === 'tijdelijk') && state.betaald[p.id] === true && Math.abs(p.bedrag - t.bedrag) < 0.01
           && (geleerd(state.bankVast, t.naam || t.omschrijving) === p.id || [...woorden(p.naam)].some((w) => tw.has(w))));
-        if (alBetaald) continue;
+        if (alBetaald) { grijzeRegel(t, alBetaald); continue; }
         // 2. Al zelf ingevoerd? Zelfde bedrag, binnen 3 dagen, nog niet aan een transactie gekoppeld
         const al = state.uitgaven.find((u) => !u.bankId && !u.voorschot && Math.abs(u.bedrag - t.bedrag) < 0.01 && dagenTussen(u.datum, t.datum) <= 3);
         if (al) { al.bankId = t.id; tel.gekoppeld++; continue; }
@@ -2598,11 +2608,18 @@
         if (tel.terug) delen.push(tel.terug + (tel.terug === 1 ? ' voorschot' : ' voorschotten') + ' terugbetaald');
         if (tel.retour) delen.push(tel.retour + (tel.retour === 1 ? ' retour' : ' retouren') + ' verwerkt');
         if (tel.extra) delen.push(tel.extra + ' keer extra inkomen');
+        if (tel.hersteld) delen.push(tel.hersteld + (tel.hersteld === 1 ? ' betaling' : ' betalingen') + ' teruggezet als grijze regel');
         if (delen.length) showNotice('🏦 Van ING: ' + (delen.length > 1 ? delen.slice(0, -1).join(', ') + ' en ' + delen[delen.length - 1] : delen[0]) + '.');
       }
       return tel;
     } catch (e) { return { fout: e }; }
     finally { bankBezig = false; }
+  }
+  // Een betaling die bij een vaste last of tijdelijke kost hoort: zichtbaar in je lijst, maar telt niet mee
+  function grijzeRegel(t, post) {
+    if (state.uitgaven.some((u) => u.bankId === t.id)) return;
+    const pot = geleerd(state.bankPotten, t.naam) || 'eigen';
+    state.uitgaven.push({ id: uid(), datum: t.datum, pot, naam: netteNaam(t), bedrag: r2(t.bedrag), bron: 'bank', bankId: t.id, bankNaam: t.naam || t.omschrijving, vastId: post.id });
   }
   // Geld dat binnenkomt. Geeft false als het (nog) niet in deze periode hoort.
   function bijschrijving(t, tel) {
