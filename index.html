@@ -1114,7 +1114,17 @@
     </div>
     <p class="g-fout" id="ue-fout" role="alert" hidden></p>
     <div class="btns"><button class="btn" id="ue-annuleer">Annuleren</button><button class="btn btn-primary" id="ue-ok">Opslaan</button></div>
-    <div class="ue-extra"><button class="btn" id="ue-voor">↩&#xFE0E; Voorgeschoten</button><button class="btn" id="ue-weg">Verwijderen</button></div>
+    <div class="ue-extra"><button class="btn" id="ue-koppel">📌 Vaste last</button><button class="btn" id="ue-voor">↩&#xFE0E; Voorgeschoten</button><button class="btn" id="ue-weg">Verwijderen</button></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="koppel" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="koppel-t">
+    <h3 id="koppel-t">Bij welke vaste last hoort dit?</h3>
+    <p class="hint" id="koppel-uitleg" style="margin:0 0 12px"></p>
+    <div class="acc-kies" id="koppel-lijst"></div>
+    <p class="hint" id="koppel-leeg" hidden style="margin:0">Je hebt nog geen vaste lasten. Voeg ze toe bij Budget.</p>
+    <div class="btns" style="margin-top:14px"><button class="btn" id="koppel-dicht">Annuleren</button></div>
   </div>
 </div>
 
@@ -1696,6 +1706,7 @@
       // Bankkoppeling: vanaf wanneer automatisch, welke transacties al verwerkt zijn, en welk potje bij welke winkel hoort
       bankVanaf: typeof o.bankVanaf === 'string' ? o.bankVanaf : undefined,
       bankIds: o.bankIds && typeof o.bankIds === 'object' && !Array.isArray(o.bankIds) ? Object.fromEntries(Object.entries(o.bankIds).filter(([k, v]) => typeof v === 'string').slice(-2000)) : {},
+      bankVast: o.bankVast && typeof o.bankVast === 'object' && !Array.isArray(o.bankVast) ? Object.fromEntries(Object.entries(o.bankVast).filter(([k, v]) => typeof v === 'string').slice(-200)) : {},
       bankPotten: o.bankPotten && typeof o.bankPotten === 'object' && !Array.isArray(o.bankPotten) ? Object.fromEntries(Object.entries(o.bankPotten).filter(([k, v]) => v === 'eigen' || v === 'boodschappen').slice(-500)) : {},
       saldoCheck: o.saldoCheck && typeof o.saldoCheck === 'object' && typeof o.saldoCheck.datum === 'string' ? {
         datum: o.saldoCheck.datum, verschil: r2(Number(o.saldoCheck.verschil) || 0),
@@ -2501,7 +2512,8 @@
         if (t.eigen) continue; // naar je eigen spaarrekening
         // 1. Een vaste last? Zelfde bedrag, en de naam lijkt erop of de datum ligt in de buurt
         const tw = woorden(t.naam + ' ' + t.omschrijving);
-        const vast = state.posten.find((p) => (p.soort === 'vast' || p.soort === 'aflossing') && state.betaald[p.id] !== true && Math.abs(p.bedrag - t.bedrag) < 0.01
+        const geleerd = state.posten.find((p) => p.id === state.bankVast[bankSleutel(t.naam || t.omschrijving)] && state.betaald[p.id] !== true);
+        const vast = geleerd || state.posten.find((p) => (p.soort === 'vast' || p.soort === 'aflossing') && state.betaald[p.id] !== true && Math.abs(p.bedrag - t.bedrag) < 0.01
           && ([...woorden(p.naam)].some((w) => tw.has(w)) || (p.dag && afschrijfDatum(state, p.dag) && dagenTussen(afschrijfDatum(state, p.dag), t.datum) <= 7)));
         if (vast) { state.betaald[vast.id] = true; tel.vast++; continue; }
         // 2. Al zelf ingevoerd? Zelfde bedrag, binnen 3 dagen, nog niet aan een transactie gekoppeld
@@ -3147,6 +3159,7 @@
     $('ue-datum').value = u.datum; $('ue-datum').min = state.start; $('ue-datum').max = toISO(parseISO(state.eind) - 86400000);
     document.querySelectorAll('input[name="ue-pot"]').forEach((r) => { r.checked = r.value === u.pot; r.disabled = vast; });
     $('ue-voor').hidden = vast || u.voor > 0 || u.bedrag <= 0;
+    $('ue-koppel').hidden = vast || u.voor > 0 || u.bedrag <= 0;
     $('ue-fout').hidden = true; $('ue').hidden = false;
   }
   function ueDicht() { $('ue').hidden = true; ueU = null; }
@@ -3179,6 +3192,42 @@
   $('ue-weg').addEventListener('click', () => { const u = ueU; ueDicht(); if (u) verwijderUitgave(u); });
   $('ue-voor').addEventListener('click', () => { const u = ueU; ueDicht(); if (u) voorOpen(u); });
 
+  // ---------- uitgave koppelen aan een vaste last ----------
+  // Een uitgave die eigenlijk een vaste last is (huur, abonnement…): de vaste last wordt afgevinkt en de uitgave
+  // verdwijnt uit je potjes. Kwam hij van de bank, dan onthoudt Duppie het voor de volgende keer.
+  $('ue-koppel').addEventListener('click', () => { const u = ueU; ueDicht(); if (u) koppelOpen(u); });
+  function koppelOpen(u) {
+    const lijst = $('koppel-lijst'); lijst.replaceChildren();
+    const posten = state.posten.filter((p) => (p.soort === 'vast' || p.soort === 'aflossing') && p.bedrag > 0)
+      .sort((a, b) => (state.betaald[a.id] === true) - (state.betaald[b.id] === true) || Math.abs(a.bedrag - u.bedrag) - Math.abs(b.bedrag - u.bedrag));
+    $('koppel-uitleg').textContent = (u.naam || 'Deze uitgave') + ' van ' + eur.format(u.bedrag) + ' telt dan niet meer mee in je potjes. De vaste last wordt afgevinkt.';
+    $('koppel-leeg').hidden = posten.length > 0;
+    posten.forEach((p) => {
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'acc-optie';
+      const t = document.createElement('b'); t.textContent = (p.naam || 'Vaste last') + ' · ' + eur.format(p.bedrag);
+      const s = document.createElement('span');
+      const d = p.dag && afschrijfDatum(state, p.dag);
+      s.textContent = (state.betaald[p.id] === true ? 'Al afgevinkt' : 'Nog niet betaald') + (d ? ' · ' + kortDag(d) : '') + (Math.abs(p.bedrag - u.bedrag) < 0.01 ? ' · zelfde bedrag' : '');
+      b.append(t, s); b.addEventListener('click', () => koppelVast(u, p)); lijst.append(b);
+    });
+    $('koppel').hidden = false;
+  }
+  function koppelVast(u, p) {
+    $('koppel').hidden = true;
+    undoData = { uitgaven: JSON.stringify(state.uitgaven), voorschotten: JSON.stringify(state.voorschotten), doelen: null,
+      betaald: JSON.stringify(state.betaald), bankVast: JSON.stringify(state.bankVast) };
+    state.betaald[p.id] = true;
+    if (u.bankNaam) state.bankVast[bankSleutel(u.bankNaam)] = p.id; // volgende keer vanzelf
+    state.uitgaven = state.uitgaven.filter((v) => v !== u);
+    renderAll(); changed();
+    const afwijk = Math.abs(p.bedrag - u.bedrag) >= 0.01;
+    $('undo-t').textContent = (p.naam || 'Vaste last') + ' afgevinkt' + (afwijk ? ' (bedrag wijkt af: ' + eur.format(u.bedrag) + ')' : '');
+    $('undo').hidden = false; clearTimeout(undoTimer);
+    undoTimer = setTimeout(() => { $('undo').hidden = true; undoData = null; }, 8000);
+  }
+  $('koppel-dicht').addEventListener('click', () => { $('koppel').hidden = true; });
+  $('koppel').addEventListener('click', (e) => { if (e.target === $('koppel')) $('koppel').hidden = true; });
+
   // Verwijderen met een paar seconden "Ongedaan maken"
   let undoTimer = null, undoData = null;
   function verwijderUitgave(u) {
@@ -3195,6 +3244,7 @@
   $('undo-knop').addEventListener('click', () => {
     if (!undoData || !state) return;
     state.uitgaven = JSON.parse(undoData.uitgaven); state.voorschotten = JSON.parse(undoData.voorschotten);
+    if (undoData.betaald) { state.betaald = JSON.parse(undoData.betaald); state.bankVast = JSON.parse(undoData.bankVast); }
     if (undoData.doelen && doelen && undoData.doelen !== JSON.stringify(doelen.doelen)) { doelen.doelen = JSON.parse(undoData.doelen); doelenChanged(); renderDoelen(); }
     undoData = null; clearTimeout(undoTimer); $('undo').hidden = true;
     renderAll(); changed();
