@@ -4403,6 +4403,18 @@
     const datum = $('bon-datum').value || vandaag();
     const pot = (document.querySelector('input[name="bon-pot"]:checked') || {}).value === 'eigen' ? 'eigen' : 'boodschappen';
     const items = bonData.artikelen.filter((a) => a.naam.trim() && a.bedrag).map((a) => ({ naam: a.naam.trim(), bedrag: a.bedrag }));
+    // Staat deze uitgave er al (bijvoorbeeld via de bank)? Dan de bon daaraan koppelen in plaats van een nieuwe maken.
+    const bestaand = state.uitgaven.find((u) => !u.items && !u.vastId && !u.voorschot && Math.abs(u.bedrag - bedrag) < 0.01 && dagenTussen(u.datum, datum) <= 3);
+    if (bestaand) {
+      bestaand.items = items.length ? items : undefined;
+      bestaand.pot = pot; delete bestaand.onzeker;
+      if (bestaand.bankNaam) state.bankPotten[bankSleutel(bestaand.bankNaam)] = pot;
+      $('bon').hidden = true; bonData = null;
+      viewWeek = weekVan(weken(state), bestaand.datum);
+      renderWeek(); changed();
+      showNotice('Bon gekoppeld aan ' + bestaand.naam + ' (' + eur.format(bestaand.bedrag) + ').', true);
+      return;
+    }
     state.uitgaven.push({ id: uid(), datum, pot, naam: ($('bon-winkel').value.trim() || 'Bon').slice(0, 80), bedrag, items: items.length ? items : undefined });
     $('bon').hidden = true; bonData = null;
     viewWeek = weekVan(weken(state), datum);
