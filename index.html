@@ -1691,6 +1691,7 @@
         bankId: typeof u.bankId === 'string' ? u.bankId : undefined,
         vastId: typeof u.vastId === 'string' ? u.vastId : undefined,
         onzeker: u.onzeker === true ? true : undefined,
+        onderweg: u.onderweg === true ? true : undefined,
         bankNaam: typeof u.bankNaam === 'string' ? u.bankNaam : undefined,
         voor: Number(u.voor) > 0 ? r2(Math.min(Number(u.voor), Number(u.bedrag) || 0)) : undefined,
         voorschot: typeof u.voorschot === 'string' ? u.voorschot : undefined,
@@ -2556,6 +2557,16 @@
       const tel = { uitgaven: 0, vast: 0, gekoppeld: 0, inkomen: 0, terug: 0, retour: 0, extra: 0, hersteld: 0 };
       // Je loon komt soms net vóór de periode binnen: kijk daarvoor 5 dagen terug
       const vanafInkomen = [state.bankVanaf, toISO(parseISO(state.start) - 5 * DAG)].sort()[1];
+      // Onderweg-betalingen alvast als uitgave, zodat je potje meteen klopt. Bij het boeken koppelt stap 2 ze.
+      for (const t of r.transacties || []) {
+        if (t.geboekt || !t.af || t.eigen || !(t.bedrag > 0) || t.datum < vanaf || t.datum < state.start || t.datum >= state.eind) continue;
+        const bestaat = state.uitgaven.some((u) => !u.bankId && Math.abs(u.bedrag - t.bedrag) < 0.01 && dagenTussen(u.datum, t.datum) <= 3);
+        if (bestaat) continue;
+        const geleerdPot = geleerd(state.bankPotten, t.naam);
+        const pot = geleerdPot || (SUPERMARKTEN.test(t.naam + ' ' + t.omschrijving) ? 'boodschappen' : 'eigen');
+        state.uitgaven.push({ id: uid(), datum: t.datum, pot, onzeker: !geleerdPot && pot === 'eigen', onderweg: true, naam: netteNaam(t), bedrag: r2(t.bedrag), bron: 'bank', bankNaam: t.naam || t.omschrijving });
+        tel.uitgaven++;
+      }
       // Betalingen die ING nog verwerkt: die staan al wel van je saldo af, maar worden pas een uitgave als ze geboekt zijn
       bankOnderweg = (r.transacties || []).filter((t) => !t.geboekt && t.af && t.bedrag > 0 && !t.eigen && t.datum >= state.start
         && !state.uitgaven.some((u) => !u.bankId && Math.abs(u.bedrag - t.bedrag) < 0.01 && dagenTussen(u.datum, t.datum) <= 3))
@@ -2590,7 +2601,7 @@
         if (alBetaald) { grijzeRegel(t, alBetaald); continue; }
         // 2. Al zelf ingevoerd? Zelfde bedrag, binnen 3 dagen, nog niet aan een transactie gekoppeld
         const al = state.uitgaven.find((u) => !u.bankId && !u.voorschot && Math.abs(u.bedrag - t.bedrag) < 0.01 && dagenTussen(u.datum, t.datum) <= 3);
-        if (al) { al.bankId = t.id; tel.gekoppeld++; continue; }
+        if (al) { al.bankId = t.id; delete al.onderweg; tel.gekoppeld++; continue; }
         // 3. Nieuwe uitgave
         const geleerdPot = geleerd(state.bankPotten, t.naam);
         const pot = geleerdPot || (SUPERMARKTEN.test(t.naam + ' ' + t.omschrijving) ? 'boodschappen' : 'eigen');
