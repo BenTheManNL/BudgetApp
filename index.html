@@ -2690,7 +2690,7 @@
     if (q.get('error')) { showNotice('Koppelen met ING is niet gelukt: ' + (q.get('error_description') || q.get('error'))); return; }
     try {
       await S.bankRoep('sessie', { code: q.get('code'), state: q.get('state') });
-      openModal({ title: 'ING gekoppeld ✓', text: 'Je ING-rekening is gekoppeld aan Duppie. Gebruik je Duppie vanaf je beginscherm? Ga dan terug naar die app en tik bij "Klopt mijn saldo?" op "Haal op bij ING".', ok: 'Top', onOk: () => {} });
+      openModal({ title: 'ING gekoppeld ✓', text: 'Je ING-rekening is gekoppeld aan Duppie. Gebruik je Duppie vanaf je beginscherm? Ga dan terug naar die app en tik bij "Saldo" op "Haal op bij ING".', ok: 'Top', onOk: () => {} });
     } catch (e) { showNotice('Koppelen met ING is niet gelukt: ' + e.message); }
   })();
   function saldoDicht() {
